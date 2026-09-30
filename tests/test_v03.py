@@ -223,9 +223,12 @@ async def test_blueprint_turns_light_on_before_candle_lighting(hass: HomeAssista
     assert await async_setup_component(hass, "automation", {"automation": [config]})
     await hass.async_block_till_done()
 
-    await _at(hass, freezer, "2026-10-09 14:20:00+00:00")  # 17:20, candle lighting 17:34
+    # Minute by minute, as the clock really moves (templates with now() re-render each minute).
+    for minute in range(20, 24):
+        await _at(hass, freezer, f"2026-10-09 14:{minute:02d}:00+00:00")
     assert hass.states.get("input_boolean.porch").state == "off"
-    await _at(hass, freezer, "2026-10-09 14:24:00+00:00")  # 17:24 = 10 min before 17:34
+    for minute in range(24, 27):  # 17:24 = 10 min before candle lighting at 17:34
+        await _at(hass, freezer, f"2026-10-09 14:{minute:02d}:00+00:00")
     assert hass.states.get("input_boolean.porch").state == "on"
 
     # Calendar end trigger at havdalah (18:49 Saturday). A non-zero delay is plain HA script
@@ -235,3 +238,7 @@ async def test_blueprint_turns_light_on_before_candle_lighting(hass: HomeAssista
     assert hass.states.get("input_boolean.porch").state == "on"
     await _at(hass, freezer, "2026-10-10 15:49:30+00:00")
     assert hass.states.get("input_boolean.porch").state == "off"
+
+    # Stop the calendar trigger's refresh timer before teardown.
+    await hass.services.async_call("automation", "turn_off", {"entity_id": "automation.porch"}, blocking=True)
+    await hass.async_block_till_done()
