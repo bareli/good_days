@@ -30,8 +30,8 @@ DESCRIPTIONS = {
         "כבוי בארץ ישראל. מופעל בחוץ לארץ.",
     ),
     "notify_targets": (
-        "Notify services, e.g. mobile_app_my_phone. Phones get Got it / Remind me tomorrow buttons. Empty: only the good_days_reminder event.",
-        "שירותי התראה, למשל mobile_app_my_phone. בטלפון יופיעו כפתורי הבנתי / תזכירו לי מחר. ריק: רק האירוע good_days_reminder.",
+        "Where to send reminders (for example your phone). Phones show Got it / Remind me tomorrow buttons. None: no notification, but automations can react to the good_days_reminder event.",
+        "לאן לשלוח תזכורות (למשל הטלפון שלך). בטלפון יופיעו הכפתורים הבנתי / תזכירו לי מחר. בלי יעד: אין התראה, אבל אוטומציות יכולות להגיב לאירוע good_days_reminder.",
     ),
     "quiet_on_shabbat": (
         "A reminder due on Shabbat or Yom Tov is sent an hour before candle lighting.",

@@ -46,7 +46,7 @@
         "data_description": {
           "diaspora": "Off in Israel. On outside Israel.",
           "candle_lighting_minutes": "Most of Israel: 18-30. Jerusalem: 40. Haifa: 30.",
-          "notify_targets": "Notify services, e.g. mobile_app_my_phone. Phones get Got it / Remind me tomorrow buttons. Empty: only the good_days_reminder event.",
+          "notify_targets": "Where to send reminders (for example your phone). Phones show Got it / Remind me tomorrow buttons. None: no notification, but automations can react to the good_days_reminder event.",
           "quiet_on_shabbat": "A reminder due on Shabbat or Yom Tov is sent an hour before candle lighting."
         }
       }
