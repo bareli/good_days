@@ -6,7 +6,6 @@
         "description": "Defaults were taken from {source}. You can change everything later in the options.",
         "data": {
           "location": "Location (for candle lighting and havdalah times)",
-          "elevation": "Elevation",
           "diaspora": "Diaspora (two-day Yom Tov)",
           "candle_lighting_minutes": "Candle lighting, minutes before sunset",
           "havdalah_minutes": "Havdalah, minutes after sunset (0 = three stars)",
@@ -20,11 +19,12 @@
     },
     "error": {
       "invalid_location": "Pick a valid location.",
-      "invalid_elevation": "Elevation must be a whole number between -500 and 9000 m.",
       "invalid_minutes": "Minutes must be a whole number between 0 and 120.",
       "invalid_language": "Pick a language from the list.",
       "no_categories": "Pick at least one category.",
-      "invalid_lookahead": "Days ahead must be a whole number between 30 and 730."
+      "invalid_lookahead": "Days ahead must be a whole number between 30 and 730.",
+      "invalid_notify": "Pick existing notify services (Developer tools → Actions → notify.*).",
+      "invalid_time": "Enter a time as HH:MM."
     }
   },
   "options": {
@@ -33,27 +33,32 @@
         "title": "Good Days options",
         "data": {
           "location": "Location (for candle lighting and havdalah times)",
-          "elevation": "Elevation",
           "diaspora": "Diaspora (two-day Yom Tov)",
           "candle_lighting_minutes": "Candle lighting, minutes before sunset",
           "havdalah_minutes": "Havdalah, minutes after sunset (0 = three stars)",
           "language": "Event names language",
           "categories": "Show on the calendar",
-          "lookahead_days": "Days to compute ahead"
+          "lookahead_days": "Days to compute ahead",
+          "notify_targets": "Send family-date reminders to",
+          "reminder_time": "Reminder time",
+          "quiet_on_shabbat": "Hold reminders during Shabbat and Yom Tov"
         },
         "data_description": {
           "diaspora": "Off in Israel. On outside Israel.",
-          "candle_lighting_minutes": "Most of Israel: 18-30. Jerusalem: 40. Haifa: 30."
+          "candle_lighting_minutes": "Most of Israel: 18-30. Jerusalem: 40. Haifa: 30.",
+          "notify_targets": "Notify services, e.g. mobile_app_my_phone. Phones get Got it / Remind me tomorrow buttons. Empty: only the good_days_reminder event.",
+          "quiet_on_shabbat": "Reminders due on Shabbat or Yom Tov are sent after havdalah."
         }
       }
     },
     "error": {
       "invalid_location": "Pick a valid location.",
-      "invalid_elevation": "Elevation must be a whole number between -500 and 9000 m.",
       "invalid_minutes": "Minutes must be a whole number between 0 and 120.",
       "invalid_language": "Pick a language from the list.",
       "no_categories": "Pick at least one category.",
-      "invalid_lookahead": "Days ahead must be a whole number between 30 and 730."
+      "invalid_lookahead": "Days ahead must be a whole number between 30 and 730.",
+      "invalid_notify": "Pick existing notify services (Developer tools → Actions → notify.*).",
+      "invalid_time": "Enter a time as HH:MM."
     }
   },
   "selector": {

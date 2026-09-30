@@ -6,7 +6,6 @@
         "description": "ערכי ברירת המחדל נלקחו מ-{source}. אפשר לשנות הכול אחר כך באפשרויות.",
         "data": {
           "location": "מיקום (לזמני הדלקת נרות והבדלה)",
-          "elevation": "גובה",
           "diaspora": "חוץ לארץ (יום טוב שני)",
           "candle_lighting_minutes": "הדלקת נרות, דקות לפני השקיעה",
           "havdalah_minutes": "הבדלה, דקות אחרי השקיעה (0 = צאת הכוכבים)",
@@ -20,11 +19,12 @@
     },
     "error": {
       "invalid_location": "יש לבחור מיקום תקין.",
-      "invalid_elevation": "הגובה חייב להיות מספר שלם בין ⁦-500⁩ ל-9000 מ׳.",
       "invalid_minutes": "מספר הדקות חייב להיות מספר שלם בין 0 ל-120.",
       "invalid_language": "יש לבחור שפה מהרשימה.",
       "no_categories": "יש לבחור לפחות קטגוריה אחת.",
-      "invalid_lookahead": "מספר הימים חייב להיות מספר שלם בין 30 ל-730."
+      "invalid_lookahead": "מספר הימים חייב להיות מספר שלם בין 30 ל-730.",
+      "invalid_notify": "יש לבחור שירותי התראה קיימים (כלי מפתחים ← פעולות ← notify.*).",
+      "invalid_time": "יש להזין שעה בפורמט HH:MM."
     }
   },
   "options": {
@@ -33,27 +33,32 @@
         "title": "אפשרויות ימים טובים",
         "data": {
           "location": "מיקום (לזמני הדלקת נרות והבדלה)",
-          "elevation": "גובה",
           "diaspora": "חוץ לארץ (יום טוב שני)",
           "candle_lighting_minutes": "הדלקת נרות, דקות לפני השקיעה",
           "havdalah_minutes": "הבדלה, דקות אחרי השקיעה (0 = צאת הכוכבים)",
           "language": "שפת שמות האירועים",
           "categories": "להציג בלוח השנה",
-          "lookahead_days": "מספר ימים לחישוב מראש"
+          "lookahead_days": "מספר ימים לחישוב מראש",
+          "notify_targets": "לשלוח תזכורות לתאריכים משפחתיים אל",
+          "reminder_time": "שעת התזכורת",
+          "quiet_on_shabbat": "לעכב תזכורות בשבת ובחג"
         },
         "data_description": {
           "diaspora": "כבוי בארץ ישראל. מופעל בחוץ לארץ.",
-          "candle_lighting_minutes": "ברוב הארץ: 18-30. ירושלים: 40. חיפה: 30."
+          "candle_lighting_minutes": "ברוב הארץ: 18-30. ירושלים: 40. חיפה: 30.",
+          "notify_targets": "שירותי התראה, למשל mobile_app_my_phone. בטלפון יופיעו כפתורי הבנתי / תזכירו לי מחר. ריק: רק האירוע good_days_reminder.",
+          "quiet_on_shabbat": "תזכורות שחלות בשבת או בחג יישלחו אחרי ההבדלה."
         }
       }
     },
     "error": {
       "invalid_location": "יש לבחור מיקום תקין.",
-      "invalid_elevation": "הגובה חייב להיות מספר שלם בין ⁦-500⁩ ל-9000 מ׳.",
       "invalid_minutes": "מספר הדקות חייב להיות מספר שלם בין 0 ל-120.",
       "invalid_language": "יש לבחור שפה מהרשימה.",
       "no_categories": "יש לבחור לפחות קטגוריה אחת.",
-      "invalid_lookahead": "מספר הימים חייב להיות מספר שלם בין 30 ל-730."
+      "invalid_lookahead": "מספר הימים חייב להיות מספר שלם בין 30 ל-730.",
+      "invalid_notify": "יש לבחור שירותי התראה קיימים (כלי מפתחים ← פעולות ← notify.*).",
+      "invalid_time": "יש להזין שעה בפורמט HH:MM."
     }
   },
   "selector": {

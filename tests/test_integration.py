@@ -19,7 +19,6 @@ NOW = "2026-10-07 07:00:00+00:00"
 
 USER_INPUT = {
     "location": {"latitude": JERUSALEM["latitude"], "longitude": JERUSALEM["longitude"]},
-    "elevation": 754,
     "diaspora": False,
     "candle_lighting_minutes": 40,
     "havdalah_minutes": 0,
@@ -45,7 +44,6 @@ async def test_config_flow_creates_entry(hass: HomeAssistant, israel) -> None:
         ({"candle_lighting_minutes": 500}, "candle_lighting_minutes", "invalid_minutes"),
         ({"havdalah_minutes": 12.5}, "havdalah_minutes", "invalid_minutes"),
         ({"location": {"latitude": 95, "longitude": 35}}, "location", "invalid_location"),
-        ({"elevation": 20000}, "elevation", "invalid_elevation"),
         ({"language": "fr"}, "language", "invalid_language"),
     ],
 )

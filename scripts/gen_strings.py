@@ -10,13 +10,15 @@ ROOT = os.path.join(os.path.dirname(__file__), "..", "custom_components", "good_
 # key -> (en, he)
 FIELDS = {
     "location": ("Location (for candle lighting and havdalah times)", "מיקום (לזמני הדלקת נרות והבדלה)"),
-    "elevation": ("Elevation", "גובה"),
     "diaspora": ("Diaspora (two-day Yom Tov)", "חוץ לארץ (יום טוב שני)"),
     "candle_lighting_minutes": ("Candle lighting, minutes before sunset", "הדלקת נרות, דקות לפני השקיעה"),
     "havdalah_minutes": ("Havdalah, minutes after sunset (0 = three stars)", "הבדלה, דקות אחרי השקיעה (0 = צאת הכוכבים)"),
     "language": ("Event names language", "שפת שמות האירועים"),
     "categories": ("Show on the calendar", "להציג בלוח השנה"),
     "lookahead_days": ("Days to compute ahead", "מספר ימים לחישוב מראש"),
+    "notify_targets": ("Send family-date reminders to", "לשלוח תזכורות לתאריכים משפחתיים אל"),
+    "reminder_time": ("Reminder time", "שעת התזכורת"),
+    "quiet_on_shabbat": ("Hold reminders during Shabbat and Yom Tov", "לעכב תזכורות בשבת ובחג"),
 }
 DESCRIPTIONS = {
     "candle_lighting_minutes": (
@@ -27,9 +29,17 @@ DESCRIPTIONS = {
         "Off in Israel. On outside Israel.",
         "כבוי בארץ ישראל. מופעל בחוץ לארץ.",
     ),
+    "notify_targets": (
+        "Notify services, e.g. mobile_app_my_phone. Phones get Got it / Remind me tomorrow buttons. Empty: only the good_days_reminder event.",
+        "שירותי התראה, למשל mobile_app_my_phone. בטלפון יופיעו כפתורי הבנתי / תזכירו לי מחר. ריק: רק האירוע good_days_reminder.",
+    ),
+    "quiet_on_shabbat": (
+        "Reminders due on Shabbat or Yom Tov are sent after havdalah.",
+        "תזכורות שחלות בשבת או בחג יישלחו אחרי ההבדלה.",
+    ),
 }
-USER_FIELDS = ["location", "elevation", "diaspora", "candle_lighting_minutes", "havdalah_minutes", "language"]
-OPTION_FIELDS = USER_FIELDS + ["categories", "lookahead_days"]
+USER_FIELDS = ["location", "diaspora", "candle_lighting_minutes", "havdalah_minutes", "language"]
+OPTION_FIELDS = USER_FIELDS + ["categories", "lookahead_days", "notify_targets", "reminder_time", "quiet_on_shabbat"]
 
 TEXT = {
     "user_title": ("Good Days", "ימים טובים"),
@@ -41,11 +51,12 @@ TEXT = {
 }
 ERRORS = {
     "invalid_location": ("Pick a valid location.", "יש לבחור מיקום תקין."),
-    "invalid_elevation": ("Elevation must be a whole number between -500 and 9000 m.", "הגובה חייב להיות מספר שלם בין ⁦-500⁩ ל-9000 מ׳."),
     "invalid_minutes": ("Minutes must be a whole number between 0 and 120.", "מספר הדקות חייב להיות מספר שלם בין 0 ל-120."),
     "invalid_language": ("Pick a language from the list.", "יש לבחור שפה מהרשימה."),
     "no_categories": ("Pick at least one category.", "יש לבחור לפחות קטגוריה אחת."),
     "invalid_lookahead": ("Days ahead must be a whole number between 30 and 730.", "מספר הימים חייב להיות מספר שלם בין 30 ל-730."),
+    "invalid_notify": ("Pick existing notify services (Developer tools → Actions → notify.*).", "יש לבחור שירותי התראה קיימים (כלי מפתחים ← פעולות ← notify.*)."),
+    "invalid_time": ("Enter a time as HH:MM.", "יש להזין שעה בפורמט HH:MM."),
 }
 SELECTORS = {
     "language": {

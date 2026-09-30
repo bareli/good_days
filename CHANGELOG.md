@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.0 (2026-09-30)
+
+Reminders, Assist, blueprint.
+
+- Family-date reminders: notify targets, reminder time, per-date days before (on the day, 1 / 3 / 7 days in the panel). A yahrzeit's "on the day" is the evening it begins, an hour before sunset, with the candle time in the message. Phones get **Got it** / **Remind me tomorrow** buttons. Reminders due on Shabbat or Yom Tov wait until after havdalah (option). Sent reminders are remembered across restarts; no burst of old reminders on first run.
+- `good_days_reminder` event for automations.
+- Assist intents `GoodDaysUpcoming`, `GoodDaysNextHoliday`, `GoodDaysShabbatTimes` with ready-made English and Hebrew sentences (`docs/assist`).
+- Blueprint: lights on before candle lighting, optionally off after havdalah.
+- Times now always use sea-level sunset, like printed calendars. hdate 1.2 (Home Assistant 2026.9+) would otherwise add the elevation and move candle lighting about 3 minutes later in Jerusalem. The elevation field was removed from the settings.
+
 ## v0.2.0 (2026-09-30)
 
 Family dates by Hebrew date.

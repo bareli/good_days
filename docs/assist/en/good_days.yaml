@@ -1,0 +1,21 @@
+# Copy to <config>/custom_sentences/en/good_days.yaml and restart Home Assistant.
+language: "en"
+intents:
+  GoodDaysUpcoming:
+    data:
+      - sentences:
+          - "what's (coming [up]|happening|on) [this|the|next] week"
+          - "what is (coming [up]|happening|on) [this|the|next] week"
+          - "(any|are there any) (holidays|birthdays|events) this week"
+  GoodDaysNextHoliday:
+    data:
+      - sentences:
+          - "when is the next (holiday|chag)"
+          - "what is the next (holiday|chag)"
+          - "what's the next (holiday|chag)"
+  GoodDaysShabbatTimes:
+    data:
+      - sentences:
+          - "when is (candle lighting|shabbat|havdalah)"
+          - "when does shabbat (start|begin|end)"
+          - "what time is (candle lighting|havdalah)"

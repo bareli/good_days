@@ -51,6 +51,12 @@ const I18N = {
     adar_default: (m) => `Default (${m})`,
     day30_rule: "When the month has no 30th",
     notes: "Notes",
+    remind: "Remind me",
+    r_0: "On the day",
+    r_0_yahrzeit: "The evening it begins (1 h before sunset)",
+    r_1: "1 day before",
+    r_n: (n) => `${n} days before`,
+    remind_hint: "Where and when is set in Good Days options (notify targets, time).",
     save: "Save",
     cancel: "Cancel",
     confirm_delete: (n) => `Delete ${n}? This cannot be undone.`,
@@ -119,6 +125,12 @@ const I18N = {
     adar_default: (m) => `ברירת מחדל (${m})`,
     day30_rule: "כשאין בחודש יום ל׳",
     notes: "הערות",
+    remind: "להזכיר",
+    r_0: "ביום עצמו",
+    r_0_yahrzeit: "בערב שבו הוא מתחיל (שעה לפני השקיעה)",
+    r_1: "יום לפני",
+    r_n: (n) => `${n} ימים לפני`,
+    remind_hint: "לאן ובאיזו שעה נקבע באפשרויות של ימים טובים (יעדי התראה, שעה).",
     save: "שמירה",
     cancel: "ביטול",
     confirm_delete: (n) => `למחוק את ${n}? אי אפשר לבטל.`,
@@ -529,6 +541,7 @@ class GoodDaysPanel extends HTMLElement {
       adar_rule: editing ? record.adar_rule || "" : "",
       day30_rule: editing ? record.day30_rule || "" : "",
       notes: editing ? record.notes || "" : "",
+      reminder_days: new Set(editing ? record.reminder_days || [] : [1]),
       converted: null,
     };
     const errors = {};
@@ -588,7 +601,7 @@ class GoodDaysPanel extends HTMLElement {
     form.appendChild(field("name", this._t("name"), name));
 
     const kind = select(KINDS.map((k) => [k, this._t(`k_${k}`)]), state.kind);
-    kind.addEventListener("change", () => { state.kind = kind.value; refreshRules(); });
+    kind.addEventListener("change", () => { state.kind = kind.value; refreshRules(); refreshReminderLabels(); });
     form.appendChild(field("kind", this._t("kind"), kind));
 
     const modes = mk("fieldset");
@@ -653,6 +666,31 @@ class GoodDaysPanel extends HTMLElement {
     day30.addEventListener("change", () => { state.day30_rule = day30.value; });
     const day30Field = field("day30_rule", this._t("day30_rule"), day30);
     form.appendChild(day30Field);
+
+    const reminders = mk("fieldset");
+    reminders.appendChild(mk("legend", null, this._t("remind")));
+    const reminderLabels = [];
+    [...new Set([0, 1, 3, 7, ...state.reminder_days])].sort((a, b) => a - b).forEach((n) => {
+      const label = mk("label");
+      const box = mk("input");
+      box.type = "checkbox";
+      box.checked = state.reminder_days.has(n);
+      box.addEventListener("change", () => {
+        if (box.checked) state.reminder_days.add(n); else state.reminder_days.delete(n);
+      });
+      const text = mk("span");
+      reminderLabels.push([n, text]);
+      label.append(box, text);
+      reminders.appendChild(label);
+    });
+    const remindHint = mk("span", "hint", this._t("remind_hint"));
+    form.append(reminders, remindHint);
+    const refreshReminderLabels = () => reminderLabels.forEach(([n, text]) => {
+      text.textContent = n === 0
+        ? this._t(state.kind === "yahrzeit" ? "r_0_yahrzeit" : "r_0")
+        : n === 1 ? this._t("r_1") : this._t("r_n", n);
+    });
+    refreshReminderLabels();
 
     const notes = mk("textarea");
     notes.rows = 2;
@@ -764,6 +802,7 @@ class GoodDaysPanel extends HTMLElement {
         adar_rule: state.adar_rule || null,
         day30_rule: state.day30_rule || null,
         notes: state.notes.trim(),
+        reminder_days: [...state.reminder_days].sort((a, b) => a - b),
       });
       if (state.mode === "hebrew") {
         Object.assign(msg, {

@@ -108,7 +108,7 @@ def _hdate_tr(section: str, key: str, lang: str) -> str:
 class EngineSettings:
     latitude: float
     longitude: float
-    elevation: float
+    elevation: float  # kept for compatibility; zmanim use sea level
     time_zone: str
     diaspora: bool
     candle_lighting: int = DEFAULT_CANDLE_LIGHTING
@@ -214,7 +214,9 @@ def make_location(settings: EngineSettings) -> Location:
         latitude=settings.latitude,
         longitude=settings.longitude,
         timezone=ZoneInfo(settings.time_zone),
-        altitude=settings.elevation,
+        # Sea-level sunset, as printed calendars use. hdate >= 1.2 would otherwise add the
+        # elevation and make candle lighting later (about 3 min in Jerusalem).
+        altitude=0,
         diaspora=settings.diaspora,
     )
 

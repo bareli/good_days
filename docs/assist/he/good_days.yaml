@@ -1,0 +1,20 @@
+# העתיקו ל- <config>/custom_sentences/he/good_days.yaml והפעילו מחדש את Home Assistant.
+language: "he"
+intents:
+  GoodDaysUpcoming:
+    data:
+      - sentences:
+          - "מה יש (השבוע|בשבוע הקרוב)"
+          - "מה (קורה|מתוכנן) (השבוע|בשבוע הקרוב)"
+          - "יש (חגים|ימי הולדת|אירועים) השבוע"
+  GoodDaysNextHoliday:
+    data:
+      - sentences:
+          - "מתי החג הבא"
+          - "מה החג הבא"
+  GoodDaysShabbatTimes:
+    data:
+      - sentences:
+          - "מתי (כניסת|יציאת|נכנסת|יוצאת) [ה]שבת"
+          - "מתי הדלקת נרות"
+          - "(באיזו|מה) שעה (הדלקת נרות|הבדלה|נכנסת השבת|יוצאת השבת)"

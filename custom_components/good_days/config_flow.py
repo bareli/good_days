@@ -14,14 +14,17 @@ from .const import (
     CONF_CANDLE_LIGHTING,
     CONF_CATEGORIES,
     CONF_DIASPORA,
-    CONF_ELEVATION,
     CONF_HAVDALAH,
     CONF_LANGUAGE,
     CONF_LATITUDE,
     CONF_LOCATION,
     CONF_LONGITUDE,
     CONF_LOOKAHEAD_DAYS,
+    CONF_NOTIFY_TARGETS,
+    CONF_QUIET_ON_SHABBAT,
+    CONF_REMINDER_TIME,
     DEFAULT_CANDLE_LIGHTING,
+    DEFAULT_REMINDER_TIME,
     DEFAULT_CATEGORIES,
     DEFAULT_HAVDALAH,
     DEFAULT_LOOKAHEAD_DAYS,
@@ -37,7 +40,6 @@ JEWISH_CALENDAR = "jewish_calendar"
 # Keys of the core Jewish Calendar entry (data / options). Read once as defaults, never live.
 JC_CANDLE = "candle_lighting_minutes_before_sunset"
 JC_HAVDALAH = "havdalah_minutes_after_sunset"
-MIN_ELEVATION, MAX_ELEVATION = -500, 9000
 
 
 def jewish_calendar_defaults(hass: HomeAssistant) -> dict[str, Any]:
@@ -51,8 +53,6 @@ def jewish_calendar_defaults(hass: HomeAssistant) -> dict[str, Any]:
         if CONF_LATITUDE in data and CONF_LONGITUDE in data:
             out[CONF_LATITUDE] = float(data[CONF_LATITUDE])
             out[CONF_LONGITUDE] = float(data[CONF_LONGITUDE])
-        if CONF_ELEVATION in data:
-            out[CONF_ELEVATION] = float(data[CONF_ELEVATION])
         if CONF_DIASPORA in data:
             out[CONF_DIASPORA] = bool(data[CONF_DIASPORA])
         if JC_CANDLE in options:
@@ -68,13 +68,15 @@ def _base_defaults(hass: HomeAssistant) -> dict[str, Any]:
     return {
         CONF_LATITUDE: hass.config.latitude,
         CONF_LONGITUDE: hass.config.longitude,
-        CONF_ELEVATION: hass.config.elevation or 0,
         CONF_DIASPORA: bool(hass.config.country) and hass.config.country != "IL",
         CONF_CANDLE_LIGHTING: DEFAULT_CANDLE_LIGHTING,
         CONF_HAVDALAH: DEFAULT_HAVDALAH,
         CONF_LANGUAGE: LANG_AUTO,
         CONF_CATEGORIES: DEFAULT_CATEGORIES,
         CONF_LOOKAHEAD_DAYS: DEFAULT_LOOKAHEAD_DAYS,
+        CONF_NOTIFY_TARGETS: [],
+        CONF_REMINDER_TIME: DEFAULT_REMINDER_TIME,
+        CONF_QUIET_ON_SHABBAT: True,
     }
 
 
@@ -93,12 +95,6 @@ def _location_fields(d: dict[str, Any]) -> dict:
             CONF_LOCATION,
             default={CONF_LATITUDE: d[CONF_LATITUDE], CONF_LONGITUDE: d[CONF_LONGITUDE]},
         ): selector.LocationSelector(selector.LocationSelectorConfig(radius=False)),
-        vol.Required(CONF_ELEVATION, default=d[CONF_ELEVATION]): selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                min=MIN_ELEVATION, max=MAX_ELEVATION, step=1, unit_of_measurement="m",
-                mode=selector.NumberSelectorMode.BOX,
-            )
-        ),
         vol.Required(CONF_DIASPORA, default=d[CONF_DIASPORA]): selector.BooleanSelector(),
         vol.Required(CONF_CANDLE_LIGHTING, default=d[CONF_CANDLE_LIGHTING]): _minutes(),
         vol.Required(CONF_HAVDALAH, default=d[CONF_HAVDALAH]): _minutes(),
@@ -108,7 +104,11 @@ def _location_fields(d: dict[str, Any]) -> dict:
     }
 
 
-def _option_fields(d: dict[str, Any]) -> dict:
+def _notify_services(hass: HomeAssistant) -> list[str]:
+    return sorted(hass.services.async_services_for_domain("notify"))
+
+
+def _option_fields(hass: HomeAssistant, d: dict[str, Any]) -> dict:
     return {
         vol.Required(CONF_CATEGORIES, default=list(d[CONF_CATEGORIES])): selector.SelectSelector(
             selector.SelectSelectorConfig(
@@ -122,6 +122,16 @@ def _option_fields(d: dict[str, Any]) -> dict:
                 mode=selector.NumberSelectorMode.BOX,
             )
         ),
+        vol.Optional(CONF_NOTIFY_TARGETS, default=list(d[CONF_NOTIFY_TARGETS])): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=sorted({*_notify_services(hass), *d[CONF_NOTIFY_TARGETS]}),
+                multiple=True,
+                custom_value=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Required(CONF_REMINDER_TIME, default=d[CONF_REMINDER_TIME]): selector.TimeSelector(),
+        vol.Required(CONF_QUIET_ON_SHABBAT, default=d[CONF_QUIET_ON_SHABBAT]): selector.BooleanSelector(),
     }
 
 
@@ -135,7 +145,20 @@ def _int_in(value: Any, low: int, high: int) -> int | None:
     return int(number)
 
 
-def validate(user_input: dict[str, Any], with_options: bool) -> tuple[dict[str, Any], dict[str, str]]:
+def _hhmm(value: Any) -> str | None:
+    """'HH:MM' from 'HH:MM' or the TimeSelector's 'HH:MM:SS'."""
+    parts = str(value or "").split(":")
+    if len(parts) not in (2, 3) or not all(p.isdigit() for p in parts):
+        return None
+    hours, minutes = int(parts[0]), int(parts[1])
+    if not (0 <= hours < 24 and 0 <= minutes < 60):
+        return None
+    return f"{hours:02d}:{minutes:02d}"
+
+
+def validate(
+    user_input: dict[str, Any], with_options: bool, notify_services: set[str] | None = None
+) -> tuple[dict[str, Any], dict[str, str]]:
     """Server-side validation; returns (clean options, errors keyed by field)."""
     errors: dict[str, str] = {}
     clean: dict[str, Any] = {}
@@ -148,12 +171,6 @@ def validate(user_input: dict[str, Any], with_options: bool) -> tuple[dict[str, 
         clean[CONF_LATITUDE], clean[CONF_LONGITUDE] = lat, lon
     except (KeyError, TypeError, ValueError):
         errors[CONF_LOCATION] = "invalid_location"
-
-    elevation = _int_in(user_input.get(CONF_ELEVATION, 0), MIN_ELEVATION, MAX_ELEVATION)
-    if elevation is None:
-        errors[CONF_ELEVATION] = "invalid_elevation"
-    else:
-        clean[CONF_ELEVATION] = elevation
 
     for key in (CONF_CANDLE_LIGHTING, CONF_HAVDALAH):
         minutes = _int_in(user_input.get(key), 0, MAX_OFFSET_MINUTES)
@@ -180,6 +197,19 @@ def validate(user_input: dict[str, Any], with_options: bool) -> tuple[dict[str, 
             errors[CONF_LOOKAHEAD_DAYS] = "invalid_lookahead"
         else:
             clean[CONF_LOOKAHEAD_DAYS] = days
+
+        targets = user_input.get(CONF_NOTIFY_TARGETS) or []
+        targets = [str(t).strip().removeprefix("notify.") for t in targets if str(t).strip()]
+        if notify_services is not None and any(t not in notify_services for t in targets):
+            errors[CONF_NOTIFY_TARGETS] = "invalid_notify"
+        else:
+            clean[CONF_NOTIFY_TARGETS] = list(dict.fromkeys(targets))
+        reminder_time = _hhmm(user_input.get(CONF_REMINDER_TIME, DEFAULT_REMINDER_TIME))
+        if reminder_time is None:
+            errors[CONF_REMINDER_TIME] = "invalid_time"
+        else:
+            clean[CONF_REMINDER_TIME] = reminder_time
+        clean[CONF_QUIET_ON_SHABBAT] = bool(user_input.get(CONF_QUIET_ON_SHABBAT, True))
     return clean, errors
 
 
@@ -230,13 +260,15 @@ class GoodDaysOptionsFlow(config_entries.OptionsFlow):
         current = {**_base_defaults(self.hass), **self._entry.options}
         errors: dict[str, str] = {}
         if user_input is not None:
-            clean, errors = validate(user_input, with_options=True)
+            clean, errors = validate(
+                user_input, with_options=True, notify_services=set(_notify_services(self.hass))
+            )
             if not errors:
                 # Merge: keys this form does not show must survive.
                 return self.async_create_entry(data={**self._entry.options, **clean})
             current = _form_values(user_input, current)
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema({**_location_fields(current), **_option_fields(current)}),
+            data_schema=vol.Schema({**_location_fields(current), **_option_fields(self.hass, current)}),
             errors=errors,
         )

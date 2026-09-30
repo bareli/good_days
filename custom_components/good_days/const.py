@@ -6,7 +6,6 @@ DOMAIN = "good_days"
 CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
 CONF_LOCATION = "location"
-CONF_ELEVATION = "elevation"
 CONF_DIASPORA = "diaspora"
 CONF_CANDLE_LIGHTING = "candle_lighting_minutes"
 CONF_HAVDALAH = "havdalah_minutes"
@@ -81,6 +80,24 @@ MAX_NOTES_LENGTH = 500
 MAX_DATES = 500
 MIN_HEBREW_YEAR, MAX_HEBREW_YEAR = 3000, 6500
 MAX_REMINDER_DAYS = 60
+
+# Reminders, v0.3
+CONF_NOTIFY_TARGETS = "notify_targets"  # notify service names, e.g. "mobile_app_pixel"
+CONF_REMINDER_TIME = "reminder_time"  # "HH:MM" local
+CONF_QUIET_ON_SHABBAT = "quiet_on_shabbat"
+DEFAULT_REMINDER_TIME = "09:00"
+YAHRZEIT_EVENING_LEAD_MIN = 60  # reminder_days 0 for a yahrzeit: an hour before sunset
+REMINDER_LOOKBACK_DAYS = 4  # catch up after a restart or a Shabbat hold (3-day Yom Tov + Shabbat)
+EVENT_REMINDER = f"{DOMAIN}_reminder"
+# mobile_app action ids: "GOODDAYS:<cmd>:<entry_id>:<date_id>:<YYYY-MM-DD>"
+ACTION_PREFIX = "GOODDAYS"
+ACTION_ACK = "ack"
+ACTION_SNOOZE = "snooze"
+
+# Assist intents, v0.3
+INTENT_UPCOMING = "GoodDaysUpcoming"
+INTENT_NEXT_HOLIDAY = "GoodDaysNextHoliday"
+INTENT_SHABBAT = "GoodDaysShabbatTimes"
 
 SIGNAL_UPDATED = f"{DOMAIN}_updated_{{}}"
 
