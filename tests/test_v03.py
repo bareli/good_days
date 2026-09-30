@@ -9,6 +9,7 @@ from homeassistant.components.blueprint.models import Blueprint, BlueprintInputs
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import intent
+from homeassistant.helpers.template import Template
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from homeassistant.util.yaml import load_yaml_dict
@@ -229,7 +230,15 @@ async def test_blueprint_turns_light_on_before_candle_lighting(hass: HomeAssista
     assert hass.states.get("input_boolean.porch").state == "off"
     for minute in range(24, 27):  # 17:24 = 10 min before candle lighting at 17:34
         await _at(hass, freezer, f"2026-10-09 14:{minute:02d}:00+00:00")
-    assert hass.states.get("input_boolean.porch").state == "on"
+    cal = hass.states.get("calendar.good_days_holidays")
+    probe = Template(
+        "{{ now().isoformat() }} {{ now().timestamp() }} "
+        "{{ as_timestamp(state_attr('calendar.good_days_holidays', 'start_time')) }}",
+        hass,
+    ).async_render()
+    assert hass.states.get("input_boolean.porch").state == "on", (
+        cal.attributes, probe, hass.states.get("automation.porch").attributes, str(dt_util.get_default_time_zone())
+    )
 
     # Calendar end trigger at havdalah (18:49 Saturday). A non-zero delay is plain HA script
     # behaviour and would block async_block_till_done under a frozen clock.
