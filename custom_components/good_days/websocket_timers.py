@@ -115,6 +115,7 @@ RULE_FIELDS = {
         vol.Required("type"): f"{DOMAIN}/timers/save",
         vol.Optional("entry_id"): cv.string,
         vol.Optional("rule_id"): cv.string,
+        vol.Optional("language"): cv.string,
         **RULE_FIELDS,
     }
 )
@@ -148,7 +149,12 @@ async def ws_save(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): f"{DOMAIN}/timers/remove", vol.Optional("entry_id"): cv.string, vol.Required("rule_id"): cv.string}
+    {
+        vol.Required("type"): f"{DOMAIN}/timers/remove",
+        vol.Optional("entry_id"): cv.string,
+        vol.Required("rule_id"): cv.string,
+        vol.Optional("language"): cv.string,
+    }
 )
 @websocket_api.require_admin
 @websocket_api.async_response
@@ -170,6 +176,7 @@ async def ws_remove(hass: HomeAssistant, connection: websocket_api.ActiveConnect
         vol.Optional("entry_id"): cv.string,
         vol.Required("rule_id"): cv.string,
         vol.Optional("profile"): cv.string,
+        vol.Optional("language"): cv.string,
     }
 )
 @websocket_api.require_admin
@@ -201,6 +208,7 @@ async def ws_duplicate(hass: HomeAssistant, connection: websocket_api.ActiveConn
         vol.Required("type"): f"{DOMAIN}/timers/run",
         vol.Optional("entry_id"): cv.string,
         vol.Required("rule_id"): cv.string,
+        vol.Optional("language"): cv.string,
     }
 )
 @websocket_api.require_admin

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as dt
 
+import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
@@ -239,3 +240,23 @@ async def test_profiles_presets_duplicate_run_and_admin(
     await reader.send_json_auto_id({"type": "good_days/timers/settings", "enabled": False})
     msg = await reader.receive_json()
     assert msg["success"] is False and msg["error"]["code"] == "unauthorized"
+
+
+@pytest.mark.parametrize(
+    "msg_type, extra",
+    [
+        ("good_days/timers/save", {"name": "Plate", "targets": ["input_boolean.plate"], "action": "on",
+                                    "anchor": "candle_lighting", "offset_min": -20, "applies_to": ["shabbat", "yom_tov"]}),
+        ("good_days/timers/remove", {"rule_id": "nope"}),
+        ("good_days/timers/duplicate", {"rule_id": "nope"}),
+        ("good_days/timers/run", {"rule_id": "nope"}),
+    ],
+)
+async def test_timers_commands_accept_the_language_field_the_panel_always_sends(
+    hass: HomeAssistant, israel, freezer, hass_ws_client, msg_type, extra
+) -> None:
+    """www/panel.js `_timersCall` adds `language` to every timers/* message it sends."""
+    _entry, ws = await _setup(hass, freezer, hass_ws_client)
+    await ws.send_json_auto_id({"type": msg_type, "language": "he", **extra})
+    reply = await ws.receive_json()
+    assert reply["success"], f"{msg_type} rejected language param: {reply.get('error')}"
