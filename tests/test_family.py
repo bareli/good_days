@@ -66,8 +66,8 @@ def test_birthday_all_day_with_age():
     (event,) = compute_family([rec(original_year=5745)], ISRAEL, D(2025, 3, 1), D(2025, 3, 31))
     assert event.all_day and event.first_day == D(2025, 3, 14)
     assert event.years == 40
-    assert event.title("en") == "Noa's birthday (40)"
-    assert event.title("he") == "יום הולדת 40 לNoa"
+    assert event.title("en") == "\u2068Noa\u2069's birthday (40)"
+    assert event.title("he") == "יום הולדת 40 ל\u2068Noa\u2069"
     assert event.uid == "family-x-2025-03-14"
 
 
@@ -79,7 +79,7 @@ def test_yahrzeit_is_timed_from_sunset_the_evening_before():
     assert event.start.date() == D(2026, 12, 19) and event.end.date() == D(2026, 12, 20)
     assert dt.time(16, 0) < event.start.time() < dt.time(17, 30)
     assert event.years == 17
-    assert event.title("en") == "Yahrzeit: Saba (17)"
+    assert event.title("en") == "Yahrzeit: \u2068Saba\u2069 (17)"
 
 
 def test_occurrences_before_the_original_year_are_skipped():

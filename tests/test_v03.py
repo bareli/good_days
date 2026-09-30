@@ -62,7 +62,7 @@ async def test_reminder_day_before_once_with_buttons(hass: HomeAssistant, israel
     assert calls == []
     await _at(hass, freezer, "2026-10-13 06:00:30+00:00")  # 09:00 the day before
     assert len(calls) == 1
-    assert calls[0].data["message"] == "Tomorrow: Noa's birthday (7)"
+    assert calls[0].data["message"] == "Tomorrow: \u2068Noa\u2069's birthday (7)"
     actions = calls[0].data["data"]["actions"]
     assert actions[0]["action"] == f"GOODDAYS:ack:{entry.entry_id}:{date['id']}:2026-10-14"
     assert actions[1]["action"].startswith("GOODDAYS:snooze:")
@@ -86,7 +86,7 @@ async def test_reminder_due_on_shabbat_is_sent_before_candle_lighting(hass: Home
     await _at(hass, freezer, "2026-10-09 13:30:00+00:00")  # Fri 16:30
     assert calls == []
     await _at(hass, freezer, "2026-10-09 13:35:00+00:00")  # Fri 16:35 (candle lighting 17:34 - 60)
-    assert [c.data["message"] for c in calls] == ["In 2 days: Dan's birthday"]
+    assert [c.data["message"] for c in calls] == ["In 2 days: \u2068Dan\u2069's birthday"]
     await _at(hass, freezer, "2026-10-10 06:00:30+00:00")
     await _at(hass, freezer, "2026-10-10 16:00:00+00:00")
     assert len(calls) == 1
@@ -101,7 +101,7 @@ async def test_reminder_for_a_date_on_yom_tov_is_not_lost(hass: HomeAssistant, i
     for when in ("2027-09-30 12:00:00+00:00", "2027-10-01 13:00:00+00:00", "2027-10-01 14:30:00+00:00",
                  "2027-10-03 06:00:30+00:00", "2027-10-03 17:00:00+00:00"):
         await _at(hass, freezer, when)
-    assert [c.data["message"] for c in calls] == ["In 2 days: Tal's birthday"]
+    assert [c.data["message"] for c in calls] == ["In 2 days: \u2068Tal\u2069's birthday"]
 
 
 async def test_reminder_on_shabbat_when_not_quiet(hass: HomeAssistant, israel, freezer) -> None:
@@ -124,7 +124,7 @@ async def test_ack_stops_and_snooze_repeats(hass: HomeAssistant, israel, freezer
     await hass.async_block_till_done()
     # Same-day reminder (days 0) fires at 09:00; the snooze (due 09:00:30 + 1 day) is merged into it.
     await _at(hass, freezer, "2026-10-14 06:01:00+00:00")
-    assert [c.data["message"] for c in calls][1:] == ["Today: Noa's birthday (7)"]
+    assert [c.data["message"] for c in calls][1:] == ["Today: \u2068Noa\u2069's birthday (7)"]
 
     hass.bus.async_fire(
         "mobile_app_notification_action",
@@ -140,7 +140,7 @@ async def test_snooze_fires_next_day(hass: HomeAssistant, israel, freezer) -> No
     entry, calls, _ = await _setup(hass, freezer)
     date = await _add(hass, {**WEEKDAY_BIRTHDAY, "reminder_days": [3]})
     await _at(hass, freezer, "2026-10-11 06:00:30+00:00")  # Sunday, 3 days before
-    assert [c.data["message"] for c in calls] == ["In 3 days: Noa's birthday (7)"]
+    assert [c.data["message"] for c in calls] == ["In 3 days: \u2068Noa\u2069's birthday (7)"]
     hass.bus.async_fire(
         "mobile_app_notification_action",
         {"action": f"GOODDAYS:snooze:{entry.entry_id}:{date['id']}:2026-10-14"},
@@ -149,7 +149,7 @@ async def test_snooze_fires_next_day(hass: HomeAssistant, israel, freezer) -> No
     await _at(hass, freezer, "2026-10-12 06:00:00+00:00")
     assert len(calls) == 1
     await _at(hass, freezer, "2026-10-12 06:02:00+00:00")
-    assert [c.data["message"] for c in calls][1:] == ["In 2 days: Noa's birthday (7)"]
+    assert [c.data["message"] for c in calls][1:] == ["In 2 days: \u2068Noa\u2069's birthday (7)"]
 
 
 async def test_yahrzeit_evening_reminder_with_candle_time(hass: HomeAssistant, israel, freezer) -> None:
@@ -158,7 +158,7 @@ async def test_yahrzeit_evening_reminder_with_candle_time(hass: HomeAssistant, i
     await _at(hass, freezer, "2026-10-13 14:00:00+00:00")  # 17:00, before sunset 18:09 - 60 min
     assert calls == []
     await _at(hass, freezer, "2026-10-13 14:10:00+00:00")  # 17:10
-    assert [c.data["message"] for c in calls] == ["הערב: יום השנה: Saba. הדליקו נר לפני 18:09."]
+    assert [c.data["message"] for c in calls] == ["הערב: יום השנה: \u2068Saba\u2069. הדליקו נר לפני 18:09."]
 
 
 async def test_yahrzeit_beginning_on_shabbat_lights_before_candle_lighting(hass: HomeAssistant, israel, freezer) -> None:
@@ -166,7 +166,7 @@ async def test_yahrzeit_beginning_on_shabbat_lights_before_candle_lighting(hass:
     # 29 Tishrei 5787 = Shabbat 2026-10-10: begins Friday evening, inside Shabbat.
     await _add(hass, {**YAHRZEIT, "hebrew_day": 29, "hebrew_month": "tishrei"})
     await _at(hass, freezer, "2026-10-09 13:35:00+00:00")  # Fri 16:35 = candle lighting 17:34 - 60
-    assert [c.data["message"] for c in calls] == ["Tonight: Yahrzeit: Saba. Light a candle before 17:34."]
+    assert [c.data["message"] for c in calls] == ["Tonight: Yahrzeit: \u2068Saba\u2069. Light a candle before 17:34."]
 
 
 async def test_yahrzeit_beginning_as_shabbat_ends_lights_after_havdalah(hass: HomeAssistant, israel, freezer) -> None:
@@ -176,7 +176,7 @@ async def test_yahrzeit_beginning_as_shabbat_ends_lights_after_havdalah(hass: Ho
     await _at(hass, freezer, "2026-10-10 15:00:00+00:00")  # Sat 18:00, still Shabbat
     assert calls == []
     await _at(hass, freezer, "2026-10-10 15:50:00+00:00")  # 18:50, havdalah 18:49
-    assert [c.data["message"] for c in calls] == ["Tonight: Yahrzeit: Saba. Light a candle after havdalah (18:49)."]
+    assert [c.data["message"] for c in calls] == ["Tonight: Yahrzeit: \u2068Saba\u2069. Light a candle after havdalah (18:49)."]
 
 
 async def test_options_validate_reminders(hass: HomeAssistant, israel) -> None:
@@ -224,10 +224,10 @@ async def test_intents(hass: HomeAssistant, israel, freezer) -> None:
     )
     assert await _speech(hass, "GoodDaysNextHoliday", "en") == "Chanukah, in 59 days, on Saturday."
     assert await _speech(hass, "GoodDaysUpcoming", "en") == (
-        "Coming up: Shabbat Parashat Bereshit on Friday evening and Noa's birthday (7) on Wednesday."
+        "Coming up: Shabbat Parashat Bereshit on Friday evening and \u2068Noa\u2069's birthday (7) on Wednesday."
     )
     assert await _speech(hass, "GoodDaysUpcoming", "he") == (
-        "בשבוע הקרוב: שבת פרשת בראשית ביום שישי בערב ויום הולדת 7 לNoa ביום רביעי."
+        "בשבוע הקרוב: שבת פרשת בראשית ביום שישי בערב ויום הולדת 7 ל\u2068Noa\u2069 ביום רביעי."
     )
 
     freezer.move_to("2026-10-10 09:00:00+00:00")
