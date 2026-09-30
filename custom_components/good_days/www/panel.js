@@ -90,8 +90,22 @@ const I18N = {
     has_conditions: (n) => `${iso(n)} condition(s)`,
     enabled: "Enabled",
     disabled: "off",
-    run_now: "Run now",
-    run_now_named: (n) => `Run ${n} now`,
+    run_now_on: "Turn on now",
+    run_now_off: "Turn off now",
+    run_now_named: (verb, n, t) => `${verb}: ${n} · ${t}`,
+    profile_active: "Active profile",
+    profile_view: "Show and edit:",
+    profile_view_ro: "Show profile:",
+    profile_is_active: "active",
+    preview_profile: (p) => `Preview for profile: ${p}`,
+    preview_not_active: (p) => `Preview for profile: ${p}. It is not the active profile, so these timers will not run.`,
+    profile_timers: (n) => (n === 1 ? "1 timer" : `${iso(n)} timers`),
+    rename: "Rename",
+    rename_named: (n) => `Rename ${n}`,
+    skip_hint: "Applies to this Shabbat / Chag only and clears itself afterwards.",
+    wont_run: "won't run",
+    readonly_notice: "Only Home Assistant admins can change timers. You can see here what will run.",
+    instance_n: (title, n) => `${title} (${iso(n)})`,
     ran: "Done",
     run_failed: "Could not run it.",
     duplicate: "Duplicate",
@@ -142,7 +156,8 @@ const I18N = {
     day: "Day",
     month: "Month",
     year: "Hebrew year (optional)",
-    year_hint: "Shows age or number of years, e.g. 5745.",
+    year_hint: "For example 5745, or in Hebrew letters תשמ״ה. Shows age or number of years.",
+    year_parsed: (v) => `= ${v}`,
     gregorian_date: "Gregorian date",
     after_sunset: "After sunset (the Hebrew date had already changed)",
     converted: (d) => `Hebrew date: ${d}`,
@@ -185,7 +200,7 @@ const I18N = {
     e_invalid_kind: "Pick a kind.",
     e_invalid_month: "Pick a month.",
     e_invalid_day: "This month has no such day.",
-    e_invalid_year: "Enter a Hebrew year between 3000 and 6500, e.g. 5745.",
+    e_invalid_year: "Enter a Hebrew year, e.g. 5745 or תשמ״ה (3000 to 6500).",
     e_invalid_date: "Enter a valid date.",
     e_invalid_notes: `Notes can be up to ${MAX_NOTES} characters.`,
     e_invalid_adar_rule: "Pick an option.",
@@ -271,8 +286,22 @@ const I18N = {
     has_conditions: (n) => `${iso(n)} תנאים`,
     enabled: "פעיל",
     disabled: "מושבת",
-    run_now: "הפעלה עכשיו",
-    run_now_named: (n) => `הפעלת ${n} עכשיו`,
+    run_now_on: "להדליק עכשיו",
+    run_now_off: "לכבות עכשיו",
+    run_now_named: (verb, n, t) => `${verb}: ${n} · ${t}`,
+    profile_active: "פרופיל פעיל",
+    profile_view: "הצגה ועריכה:",
+    profile_view_ro: "הצגת פרופיל:",
+    profile_is_active: "פעיל",
+    preview_profile: (p) => `תצוגה מקדימה לפי פרופיל: ${p}`,
+    preview_not_active: (p) => `תצוגה מקדימה לפי פרופיל: ${p}. זה לא הפרופיל הפעיל, ולכן הטיימרים האלה לא יופעלו.`,
+    profile_timers: (n) => (n === 1 ? "טיימר אחד" : `${iso(n)} טיימרים`),
+    rename: "שינוי שם",
+    rename_named: (n) => `שינוי שם: ${n}`,
+    skip_hint: "חל רק על השבת / החג הזה, ומתבטל מעצמו אחריו.",
+    wont_run: "לא יופעל",
+    readonly_notice: "רק מנהלי Home Assistant יכולים לשנות טיימרים. אפשר לראות כאן מה יופעל.",
+    instance_n: (title, n) => `${title} (${iso(n)})`,
     ran: "בוצע",
     run_failed: "ההפעלה נכשלה.",
     duplicate: "שכפול",
@@ -323,7 +352,8 @@ const I18N = {
     day: "יום",
     month: "חודש",
     year: "שנה עברית (רשות)",
-    year_hint: "מציג גיל או מספר שנים, למשל 5745.",
+    year_hint: "למשל תשמ״ה או 5745. מציג גיל או מספר שנים.",
+    year_parsed: (v) => `כלומר ${v}`,
     gregorian_date: "תאריך לועזי",
     after_sunset: "אחרי השקיעה (התאריך העברי כבר התחלף)",
     converted: (d) => `תאריך עברי: ${d}`,
@@ -366,7 +396,7 @@ const I18N = {
     e_invalid_kind: "יש לבחור סוג.",
     e_invalid_month: "יש לבחור חודש.",
     e_invalid_day: "אין יום כזה בחודש הזה.",
-    e_invalid_year: "יש להזין שנה עברית בין 3000 ל-6500, למשל 5745.",
+    e_invalid_year: "יש להזין שנה עברית, למשל תשמ״ה או 5745 (בין 3000 ל-6500).",
     e_invalid_date: "יש להזין תאריך תקין.",
     e_invalid_notes: `הערות עד ${MAX_NOTES} תווים.`,
     e_invalid_adar_rule: "יש לבחור אפשרות.",
@@ -401,22 +431,80 @@ function gematriaDay(n) {
   return letters.length > 1 ? `${letters.slice(0, -1)}״${letters.slice(-1)}` : `${letters}׳`;
 }
 
+// The first keyboard-focusable element inside `host`, searching open shadow roots in render order.
+function deepFocusable(host) {
+  const visit = (node) => {
+    for (const el of node.children || []) {
+      if (el.tabIndex >= 0 && !el.disabled && !el.hasAttribute("aria-hidden") && el.getClientRects().length) return el;
+      const found = (el.shadowRoot && visit(el.shadowRoot)) || visit(el);
+      if (found) return found;
+    }
+    return null;
+  };
+  return host.shadowRoot ? visit(host.shadowRoot) : null;
+}
+
+const LETTER_VALUES = {
+  "א": 1, "ב": 2, "ג": 3, "ד": 4, "ה": 5, "ו": 6, "ז": 7, "ח": 8, "ט": 9,
+  "י": 10, "כ": 20, "ך": 20, "ל": 30, "מ": 40, "ם": 40, "נ": 50, "ן": 50, "ס": 60, "ע": 70, "פ": 80, "ף": 80,
+  "צ": 90, "ץ": 90, "ק": 100, "ר": 200, "ש": 300, "ת": 400,
+};
+
+// A Hebrew year as typed: digits (5770) or letters (תש״ע, תשע, ה׳תש״ע, התש"ע). Returns a number, or null when
+// the text is not a year at all. Letters without the thousands are taken as the 6th millennium (5000s).
+function parseHebrewYear(text) {
+  const raw = String(text || "").trim();
+  if (/^\d+$/.test(raw)) return Number(raw);
+  const letters = raw.replace(/[\s'"׳״`.׳״-]/g, "");
+  if (!letters || [...letters].some((ch) => !LETTER_VALUES[ch])) return null;
+  const values = [...letters].map((ch) => LETTER_VALUES[ch]);
+  let thousands = 5;
+  // "ה׳תש״ע": a leading letter (1-9) followed by a larger one is the thousands; letters otherwise run high to low.
+  if (values.length > 1 && values[0] < 10 && values[0] < values[1]) thousands = values.shift();
+  else if (/^[א-ט]['׳]/.test(raw) && values.length > 1) thousands = values.shift();
+  for (let i = 1; i < values.length; i += 1) if (values[i] > values[i - 1]) return null;
+  const units = values.reduce((a, b) => a + b, 0);
+  return units >= 1000 ? null : thousands * 1000 + units;
+}
+
+// 5770 -> תש״ע (the year within the millennium, as printed on calendars and stones).
+function gematriaYear(year) {
+  let n = year % 1000;
+  let letters = "";
+  [[400, "ת"], [300, "ש"], [200, "ר"], [100, "ק"]].forEach(([v, ch]) => { while (n >= v) { letters += ch; n -= v; } });
+  if (n === 15 || n === 16) letters += n === 15 ? "טו" : "טז";
+  else {
+    const tens = ["", "י", "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ"];
+    const units = ["", "א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"];
+    letters += tens[Math.floor(n / 10)] + units[n % 10];
+  }
+  if (!letters) return String(year);
+  return letters.length > 1 ? `${letters.slice(0, -1)}״${letters.slice(-1)}` : `${letters}׳`;
+}
+
 const STYLE = `
   [hidden] { display: none !important; }
   :host { display: block; min-height: 100vh; background: var(--primary-background-color); color: var(--primary-text-color);
-    font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif); }
+    font-family: var(--paper-font-body1_-_font-family, Roboto, sans-serif);
+    /* Readable variants of the theme colours (WCAG 1.4.3 / 1.4.11): theme accents are fills, too light as text on
+       Home Assistant's default themes. Mixed toward the text colour, so they darken on light and lighten on dark. */
+    --gd-accent-text: color-mix(in srgb, var(--primary-color) 70%, var(--primary-text-color));
+    --gd-accent-fill: color-mix(in srgb, var(--primary-color) 80%, black);
+    --gd-error-text: color-mix(in srgb, var(--error-color, #db4437) 75%, var(--primary-text-color));
+    --gd-warning-text: color-mix(in srgb, var(--warning-color, #ff9800) 50%, var(--primary-text-color));
+    --gd-field-border: color-mix(in srgb, var(--secondary-text-color) 80%, transparent); }
   .toolbar { display: flex; align-items: center; gap: 8px; height: var(--header-height, 56px); padding: 0 12px;
     background: var(--app-header-background-color, var(--primary-color)); color: var(--app-header-text-color, #fff);
     box-sizing: border-box; }
   .toolbar h1 { flex: 1; font-size: 20px; font-weight: 400; margin: 0; }
-  .toolbar select { font: inherit; padding: 4px 8px; border-radius: 6px; }
+  .toolbar select { font: inherit; padding: 4px 8px; border-radius: 6px; width: auto; max-width: 50%; }
   main { max-width: 760px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
   .actions { display: flex; justify-content: flex-end; margin-bottom: 12px; }
   button { font: inherit; cursor: pointer; }
-  button.primary { background: var(--primary-color); color: var(--text-primary-color, #fff); border: none; border-radius: 8px;
+  button.primary { background: var(--gd-accent-fill); color: #fff; border: none; border-radius: 8px;
     padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px; }
-  button.text { background: none; border: none; color: var(--primary-color); padding: 6px 10px; border-radius: 6px; }
-  button.danger { color: var(--error-color, #db4437); }
+  button.text { background: none; border: none; color: var(--gd-accent-text); padding: 6px 10px; border-radius: 6px; }
+  button.danger { color: var(--gd-error-text); }
   button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
     outline: 2px solid var(--primary-color); outline-offset: 2px; }
   .card { background: var(--card-background-color); border-radius: 12px; box-shadow: var(--ha-card-box-shadow, 0 1px 3px rgba(0,0,0,.2)); }
@@ -425,44 +513,55 @@ const STYLE = `
   ul.dates li:last-child { border-bottom: none; }
   ha-icon.kind { color: var(--secondary-text-color); flex: none; }
   .info { flex: 1; min-width: 0; display: grid; gap: 2px; }
-  .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .name { font-weight: 500; white-space: normal; overflow-wrap: anywhere; }
   .sub { font-size: 0.85rem; color: var(--secondary-text-color); display: flex; flex-wrap: wrap; gap: 4px 10px; }
   .chip { font-size: 0.78rem; padding: 2px 8px; border-radius: 999px; background: var(--secondary-background-color); white-space: nowrap; }
-  .chip.now { background: var(--primary-color); color: var(--text-primary-color, #fff); }
-  .conflict { color: var(--warning-color, #ff9800); }
+  .chip.now { background: var(--gd-accent-fill); color: #fff; }
+  .conflict { color: var(--gd-warning-text); }
   .row-actions { display: flex; gap: 2px; flex: none; }
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--divider-color); margin-bottom: 16px; }
   .tab { background: none; border: none; border-bottom: 3px solid transparent; padding: 10px 14px; font: inherit;
     color: var(--secondary-text-color); cursor: pointer; }
-  .tab[aria-selected=true] { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 500; }
+  .tab[aria-selected=true] { color: var(--gd-accent-text); border-bottom-color: var(--gd-accent-text); font-weight: 500; }
   .tab:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
   .card.timers-status, .card.preview, .card.rules, .card.history { padding: 16px; margin-bottom: 16px; display: grid; gap: 10px; }
   .card.preview h2, .card.rules h2 { margin: 0; font-size: 1.05rem; font-weight: 500; }
+  .card.preview p { margin: 0; }
   .row-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .row-inline select { width: auto; }
   .rules-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
   .rules-head h2 { flex: 1; }
   ol.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   ol.timeline li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
-  ol.timeline li.done { opacity: 0.6; }
+  ol.timeline li.done { color: var(--secondary-text-color); }
+  ol.timeline li.skipped .time, ol.timeline li.skipped .what { color: var(--secondary-text-color); text-decoration: line-through; }
+  ol.timeline .act.skip { background: none; border: 1px solid var(--gd-field-border); }
+  .notice { margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; background: var(--secondary-background-color);
+    border-inline-start: 4px solid var(--gd-accent-text); }
+  .profile-view { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .profile-view .label { font-size: 0.85rem; color: var(--secondary-text-color); }
+  .profile-view button { border: 1px solid var(--gd-field-border); background: none; color: var(--primary-text-color);
+    border-radius: 999px; padding: 4px 12px; }
+  .profile-view button[aria-pressed=true] { background: var(--gd-accent-fill); border-color: var(--gd-accent-fill); color: #fff; }
+  .year-echo { color: var(--secondary-text-color); font-size: 0.8rem; }
   ol.timeline .time { font-variant-numeric: tabular-nums; min-width: 7em; }
   ol.timeline .act { font-size: 0.78rem; padding: 1px 8px; border-radius: 999px; background: var(--secondary-background-color); }
   ol.timeline .act.on { background: color-mix(in srgb, var(--success-color, #43a047) 18%, transparent); }
   .badge-soft { font-size: 0.75rem; color: var(--secondary-text-color); border: 1px solid var(--divider-color); border-radius: 999px; padding: 0 6px; }
-  .warn { color: var(--warning-color, #ff9800); margin: 0; }
+  .warn { color: var(--gd-warning-text); margin: 0; }
   ul.dates li.disabled .name { color: var(--secondary-text-color); }
   details.history summary { cursor: pointer; font-weight: 500; }
   ul.history-list { margin: 8px 0 0; padding-inline-start: 18px; font-size: 0.85rem; display: grid; gap: 2px; }
-  .st-failed, .st-missed { color: var(--error-color, #db4437); }
+  .st-failed, .st-missed { color: var(--gd-error-text); }
   ul.profile-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
   ul.profile-list li { display: flex; justify-content: space-between; align-items: center; }
   .card.ics { margin-top: 16px; padding: 16px; display: grid; gap: 10px; }
   .card.ics h2 { margin: 0; font-size: 1.05rem; font-weight: 500; }
   .ics-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
-  a.text { color: var(--primary-color); padding: 6px 10px; text-decoration: none; border-radius: 6px; }
+  a.text { color: var(--gd-accent-text); padding: 6px 10px; text-decoration: none; border-radius: 6px; }
   a.text:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
   .empty, .status { padding: 24px 16px; color: var(--secondary-text-color); }
-  .status.error { color: var(--error-color, #db4437); }
+  .status.error { color: var(--gd-error-text); }
   dialog { border: none; border-radius: 16px; padding: 0; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
     background: var(--card-background-color); color: var(--primary-text-color); box-shadow: 0 8px 32px rgba(0,0,0,.3); }
   dialog::backdrop { background: rgba(0,0,0,.4); }
@@ -470,11 +569,11 @@ const STYLE = `
   form h2 { margin: 0; font-size: 1.2rem; font-weight: 500; }
   .field { display: grid; gap: 4px; }
   .field label, fieldset legend { font-size: 0.85rem; color: var(--secondary-text-color); }
-  input, select, textarea { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--divider-color);
+  input, select, textarea { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--gd-field-border);
     background: var(--card-background-color); color: var(--primary-text-color); box-sizing: border-box; width: 100%; }
   input[type=checkbox], input[type=radio] { width: auto; }
-  [aria-invalid=true] { border-color: var(--error-color, #db4437); }
-  .err { color: var(--error-color, #db4437); font-size: 0.8rem; min-height: 0; }
+  [aria-invalid=true] { border-color: var(--gd-error-text); }
+  .err { color: var(--gd-error-text); font-size: 0.8rem; min-height: 0; }
   .hint { color: var(--secondary-text-color); font-size: 0.8rem; }
   .row3 { display: grid; grid-template-columns: 1fr 2fr 1.5fr; gap: 10px; }
   fieldset { border: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
@@ -525,7 +624,7 @@ class GoodDaysPanel extends HTMLElement {
   }
 
   connectedCallback() {
-    this._timer = setInterval(() => this._load(), REFRESH_MS);
+    this._timer = setInterval(() => { if (!document.hidden) this._load(); }, REFRESH_MS);
   }
 
   disconnectedCallback() {
@@ -654,7 +753,13 @@ class GoodDaysPanel extends HTMLElement {
     } catch (err) {
       this._error = err && err.code === "not_loaded" ? "not_loaded" : "load_error";
     }
+    // Periodic refreshes usually bring back the same data: keep the page (and focus, scroll) as it is.
+    if (this._stateSig() === this._renderedSig) return;
     this._render();
+  }
+
+  _stateSig() {
+    return JSON.stringify([langOf(this._hass), this._isAdmin(), this._entryId, this._tab, this._error, this._dates, this._timers, this._ics]);
   }
 
   _monthLabel(month, plain) {
@@ -696,6 +801,7 @@ class GoodDaysPanel extends HTMLElement {
       this._returnFocus = null;
     }
     const toast = root.querySelector(".toast");
+    this._renderedSig = this._stateSig();
     root.textContent = "";
     this.setAttribute("dir", lang === "he" ? "rtl" : "ltr");
     this.setAttribute("lang", lang);
@@ -712,9 +818,17 @@ class GoodDaysPanel extends HTMLElement {
       const select = mk("select");
       select.setAttribute("aria-label", this._t("instance"));
       select.setAttribute("data-focus-key", "instance");
-      this._entries.forEach((e) => select.appendChild(new Option(e.title, e.entry_id)));
+      // Every entry is titled "Good Days" unless renamed: number the ones that share a title.
+      const counts = {};
+      this._entries.forEach((e) => { counts[e.title] = (counts[e.title] || 0) + 1; });
+      const seen = {};
+      this._entries.forEach((e) => {
+        seen[e.title] = (seen[e.title] || 0) + 1;
+        const text = counts[e.title] > 1 ? this._t("instance_n", e.title, seen[e.title]) : e.title;
+        select.appendChild(new Option(text, e.entry_id));
+      });
       select.value = this._entryId;
-      select.addEventListener("change", () => { this._entryId = select.value; this._load(); });
+      select.addEventListener("change", () => { this._entryId = select.value; this._shownProfile = null; this._load(); });
       toolbar.appendChild(select);
     }
     root.appendChild(toolbar);
@@ -764,7 +878,18 @@ class GoodDaysPanel extends HTMLElement {
     }
     const list = mk("ul", "dates");
     list.setAttribute("aria-label", this._t("tab_dates"));
-    this._dates.forEach((record) => list.appendChild(this._renderRow(record)));
+    // Reuse the rows whose data did not change (a save or delete touches one row; up to 500 are listed).
+    const lang = langOf(this._hass);
+    const old = this._rowCache || new Map();
+    const cache = new Map();
+    this._dates.forEach((record) => {
+      const key = lang + JSON.stringify(record);
+      const hit = old.get(record.id);
+      const li = hit && hit.key === key ? hit.li : this._renderRow(record);
+      cache.set(record.id, { key, li });
+      list.appendChild(li);
+    });
+    this._rowCache = cache;
     card.appendChild(list);
   }
 
@@ -989,20 +1114,32 @@ class GoodDaysPanel extends HTMLElement {
     day.addEventListener("change", () => { state.hebrew_day = day.value; clearError("hebrew_day"); refreshRules(); });
     const month = select(MONTHS.map((m) => [m, this._monthLabel(m, true)]), state.hebrew_month);
     month.addEventListener("change", () => { state.hebrew_month = month.value; clearError("hebrew_day"); refreshRules(); });
+    // Text, not number: people copy the year in letters (תש״ע) from a stone or a card. Both forms are parsed.
     const year = mk("input");
-    year.type = "number";
-    year.inputMode = "numeric";
-    year.min = "3000";
-    year.max = "6500";
-    year.step = "1";
+    year.type = "text";
+    year.autocomplete = "off";
+    year.maxLength = 12;
     year.value = state.original_year;
-    year.addEventListener("input", () => { state.original_year = year.value; clearError("original_year"); });
+    const yearEcho = mk("span", "year-echo");
+    yearEcho.id = "f-original_year-echo";
+    const echoYear = () => {
+      const text = year.value.trim();
+      const parsed = parseHebrewYear(text);
+      yearEcho.textContent = "";
+      if (!text || parsed == null || parsed < 3000 || parsed > 6500) return;
+      yearEcho.textContent = this._t("year_parsed", /^\d+$/.test(text) ? gematriaYear(parsed) : String(parsed));
+    };
+    year.addEventListener("input", () => { state.original_year = year.value.trim(); clearError("original_year"); echoYear(); });
     hebrewBox.append(
       field("hebrew_day", this._t("day"), day),
       field("hebrew_month", this._t("month"), month),
       field("original_year", this._t("year"), year, this._t("year_hint")),
     );
-    hebrewBox.querySelector(".field.original_year").classList.add("year");
+    const yearField = hebrewBox.querySelector(".field.original_year");
+    yearField.classList.add("year");
+    yearField.insertBefore(yearEcho, year.nextSibling);
+    year.setAttribute("aria-describedby", `${yearEcho.id} ${year.getAttribute("aria-describedby")}`);
+    echoYear();
     form.appendChild(hebrewBox);
 
     // Gregorian date inputs
@@ -1148,7 +1285,7 @@ class GoodDaysPanel extends HTMLElement {
         const d = Number(state.hebrew_day);
         if (!Number.isInteger(d) || d < 1 || d > 30 || (d === 30 && MONTHS_29.has(state.hebrew_month))) errs.hebrew_day = "invalid_day";
         if (state.original_year !== "") {
-          const y = Number(state.original_year);
+          const y = parseHebrewYear(state.original_year);
           if (!Number.isInteger(y) || y < 3000 || y > 6500) errs.original_year = "invalid_year";
         }
       } else if (!state.gregorian_date || !state.converted) {
@@ -1176,7 +1313,7 @@ class GoodDaysPanel extends HTMLElement {
         Object.assign(msg, {
           hebrew_day: Number(state.hebrew_day),
           hebrew_month: state.hebrew_month,
-          original_year: state.original_year === "" ? null : Number(state.original_year),
+          original_year: state.original_year === "" ? null : parseHebrewYear(state.original_year),
         });
       } else {
         Object.assign(msg, { gregorian_date: state.gregorian_date, after_sunset: state.after_sunset });
@@ -1208,6 +1345,8 @@ class GoodDaysPanel extends HTMLElement {
   async _loadTimers() {
     const msg = { type: "good_days/timers/get", language: langOf(this._hass) };
     if (this._entryId) msg.entry_id = this._entryId;
+    // Preview the profile being viewed (a dry run; the active profile is not changed).
+    if (this._shownProfile) msg.profile = this._shownProfile;
     try {
       this._timers = await this._hass.callWS(msg);
     } catch (err) {
@@ -1226,6 +1365,8 @@ class GoodDaysPanel extends HTMLElement {
       const view = await this._timersCall({ type: "good_days/timers/settings", ...patch });
       this._timers = view;
       if (view.errors && Object.keys(view.errors).length) this._toast(this._t("save_error"));
+      // The reply previews the active profile; fetch the preview of the one being viewed.
+      else if (this._viewedProfile() !== view.active_profile) await this._loadTimers();
     } catch (err) {
       this._toast(this._t("save_error"));
     }
@@ -1305,6 +1446,12 @@ class GoodDaysPanel extends HTMLElement {
       return;
     }
     const admin = this._isAdmin();
+    if (!admin) {
+      const notice = mk("p", "notice", this._t("readonly_notice"));
+      notice.id = "timers-readonly";
+      main.appendChild(notice);
+    }
+    const viewed = this._viewedProfile();
 
     // Status
     const status = mk("section", "card timers-status");
@@ -1316,6 +1463,7 @@ class GoodDaysPanel extends HTMLElement {
       box.setAttribute("role", "switch");
       box.checked = checked;
       box.disabled = !admin;
+      if (!admin) box.setAttribute("aria-describedby", "timers-readonly");
       box.setAttribute("data-focus-key", key);
       box.addEventListener("change", () => onChange(box.checked));
       label.append(box, mk("span", null, text));
@@ -1324,14 +1472,20 @@ class GoodDaysPanel extends HTMLElement {
     status.appendChild(toggle("timers-enabled", view.enabled, this._t("timers_enabled"), (on) => this._timerSettings({ enabled: on })));
     const nextPeriod = view.preview[0];
     if (nextPeriod) {
-      status.appendChild(toggle("timers-skip", view.skip_next, this._t("timers_skip", nextPeriod.title), (on) => this._timerSettings({ skip_next: on })));
+      const skip = toggle("timers-skip", view.skip_next, this._t("timers_skip", nextPeriod.title), (on) => this._timerSettings({ skip_next: on }));
+      const skipHint = mk("span", "hint", this._t("skip_hint"));
+      skipHint.id = "timers-skip-hint";
+      const box = skip.querySelector("input");
+      box.setAttribute("aria-describedby", [skipHint.id, admin ? null : "timers-readonly"].filter(Boolean).join(" "));
+      status.append(skip, skipHint);
     }
     const profileRow = mk("div", "row-inline");
-    const profileLabel = mk("label", null, this._t("profile"));
+    const profileLabel = mk("label", null, this._t("profile_active"));
     profileLabel.htmlFor = "timers-profile";
     const profile = mk("select");
     profile.id = "timers-profile";
     profile.disabled = !admin;
+    if (!admin) profile.setAttribute("aria-describedby", "timers-readonly");
     profile.setAttribute("data-focus-key", "timers-profile");
     view.profiles.forEach((p) => profile.appendChild(new Option(this._profileName(p), p)));
     profile.value = view.active_profile;
@@ -1365,15 +1519,20 @@ class GoodDaysPanel extends HTMLElement {
       const h = mk("h2", null, `${period.title} · ${this._when(period.start)} – ${this._when(period.end)}`);
       h.id = headingId;
       card.appendChild(h);
+      if (viewed !== view.active_profile) card.appendChild(mk("p", "warn", this._t("preview_not_active", this._profileName(viewed))));
+      else if (view.profiles.length > 1) card.appendChild(mk("p", "hint", this._t("preview_profile", this._profileName(viewed))));
       if (period.skipped) card.appendChild(mk("p", "warn", this._t("period_skipped")));
       if (!period.actions.length) {
         card.appendChild(mk("p", "hint", this._t("no_actions")));
       } else {
         const list = mk("ol", "timeline");
         period.actions.forEach((a) => {
-          const li = mk("li", a.done ? "done" : null);
+          const li = mk("li", period.skipped ? "skipped" : a.done ? "done" : null);
           li.appendChild(mk("span", "time", this._when(a.when)));
-          li.appendChild(mk("span", `act ${a.action}`, this._t(`act_${a.action}`)));
+          // Skipped: the row says so instead of showing an on / off chip that will not happen.
+          li.appendChild(period.skipped
+            ? mk("span", "act skip", this._t("wont_run"))
+            : mk("span", `act ${a.action}`, this._t(`act_${a.action}`)));
           const what = mk("span", "what", `${a.rule_name}: ${a.targets.map((t) => this._friendly(t)).join(", ")}`);
           li.appendChild(what);
           if (a.outside) li.appendChild(mk("span", "badge-soft", this._t(new Date(a.when) < new Date(period.start) ? "before_period" : "after_period")));
@@ -1392,7 +1551,7 @@ class GoodDaysPanel extends HTMLElement {
     const rulesCard = mk("section", "card rules");
     rulesCard.setAttribute("aria-labelledby", "rules-title");
     const head = mk("div", "rules-head");
-    const title = mk("h2", null, this._t("rules_title", this._profileName(view.active_profile)));
+    const title = mk("h2", null, this._t("rules_title", this._profileName(viewed)));
     title.id = "rules-title";
     head.appendChild(title);
     if (admin) {
@@ -1407,7 +1566,26 @@ class GoodDaysPanel extends HTMLElement {
       head.append(preset, add);
     }
     rulesCard.appendChild(head);
-    const rules = view.rules.filter((r) => r.profile === view.active_profile);
+    // Which profile is shown and edited here, separate from the active one (which decides what runs).
+    if (view.profiles.length > 1) {
+      const group = mk("div", "profile-view");
+      group.setAttribute("role", "group");
+      const groupLabel = mk("span", "label", this._t(admin ? "profile_view" : "profile_view_ro"));
+      groupLabel.id = "profile-view-label";
+      group.setAttribute("aria-labelledby", "profile-view-label");
+      group.appendChild(groupLabel);
+      view.profiles.forEach((p) => {
+        const name = this._profileName(p);
+        const b = mk("button", null, p === view.active_profile ? `${name} · ${this._t("profile_is_active")}` : name);
+        b.type = "button";
+        b.setAttribute("aria-pressed", String(p === viewed));
+        b.setAttribute("data-focus-key", `view-profile-${p}`);
+        b.addEventListener("click", () => this._viewProfile(p));
+        group.appendChild(b);
+      });
+      rulesCard.appendChild(group);
+    }
+    const rules = view.rules.filter((r) => r.profile === viewed);
     if (!rules.length) {
       rulesCard.appendChild(mk("p", "empty", this._t("rules_empty")));
     } else {
@@ -1436,6 +1614,20 @@ class GoodDaysPanel extends HTMLElement {
     return p === "default" ? this._t("profile_default") : p;
   }
 
+  // The profile shown and edited in the timers tab; the active one unless the user picked another.
+  _viewedProfile() {
+    const view = this._timers;
+    if (!view) return null;
+    return this._shownProfile && view.profiles.includes(this._shownProfile) ? this._shownProfile : view.active_profile;
+  }
+
+  async _viewProfile(p) {
+    this._shownProfile = p;
+    this._returnFocus = `view-profile-${p}`;
+    await this._loadTimers();
+    this._render();
+  }
+
   _renderRuleRow(rule, admin) {
     const li = mk("li", rule.enabled ? null : "disabled");
     const icon = document.createElement("ha-icon");
@@ -1461,7 +1653,10 @@ class GoodDaysPanel extends HTMLElement {
       b.addEventListener("click", () => handler(b));
       actions.appendChild(b);
     };
-    button("run", this._t("run_now"), this._t("run_now_named", rule.name), "text", async () => {
+    // Name the effect ("turn off now"), not the mechanism: "run" reads as "switch on" in Hebrew.
+    const runVerb = this._t(rule.action === "off" ? "run_now_off" : "run_now_on");
+    const runTargets = rule.targets.map((t) => this._friendly(t)).join(", ");
+    button("run", runVerb, this._t("run_now_named", runVerb, rule.name, runTargets), "text", async () => {
       const res = await this._timersCall({ type: "good_days/timers/run", rule_id: rule.id }).catch(() => ({ errors: { base: 1 } }));
       this._toast(res.errors && Object.keys(res.errors).length ? this._t("run_failed") : this._t("ran"));
     });
@@ -1525,11 +1720,39 @@ class GoodDaysPanel extends HTMLElement {
     control.setAttribute("aria-describedby", described.join(" "));
     fields[key] = { control, err };
     form.appendChild(wrap);
+    if (control.localName === "ha-selector") this._wireSelector(control, labelText, [...described].reverse());
     return wrap;
   }
 
+  // Home Assistant's selectors render their focusable control deep in shadow trees, where <label for> and
+  // aria-describedby cannot reach, and HA offers no property that names it. Put our label, hint, error and
+  // invalid state on that inner control directly (element references cross shadow boundaries).
+  _wireSelector(picker, labelText, describedIds) {
+    const apply = () => {
+      const inner = deepFocusable(picker);
+      if (!inner) return null;
+      inner.setAttribute("aria-label", labelText);
+      if ("ariaDescribedByElements" in inner) {
+        inner.ariaDescribedByElements = describedIds.map((id) => this.shadowRoot.getElementById(id)).filter(Boolean);
+      }
+      if (picker.getAttribute("aria-invalid") === "true") inner.setAttribute("aria-invalid", "true");
+      else inner.removeAttribute("aria-invalid");
+      return inner;
+    };
+    picker.wireInner = apply;
+    picker.focusTarget = () => apply() || picker;
+    picker.addEventListener("focusin", apply);
+    picker.addEventListener("value-changed", () => setTimeout(apply, 0));
+    // The nested components render asynchronously after the dialog opens.
+    [0, 100, 400, 1000].forEach((ms) => setTimeout(apply, ms));
+  }
+
   _showFieldErrors(fields, formError, errs) {
-    Object.values(fields).forEach(({ control, err }) => { err.textContent = ""; control.removeAttribute("aria-invalid"); });
+    Object.values(fields).forEach(({ control, err }) => {
+      err.textContent = "";
+      control.removeAttribute("aria-invalid");
+      if (control.wireInner) control.wireInner();
+    });
     formError.textContent = "";
     let first = null;
     Object.entries(errs).forEach(([key, code]) => {
@@ -1538,7 +1761,8 @@ class GoodDaysPanel extends HTMLElement {
       if (f && !f.control.closest("[hidden]")) {
         f.err.textContent = text;
         f.control.setAttribute("aria-invalid", "true");
-        if (!first) first = f.control;
+        if (f.control.wireInner) f.control.wireInner();
+        if (!first) first = f.control.focusTarget ? f.control.focusTarget() : f.control;
       } else {
         formError.textContent = text;
       }
@@ -1570,7 +1794,7 @@ class GoodDaysPanel extends HTMLElement {
     const view = this._timers;
     const editing = !!rule;
     const r = rule || { name: "", targets: [], action: "on", anchor: "candle_lighting", offset_min: -20, time: "23:00",
-      days: "each", applies_to: ["shabbat", "yom_tov"], profile: view.active_profile, conditions: [], enabled: true };
+      days: "each", applies_to: ["shabbat", "yom_tov"], profile: this._viewedProfile(), conditions: [], enabled: true };
     const dialog = mk("dialog");
     dialog.setAttribute("aria-labelledby", "timer-title");
     const form = mk("form");
@@ -1769,7 +1993,7 @@ class GoodDaysPanel extends HTMLElement {
     form.appendChild(buttons);
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
-      const data = { preset: preset.value, name: name.value.trim(), targets: targets.getValue() };
+      const data = { preset: preset.value, name: name.value.trim(), targets: targets.getValue(), profile: this._viewedProfile() };
       const errs = {};
       if (!data.name) errs.name = "invalid_name";
       if (!data.targets.length) errs.targets = "invalid_targets";
@@ -1807,7 +2031,56 @@ class GoodDaysPanel extends HTMLElement {
     const list = mk("ul", "profile-list");
     view.profiles.forEach((p) => {
       const li = mk("li");
-      li.appendChild(mk("span", "name", this._profileName(p)));
+      const count = view.rules.filter((r) => r.profile === p).length;
+      const label = mk("span", "name", `${this._profileName(p)} · ${this._t("profile_timers", count)}`);
+      li.appendChild(label);
+      const rename = mk("button", "text", this._t("rename"));
+      rename.type = "button";
+      rename.setAttribute("aria-label", this._t("rename_named", this._profileName(p)));
+      rename.addEventListener("click", () => {
+        // Inline: the name becomes a text field with its own save.
+        const box = mk("span", "row-inline");
+        const input = mk("input");
+        input.type = "text";
+        input.maxLength = 40;
+        input.value = this._profileName(p);
+        input.setAttribute("aria-label", this._t("rename_named", this._profileName(p)));
+        const err = mk("span", "err");
+        err.id = `rename-err-${view.profiles.indexOf(p)}`;
+        err.setAttribute("aria-live", "polite");
+        input.setAttribute("aria-describedby", err.id);
+        const ok = mk("button", "primary", this._t("save"));
+        ok.type = "button";
+        ok.addEventListener("click", async () => {
+          const value = input.value.trim();
+          if (!value || value.length > 40 || (value !== p && view.profiles.includes(value))) {
+            err.textContent = this._t("e_invalid_profile_name");
+            input.setAttribute("aria-invalid", "true");
+            input.focus();
+            return;
+          }
+          if (value === p || (p === "default" && value === this._profileName(p))) { dialog.dismiss(false); return; }
+          const res = await this._timersCall({ type: "good_days/timers/settings", rename_profile: p, new_name: value }).catch(() => null);
+          if (!res || (res.errors && Object.keys(res.errors).length)) {
+            err.textContent = this._t("e_invalid_profile_name");
+            input.setAttribute("aria-invalid", "true");
+            input.focus();
+            return;
+          }
+          this._timers = res;
+          if (this._shownProfile === p) this._shownProfile = value;
+          if (this._viewedProfile() !== res.active_profile) await this._loadTimers();
+          this._returnFocus = "profiles-manage";
+          dialog.dismiss(true);
+          this._toast(this._t("saved"));
+        });
+        input.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); ok.click(); } });
+        box.append(input, ok, err);
+        li.replaceChildren(box);
+        input.focus();
+      });
+      const acts = mk("span", "row-actions");
+      acts.appendChild(rename);
       if (view.profiles.length > 1) {
         const del = mk("button", "text danger", this._t("delete"));
         del.type = "button";
@@ -1816,8 +2089,9 @@ class GoodDaysPanel extends HTMLElement {
           await this._timerSettings({ remove_profile: p });
           dialog.dismiss(true);
         });
-        li.appendChild(del);
+        acts.appendChild(del);
       }
+      li.appendChild(acts);
       list.appendChild(li);
     });
     form.appendChild(list);
@@ -1854,6 +2128,7 @@ class GoodDaysPanel extends HTMLElement {
         return;
       }
       this._timers = res;
+      if (this._viewedProfile() !== res.active_profile) await this._loadTimers();
       this._returnFocus = "profiles-manage";
       dialog.dismiss(true);
       this._toast(this._t("saved"));
