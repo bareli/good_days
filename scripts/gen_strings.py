@@ -18,7 +18,7 @@ FIELDS = {
     "lookahead_days": ("Days to compute ahead", "מספר ימים לחישוב מראש"),
     "notify_targets": ("Send family-date reminders to", "לשלוח תזכורות לתאריכים משפחתיים אל"),
     "reminder_time": ("Reminder time", "שעת התזכורת"),
-    "quiet_on_shabbat": ("Hold reminders during Shabbat and Yom Tov", "לעכב תזכורות בשבת ובחג"),
+    "quiet_on_shabbat": ("No reminders during Shabbat and Yom Tov", "לא לשלוח תזכורות בשבת ובחג"),
 }
 DESCRIPTIONS = {
     "candle_lighting_minutes": (
@@ -34,8 +34,8 @@ DESCRIPTIONS = {
         "שירותי התראה, למשל mobile_app_my_phone. בטלפון יופיעו כפתורי הבנתי / תזכירו לי מחר. ריק: רק האירוע good_days_reminder.",
     ),
     "quiet_on_shabbat": (
-        "Reminders due on Shabbat or Yom Tov are sent after havdalah.",
-        "תזכורות שחלות בשבת או בחג יישלחו אחרי ההבדלה.",
+        "A reminder due on Shabbat or Yom Tov is sent an hour before candle lighting.",
+        "תזכורת שחלה בשבת או בחג תישלח שעה לפני הדלקת הנרות.",
     ),
 }
 USER_FIELDS = ["location", "diaspora", "candle_lighting_minutes", "havdalah_minutes", "language"]

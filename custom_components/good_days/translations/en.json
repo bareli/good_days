@@ -41,13 +41,13 @@
           "lookahead_days": "Days to compute ahead",
           "notify_targets": "Send family-date reminders to",
           "reminder_time": "Reminder time",
-          "quiet_on_shabbat": "Hold reminders during Shabbat and Yom Tov"
+          "quiet_on_shabbat": "No reminders during Shabbat and Yom Tov"
         },
         "data_description": {
           "diaspora": "Off in Israel. On outside Israel.",
           "candle_lighting_minutes": "Most of Israel: 18-30. Jerusalem: 40. Haifa: 30.",
           "notify_targets": "Notify services, e.g. mobile_app_my_phone. Phones get Got it / Remind me tomorrow buttons. Empty: only the good_days_reminder event.",
-          "quiet_on_shabbat": "Reminders due on Shabbat or Yom Tov are sent after havdalah."
+          "quiet_on_shabbat": "A reminder due on Shabbat or Yom Tov is sent an hour before candle lighting."
         }
       }
     },
