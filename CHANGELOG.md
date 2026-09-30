@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.0 (2026-09-30)
+
+Shabbat timers.
+
+- New **Shabbat timers** tab in the panel: turn devices on / off around candle lighting and havdalah, or at a time on each holy day (every day / first / last / Erev); applies to Shabbat, Yom Tov and / or Yom Kippur; multi-day Chag + Shabbat handled as one stretch.
+- Conditions per timer (Home Assistant conditions, checked when it fires), profiles with an active-profile select (new profile can copy another), duplicate, presets (hot plate, urn, evening / morning lights, AC), run now.
+- Preview (dry run) of the next Shabbat / Chag with exact times, before-candle-lighting / after-havdalah marks and conflict reports; history of the last 100 runs.
+- Fires once and never fights a manual change; after a restart, actions up to 10 minutes late still run, older ones are logged as missed.
+- Entities: `switch.good_days_shabbat_timers`, `switch.good_days_skip_next_shabbat_or_chag`, `select.good_days_timer_profile`, `sensor.good_days_next_timer_action`.
+- Changing timers needs an admin; everyone can see them.
+- Source files now use escape sequences for bidi isolates (they held the invisible characters); a test enforces it.
+
 ## v0.4.0 (2026-09-30)
 
 Torah details, calendar subscription, polish.

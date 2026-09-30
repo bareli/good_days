@@ -165,7 +165,9 @@ entry_id: <optional, multi-instance>
 | **v0.1** | Holidays calendar entity (+ Shabbat timed events with candle/havdalah), sensors (next holiday, next Shabbat), WS `upcoming`, card merging holidays + external calendars, countdowns, Hebrew/English, RTL, visual editor, tests, HACS + hassfest CI. |
 | v0.2 | Family Hebrew-date dates (storage, services, editor/panel), `calendar.good_days_family`, Shabbat-conflict badges for external events, compact card variant. |
 | v0.3 | Reminders (notify + actionable buttons), Assist intent ("מה יש השבוע?" / "When is the next holiday?") with ready-made en/he sentences, blueprint "porch light before candle lighting". |
-| later | Feed "Shabbat Home" timers product; Hebcal-style Torah reading/parasha details; ICS export of family dates. |
+| v0.4 | Special Shabbatot, ICS subscription, review fixes (released). |
+| v0.5 | Shabbat Home timers inside Good Days (§12). |
+| later | Haftarah / Torah reading details, more presets, feedback. |
 
 ## 9. Testing (required before every commit)
 
@@ -243,7 +245,12 @@ Other v0.1 decisions: category `erev` (Erev Yom Tov days, off by default) added;
 ### 12.3 Out of scope for v1
 Arbitrary services / service data, conditions, per-room profiles, cloning days, climate setpoints, elevator / Shabbat-mode appliance protocols, dud_shemesh deep integration (it has its own Shabbat target).
 
-### 12.4 Open questions for Victor
+### 12.4 Decisions (Victor, 2026-09-30)
+1. **Full-featured scheduler**, but **actions stay on/off + scenes** (no arbitrary services). So v0.5 adds, beyond 12.2: HA **conditions** per rule (evaluated at fire time), **profiles** (e.g. "Regular", "Guests") with an active-profile select, **duplicate** rule / profile, **preview = simulation** of the next Shabbat/Chag timeline, **run now**, conflicts, skip, history; Yom Kippur as its own "applies to" kind (no hot plate on Yom Kippur).
+2. Missed after restart: **10-minute grace**, older ones skipped and logged.
+3. UI: **tab in the Good Days panel**.
+
+### 12.5 Original open questions
 1. Build it (small v1 as above), or point users to ha-shabbat-scheduler and spend v0.5 elsewhere?
 2. Actions: on/off (+ scenes) only, or any service in v1?
 3. Missed actions after a restart: 10-minute grace, or never run late?

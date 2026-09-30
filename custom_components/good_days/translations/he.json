@@ -143,11 +143,27 @@
       },
       "next_candle_lighting": {
         "name": "הדלקת הנרות הבאה"
+      },
+      "next_timer_action": {
+        "name": "הפעולה הבאה של הטיימרים"
       }
     },
     "binary_sensor": {
       "holiday_today": {
         "name": "חג היום"
+      }
+    },
+    "switch": {
+      "shabbat_timers": {
+        "name": "טיימרים לשבת"
+      },
+      "skip_next": {
+        "name": "דילוג על השבת או החג הבא"
+      }
+    },
+    "select": {
+      "timer_profile": {
+        "name": "פרופיל טיימרים"
       }
     }
   },

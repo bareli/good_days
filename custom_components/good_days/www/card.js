@@ -2,8 +2,8 @@
 
 const REFRESH_MS = 5 * 60 * 1000;
 const TICK_MS = 60 * 1000;
-const FSI = "⁨"; // first-strong isolate
-const PDI = "⁩";
+const FSI = "\u2068"; // first-strong isolate
+const PDI = "\u2069";
 const iso = (text) => FSI + text + PDI;
 
 const CATEGORIES = ["shabbat", "yom_tov", "chol_hamoed", "minor", "fast", "rosh_chodesh", "modern", "memorial", "erev", "family"];
