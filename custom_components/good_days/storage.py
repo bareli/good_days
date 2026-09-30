@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import math
 import uuid
 from typing import Any
 
@@ -37,9 +38,10 @@ def _int(value: Any) -> int | None:
         return None
     try:
         number = float(value)
-    except (TypeError, ValueError):
+        # nan / inf / 1e400 parse as floats but have no integer value.
+        return int(number) if math.isfinite(number) and number == int(number) else None
+    except (TypeError, ValueError, OverflowError):
         return None
-    return int(number) if number == int(number) else None
 
 
 def validate_date(data: dict[str, Any], existing: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, str]]:
