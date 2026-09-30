@@ -66,6 +66,9 @@ Traps:
   Right after a new instance first answers, send the websocket command `{"type":"http/config/promote"}`.
 - Start every instance as its own long-running background process; an instance started from inside a script
   dies when the script ends.
+- **The HA frontend hangs on "loading" because `get_services` fails (missing `hassil`).** Install `hassil`
+  and `ical` into venv314 before starting (`uv pip install --python venv314/Scripts/python.exe hassil ical`),
+  or patch that reply in Playwright (`routeWebSocket`), see `qa/knowledge/environment.md`.
 - The dev instance's clock is real time: timers and reminders cannot be watched firing unless a Shabbat is
   near. Use "run now", the preview, and the pytest suite (frozen clock) for firing behaviour.
 

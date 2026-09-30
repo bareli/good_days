@@ -69,3 +69,21 @@ Stable IDs. Never renumber; add new ones at the end of a series.
 - SEC-002 ICS route: token guessing, timing, path traversal, other entries, headers / caching.
 - SEC-003 Stored input rendered safely (names, notes, rule names with markup) in card, panel, ICS, notifications.
 - PERF-001 Engine compute time for lookahead 730 and 500 family dates; tick cost; storage growth (history, done).
+
+## Regression cases from QA run 2026-09-30 (one per confirmed defect)
+- SEC-004 Non-admin cannot change timers through switch / select entities (#6).
+- SEC-005 Reminder notification actions ignore unknown date ids / days (#7).
+- WS-002 Numeric fields reject NaN / Infinity with a field error (#8).
+- TMR-009 Timer targets limited to what the rules allow; no silent "done" on unsupported domains (#9).
+- CARD-005 Card keeps keyboard focus after activating an item and across the 60 s refresh (#10).
+- TMR-010 Timer editor device picker labelled, hint / error associated, focused on error (#11).
+- PERF-002 upcoming applies the limit before rendering (#12).
+- PERF-003 dates/list cost at 500 dates (#13).
+- PERF-004 Timer action persistence cost at 200 rules (#14).
+- A11Y-002 Contrast of warning, primary and error colours, light and dark (#15, #16).
+- TMR-011 Panel timer Save / Delete / Duplicate / Run now succeed (panel sends `language`) (#17).
+- CFG-006 Options wording matches reminder hold behaviour (#18).
+- MOBILE-002 Long names readable at 320 px / 200 % zoom (#19).
+- I18N-002 Hebrew day headers in gematria (#31); mixed Hebrew names in English titles keep order (#32).
+- CARD-006 Card merges (or reports) a second Good Days entry's calendar (#33).
+
