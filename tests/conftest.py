@@ -19,8 +19,10 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 @pytest.fixture(autouse=True)
 def no_card():
-    """Lovelace resource registration needs the real frontend; not under test."""
-    with patch("custom_components.good_days._async_register_card", return_value=None):
+    """Lovelace resource and sidebar panel need the real frontend; not under test."""
+    with patch("custom_components.good_days._async_register_card", return_value=None), patch(
+        "custom_components.good_days._async_register_panel", return_value=None
+    ):
         yield
 
 

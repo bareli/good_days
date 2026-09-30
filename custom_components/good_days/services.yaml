@@ -1,0 +1,184 @@
+add_date:
+  fields:
+    name:
+      required: true
+      example: "Noa"
+      selector:
+        text:
+    kind:
+      required: true
+      default: "birthday"
+      selector:
+        select:
+          translation_key: kind
+          options:
+            - "birthday"
+            - "yahrzeit"
+            - "anniversary"
+            - "custom"
+    hebrew_day:
+      selector:
+        number:
+          min: 1
+          max: 30
+          mode: box
+    hebrew_month:
+      selector:
+        select:
+          translation_key: hebrew_month
+          options:
+            - "tishrei"
+            - "marcheshvan"
+            - "kislev"
+            - "tevet"
+            - "shvat"
+            - "adar"
+            - "adar_i"
+            - "adar_ii"
+            - "nisan"
+            - "iyyar"
+            - "sivan"
+            - "tammuz"
+            - "av"
+            - "elul"
+    original_year:
+      example: 5745
+      selector:
+        number:
+          min: 3000
+          max: 6500
+          mode: box
+    gregorian_date:
+      selector:
+        date:
+    after_sunset:
+      default: false
+      selector:
+        boolean:
+    adar_rule:
+      selector:
+        select:
+          translation_key: adar_rule
+          options:
+            - "adar_i"
+            - "adar_ii"
+            - "both"
+    day30_rule:
+      selector:
+        select:
+          translation_key: day30_rule
+          options:
+            - "next"
+            - "29"
+    reminder_days:
+      example: "[1]"
+      selector:
+        object:
+    notes:
+      selector:
+        text:
+          multiline: true
+    entry_id:
+      selector:
+        config_entry:
+          integration: good_days
+
+update_date:
+  fields:
+    date_id:
+      required: true
+      selector:
+        text:
+    name:
+      selector:
+        text:
+    kind:
+      selector:
+        select:
+          translation_key: kind
+          options:
+            - "birthday"
+            - "yahrzeit"
+            - "anniversary"
+            - "custom"
+    hebrew_day:
+      selector:
+        number:
+          min: 1
+          max: 30
+          mode: box
+    hebrew_month:
+      selector:
+        select:
+          translation_key: hebrew_month
+          options:
+            - "tishrei"
+            - "marcheshvan"
+            - "kislev"
+            - "tevet"
+            - "shvat"
+            - "adar"
+            - "adar_i"
+            - "adar_ii"
+            - "nisan"
+            - "iyyar"
+            - "sivan"
+            - "tammuz"
+            - "av"
+            - "elul"
+    original_year:
+      selector:
+        number:
+          min: 3000
+          max: 6500
+          mode: box
+    gregorian_date:
+      selector:
+        date:
+    after_sunset:
+      selector:
+        boolean:
+    adar_rule:
+      selector:
+        select:
+          translation_key: adar_rule
+          options:
+            - "adar_i"
+            - "adar_ii"
+            - "both"
+    day30_rule:
+      selector:
+        select:
+          translation_key: day30_rule
+          options:
+            - "next"
+            - "29"
+    reminder_days:
+      selector:
+        object:
+    notes:
+      selector:
+        text:
+          multiline: true
+    entry_id:
+      selector:
+        config_entry:
+          integration: good_days
+
+remove_date:
+  fields:
+    date_id:
+      required: true
+      selector:
+        text:
+    entry_id:
+      selector:
+        config_entry:
+          integration: good_days
+
+list_dates:
+  fields:
+    entry_id:
+      selector:
+        config_entry:
+          integration: good_days
