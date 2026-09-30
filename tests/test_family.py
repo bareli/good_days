@@ -54,9 +54,12 @@ def test_30_cheshvan_in_short_year():
     assert occurrences_in_year(record, 5785) == [HebrewDate(5785, Months.MARCHESHVAN, 30).to_gdate()]
 
 
-def test_30_adar_i_in_plain_year_moves_to_nisan():
+def test_30_adar_i_in_plain_year_is_30_shvat():
     record = rec(hebrew_day=30, hebrew_month="adar_i")
-    assert occurrences_in_year(record, 5785) == [HebrewDate(5785, Months.NISAN, 1).to_gdate()]
+    # First day of Rosh Chodesh Adar, not 1 Nisan a month later.
+    assert occurrences_in_year(record, 5785) == [HebrewDate(5785, Months.SHVAT, 30).to_gdate()]
+    assert occurrences_in_year({**record, "day30_rule": "29"}, 5785) == [HebrewDate(5785, Months.ADAR, 29).to_gdate()]
+    assert occurrences_in_year(record, 5784) == [HebrewDate(5784, Months.ADAR_I, 30).to_gdate()]
 
 
 def test_birthday_all_day_with_age():

@@ -2,18 +2,19 @@ blueprint:
   name: Good Days - lights before candle lighting
   description: >-
     Turn lights (or switches) on a few minutes before candle lighting of Shabbat and
-    Yom Tov, from calendar.good_days_holidays, and optionally off after havdalah.
+    Yom Tov, from sensor.good_days_next_candle_lighting, and optionally off after havdalah.
   domain: automation
   source_url: https://github.com/bareli/good_days/blob/main/blueprints/automation/good_days/candle_lighting_light.yaml
   input:
-    calendar:
-      name: Good Days holidays calendar
-      default: calendar.good_days_holidays
+    sensor:
+      name: Good Days next candle lighting sensor
+      default: sensor.good_days_next_candle_lighting
       selector:
         entity:
           filter:
             - integration: good_days
-              domain: calendar
+              domain: sensor
+              device_class: timestamp
     lights:
       name: Lights
       selector:
@@ -50,7 +51,7 @@ blueprint:
 mode: queued
 
 trigger_variables:
-  cal: !input calendar
+  candle_sensor: !input sensor
   before: !input minutes_before
 
 variables:
@@ -58,27 +59,26 @@ variables:
   after: !input minutes_after
 
 triggers:
-  # The calendar's attributes describe the current or next event; Shabbat / Yom Tov are
-  # the only timed ones. True from "minutes before" until havdalah, so it fires once.
-  # start_time / end_time are naive local strings: as_local() reads them in Home Assistant's
-  # time zone (as_timestamp() alone would use the system clock's zone, often UTC in Docker).
+  # The sensor holds candle lighting of the current or next Shabbat / Yom Tov (aware
+  # timestamp) and its havdalah; true from "minutes before" until havdalah, so it fires once.
   - trigger: template
     id: start
     value_template: >-
-      {% set s = state_attr(cal, 'start_time') %}
-      {% set e = state_attr(cal, 'end_time') %}
-      {{ s is not none and e is not none and not state_attr(cal, 'all_day')
-         and now() >= as_local(as_datetime(s)) - timedelta(minutes=before | int)
-         and now() < as_local(as_datetime(e)) }}
-  - trigger: calendar
+      {% set start = as_datetime(states(candle_sensor)) %}
+      {% set end = as_datetime(state_attr(candle_sensor, 'havdalah')) %}
+      {{ start is not none and end is not none
+         and now() >= start - timedelta(minutes=before | int) and now() < end }}
+  # in_effect turns false within a minute after havdalah.
+  - trigger: state
     id: end
-    event: end
-    entity_id: !input calendar
+    entity_id: !input sensor
+    attribute: in_effect
+    from: true
+    to: false
 
 conditions:
   - condition: template
-    value_template: >-
-      {{ trigger.id == 'start' or (off_after and not trigger.calendar_event.all_day) }}
+    value_template: "{{ trigger.id == 'start' or off_after }}"
 
 actions:
   - choose:

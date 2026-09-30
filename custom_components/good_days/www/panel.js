@@ -52,6 +52,16 @@ const I18N = {
     day30_rule: "When the month has no 30th",
     notes: "Notes",
     remind: "Remind me",
+    ics_title: "Calendar subscription",
+    ics_enable: "Share family dates as a calendar link",
+    ics_holidays: "Include Shabbat and holidays",
+    ics_url: "Calendar link",
+    ics_copy: "Copy link",
+    ics_copied: "Link copied",
+    ics_open: "Open in calendar app",
+    ics_new: "New link (the old one stops working)",
+    ics_hint: "Add it in Google Calendar (From URL) or on your phone. Anyone with the link can see the dates. Google needs a link that works from the internet (Home Assistant Cloud or an external URL).",
+    ics_error: "Could not change the calendar link.",
     r_0: "On the day",
     r_0_yahrzeit: "The evening it begins (1 h before sunset)",
     r_1: "1 day before",
@@ -126,6 +136,16 @@ const I18N = {
     day30_rule: "כשאין בחודש יום ל׳",
     notes: "הערות",
     remind: "להזכיר",
+    ics_title: "מינוי ללוח שנה",
+    ics_enable: "לשתף את התאריכים המשפחתיים כקישור ללוח שנה",
+    ics_holidays: "לכלול שבתות וחגים",
+    ics_url: "קישור ללוח השנה",
+    ics_copy: "העתקת הקישור",
+    ics_copied: "הקישור הועתק",
+    ics_open: "פתיחה באפליקציית היומן",
+    ics_new: "קישור חדש (הישן יפסיק לעבוד)",
+    ics_hint: "הוסיפו ב-Google Calendar (מכתובת URL) או בטלפון. כל מי שיש לו את הקישור יכול לראות את התאריכים. Google צריך קישור שעובד מהאינטרנט (Home Assistant Cloud או כתובת חיצונית).",
+    ics_error: "לא ניתן לשנות את קישור לוח השנה.",
     r_0: "ביום עצמו",
     r_0_yahrzeit: "בערב שבו הוא מתחיל (שעה לפני השקיעה)",
     r_1: "יום לפני",
@@ -215,6 +235,11 @@ const STYLE = `
   .chip.now { background: var(--primary-color); color: var(--text-primary-color, #fff); }
   .conflict { color: var(--warning-color, #ff9800); }
   .row-actions { display: flex; gap: 2px; flex: none; }
+  .card.ics { margin-top: 16px; padding: 16px; display: grid; gap: 10px; }
+  .card.ics h2 { margin: 0; font-size: 1.05rem; font-weight: 500; }
+  .ics-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
+  a.text { color: var(--primary-color); padding: 6px 10px; text-decoration: none; border-radius: 6px; }
+  a.text:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
   .empty, .status { padding: 24px 16px; color: var(--secondary-text-color); }
   .status.error { color: var(--error-color, #db4437); }
   dialog { border: none; border-radius: 16px; padding: 0; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
@@ -237,7 +262,15 @@ const STYLE = `
   .toast { position: fixed; bottom: 16px; inset-inline-start: 50%; transform: translateX(-50%); background: #323232; color: #fff;
     padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; }
   :host([dir=rtl]) .toast { transform: translateX(50%); }
-  @media (max-width: 600px) { .row3 { grid-template-columns: 1fr 1fr; } .row3 .field.year { grid-column: 1 / -1; } }
+  @media (max-width: 600px) {
+    .row3 { grid-template-columns: 1fr 1fr; } .row3 .field.year { grid-column: 1 / -1; }
+    /* Phones: name and details get the full width; countdown and buttons go below. */
+    ul.dates li { flex-wrap: wrap; row-gap: 4px; }
+    ul.dates .info { flex: 1 1 calc(100% - 36px); }
+    ul.dates .name { white-space: normal; }
+    ul.dates .chip { margin-inline-start: 32px; }
+    ul.dates .row-actions { margin-inline-start: auto; }
+  }
 `;
 
 class GoodDaysPanel extends HTMLElement {
@@ -291,8 +324,102 @@ class GoodDaysPanel extends HTMLElement {
     await this._load();
   }
 
+  _isAdmin() {
+    return !!(this._hass && this._hass.user && this._hass.user.is_admin);
+  }
+
+  async _loadIcs() {
+    if (!this._isAdmin()) { this._ics = null; return; }
+    const msg = { type: "good_days/ics/get" };
+    if (this._entryId) msg.entry_id = this._entryId;
+    try {
+      this._ics = await this._hass.callWS(msg);
+    } catch (err) {
+      this._ics = null;
+    }
+  }
+
+  async _setIcs(patch) {
+    const current = this._ics || { enabled: false, holidays: false };
+    const msg = { type: "good_days/ics/set", enabled: current.enabled, holidays: current.holidays, ...patch };
+    if (this._entryId) msg.entry_id = this._entryId;
+    try {
+      this._ics = await this._hass.callWS(msg);
+    } catch (err) {
+      this._toast(this._t("ics_error"));
+    }
+    this._render();
+  }
+
+  _icsUrl() {
+    if (!this._ics || !this._ics.path) return "";
+    if (this._ics.url) return this._ics.url;
+    return this._hass.hassUrl ? this._hass.hassUrl(this._ics.path) : `${location.origin}${this._ics.path}`;
+  }
+
+  _renderIcs(main) {
+    if (!this._isAdmin() || !this._ics) return;
+    const card = mk("section", "card ics");
+    card.setAttribute("aria-labelledby", "ics-title");
+    const title = mk("h2", null, this._t("ics_title"));
+    title.id = "ics-title";
+    card.appendChild(title);
+
+    const toggle = (key, checked, text, onChange) => {
+      const label = mk("label", "check");
+      const box = mk("input");
+      box.type = "checkbox";
+      box.checked = checked;
+      box.setAttribute("data-focus-key", key);
+      box.addEventListener("change", () => onChange(box.checked));
+      label.append(box, mk("span", null, text));
+      return label;
+    };
+    card.appendChild(toggle("ics-enable", this._ics.enabled, this._t("ics_enable"), (on) => this._setIcs({ enabled: on })));
+    if (this._ics.enabled) {
+      card.appendChild(toggle("ics-holidays", this._ics.holidays, this._t("ics_holidays"), (on) => this._setIcs({ holidays: on })));
+      const url = this._icsUrl();
+      const field = mk("div", "field");
+      const label = mk("label", null, this._t("ics_url"));
+      label.htmlFor = "ics-url";
+      const input = mk("input");
+      input.id = "ics-url";
+      input.readOnly = true;
+      input.value = url;
+      input.dir = "ltr";
+      input.setAttribute("data-focus-key", "ics-url");
+      input.addEventListener("focus", () => input.select());
+      field.append(label, input);
+      card.appendChild(field);
+
+      const buttons = mk("div", "ics-buttons");
+      const copy = mk("button", "text", this._t("ics_copy"));
+      copy.type = "button";
+      copy.setAttribute("data-focus-key", "ics-copy");
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          this._toast(this._t("ics_copied"));
+        } catch (err) {
+          input.focus();
+        }
+      });
+      const open = mk("a", "text", this._t("ics_open"));
+      open.href = url.replace(/^https?:/, "webcal:");
+      const fresh = mk("button", "text danger", this._t("ics_new"));
+      fresh.type = "button";
+      fresh.setAttribute("data-focus-key", "ics-new");
+      fresh.addEventListener("click", () => this._setIcs({ new_link: true }));
+      buttons.append(copy, open, fresh);
+      card.appendChild(buttons);
+      card.appendChild(mk("p", "hint", this._t("ics_hint")));
+    }
+    main.appendChild(card);
+  }
+
   async _load() {
     if (!this._hass) return;
+    await this._loadIcs();
     const msg = { type: "good_days/dates/list", language: langOf(this._hass) };
     if (this._entryId) msg.entry_id = this._entryId;
     try {
@@ -369,7 +496,7 @@ class GoodDaysPanel extends HTMLElement {
 
     const main = mk("main");
     root.appendChild(main);
-    this._renderMain(main);
+    this._renderMainAndIcs(main);
     if (focusKey) {
       const again = root.querySelector(`[data-focus-key="${CSS.escape(focusKey)}"]`);
       if (again) again.focus();
@@ -407,6 +534,11 @@ class GoodDaysPanel extends HTMLElement {
     list.setAttribute("aria-label", this._t("title"));
     this._dates.forEach((record) => list.appendChild(this._renderRow(record)));
     card.appendChild(list);
+  }
+
+  _renderMainAndIcs(main) {
+    this._renderMain(main);
+    if (!this._error) this._renderIcs(main);
   }
 
   _renderRow(record) {
@@ -730,12 +862,15 @@ class GoodDaysPanel extends HTMLElement {
       gregBox.hidden = state.mode !== "gregorian";
       refreshRules();
     };
+    let convertSeq = 0;
     const convert = async () => {
+      const seq = ++convertSeq;
       state.converted = null;
       convertedEl.textContent = "";
       if (!state.gregorian_date) { refreshRules(); return; }
       try {
         const res = await this._hass.callWS({ type: "good_days/dates/convert", date: state.gregorian_date, after_sunset: state.after_sunset });
+        if (seq !== convertSeq) return; // a newer date / sunset choice is in flight
         if (res.errors && Object.keys(res.errors).length) {
           showErrors(res.errors);
         } else {
@@ -743,6 +878,7 @@ class GoodDaysPanel extends HTMLElement {
           convertedEl.textContent = this._t("converted", res.display[langOf(this._hass)]);
         }
       } catch (err) {
+        if (seq !== convertSeq) return;
         showErrors({ gregorian_date: "invalid_date" });
       }
       refreshRules();

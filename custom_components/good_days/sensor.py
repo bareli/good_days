@@ -17,7 +17,14 @@ from .entity import GoodDaysEntity
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    async_add_entities([NextShabbatSensor(entry), NextHolidaySensor(entry), NextFamilySensor(entry)])
+    async_add_entities(
+        [
+            NextShabbatSensor(entry),
+            NextHolidaySensor(entry),
+            NextFamilySensor(entry),
+            NextCandleLightingSensor(entry),
+        ]
+    )
 
 
 def _iso(value: dt.datetime | None) -> str | None:
@@ -50,6 +57,7 @@ class NextShabbatSensor(GoodDaysEntity, SensorEntity):
             "title": event.title(lang),
             "havdalah": _iso(event.havdalah),
             "parasha": event.parasha_name(lang),
+            "special_shabbat": [event.special_name(k, lang) for k in event.specials],
             "hebrew_date": hebrew_date(event.last_day, lang),
             "days_until": self.runtime.days_until(event, now),
             "in_effect": event.start <= now < event.end,
@@ -120,3 +128,36 @@ class NextFamilySensor(GoodDaysEntity, SensorEntity):
             "conflicts_shabbat": item["conflicts_shabbat"],
             "uid": event.uid,
         }
+
+
+class NextCandleLightingSensor(GoodDaysEntity, SensorEntity):
+    """Candle lighting of the current or next Shabbat or Yom Tov (whatever else is on the calendar)."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        super().__init__(entry, "next_candle_lighting")
+
+    @property
+    def native_value(self) -> dt.datetime | None:
+        event = self.runtime.next_period(dt_util.now())
+        if event is None:
+            return None
+        return event.candle_lighting or event.start
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        now = dt_util.now()
+        event = self.runtime.next_period(now)
+        if event is None:
+            return None
+        lang = self.runtime.language
+        return {
+            "title": event.title(lang),
+            "category": event.category,
+            "havdalah": _iso(event.havdalah or event.end),
+            "days_until": self.runtime.days_until(event, now),
+            "in_effect": event.start <= now < event.end,
+            "uid": event.uid,
+        }
+

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 
 from hdate import HebrewDate, Location, Zmanim
+from hdate.hebrew_date import Months, is_leap_year
 from hdate.gematria import hebrew_number
 from hdate.holidays import HolidayDatabase, HolidayTypes
 from hdate.parasha import ParashaDatabase
@@ -89,6 +90,27 @@ TEXT = {
 }
 SEPARATOR = " · "
 
+# Special Shabbatot. Title ones are appended in parentheses; notes only go to the description.
+SPECIAL_TITLE = ["shuva", "shekalim", "zachor", "parah", "hachodesh", "hagadol", "chazon",
+                 "nachamu", "shira", "rosh_chodesh", "chanukah", "chol_hamoed"]
+SPECIAL_NOTE = ["machar_chodesh", "mevarchim"]
+SPECIALS = {
+    "shuva": ("Shuva", "שובה"),
+    "shekalim": ("Shekalim", "שקלים"),
+    "zachor": ("Zachor", "זכור"),
+    "parah": ("Parah", "פרה"),
+    "hachodesh": ("HaChodesh", "החודש"),
+    "hagadol": ("HaGadol", "הגדול"),
+    "chazon": ("Chazon", "חזון"),
+    "nachamu": ("Nachamu", "נחמו"),
+    "shira": ("Shira", "שירה"),
+    "rosh_chodesh": ("Rosh Chodesh", "ראש חודש"),
+    "chanukah": ("Chanukah", "חנוכה"),
+    "chol_hamoed": ("Chol HaMoed", "חול המועד"),
+    "machar_chodesh": ("Machar Chodesh", "מחר חודש"),
+    "mevarchim": ("Mevarchim Chodesh {month}", "מברכים חודש {month}"),
+}
+
 
 def norm_language(language: str | None) -> str:
     """'he' for any Hebrew locale, otherwise 'en'."""
@@ -131,7 +153,8 @@ class HolyEvent:
     candle_lighting: dt.datetime | None = None
     havdalah: dt.datetime | None = None
     parasha: str | None = None  # hdate Parasha key, plain Shabbat only
-    month: str | None = None  # hdate Months key, Rosh Chodesh only
+    month: str | None = None  # hdate Months key: Rosh Chodesh, or the month blessed (Mevarchim)
+    specials: tuple[str, ...] = ()  # SPECIALS keys, plain Shabbat only
 
     @property
     def last_day(self) -> dt.date:
@@ -157,9 +180,13 @@ class HolyEvent:
                 group = PERIOD_GROUP.get(key, key)
                 if group not in groups:
                     groups.append(group)
-            if groups == [SHABBAT] and self.parasha:
-                name = self.parasha_name(lang)
-                return f"{_t(PERIOD_TITLES, SHABBAT, lang)} {_t(TEXT, 'parashat', lang)} {name}"
+            if groups == [SHABBAT]:
+                title = _t(PERIOD_TITLES, SHABBAT, lang)
+                shown = [self.special_name(k, lang) for k in self.specials if k in SPECIAL_TITLE]
+                if self.parasha:
+                    title = f"{title} {_t(TEXT, 'parashat', lang)} {self.parasha_name(lang)}"
+                    return f"{title} ({', '.join(shown)})" if shown else title
+                return f"{title} {', '.join(shown)}" if shown else title
             return SEPARATOR.join(
                 _t(PERIOD_TITLES, g, lang) if g in PERIOD_TITLES else _hdate_tr("Holiday", g, lang)
                 for g in groups
@@ -168,8 +195,13 @@ class HolyEvent:
             return f"{_t(TEXT, 'rosh_chodesh', lang)} {_hdate_tr('Months', self.month, lang)}"
         return _hdate_tr("Holiday", self.keys[0], lang)
 
+    def special_name(self, key: str, lang: str) -> str:
+        month = _hdate_tr("Months", self.month, lang) if self.month else ""
+        return _t(SPECIALS, key, lang).format(month=month)
+
     def description(self, lang: str) -> str:
         parts = [hebrew_date(self.first_day, lang)]
+        parts += [self.special_name(k, lang) for k in self.specials if k in SPECIAL_NOTE]
         if self.candle_lighting:
             parts.append(f"{_t(TEXT, 'candle_lighting', lang)} {self.candle_lighting:%H:%M}")
         if self.havdalah:
@@ -290,11 +322,12 @@ def _period(run, settings, location, parasha_db, tz) -> HolyEvent:
     except (ValueError, ArithmeticError):  # no sunset (polar day / night)
         candle = havdalah = None
 
-    parasha = None
+    parasha, specials, blessed = None, (), None
     if not yom_tov:
         found = parasha_db.lookup(run[-1][1])
         if found.value:
             parasha = found.name.lower()
+        specials, blessed = _specials(run[-1][0], run[-1][1], run[-1][2], parasha)
 
     category = CAT_YOM_TOV if yom_tov else CAT_SHABBAT
     timed = candle is not None and havdalah is not None
@@ -311,7 +344,67 @@ def _period(run, settings, location, parasha_db, tz) -> HolyEvent:
         candle_lighting=candle,
         havdalah=havdalah,
         parasha=parasha,
+        specials=specials,
+        month=blessed,
     )
+
+
+def _gday(year: int, month: Months, day: int) -> dt.date:
+    return HebrewDate(year, month, day).to_gdate()
+
+
+def _specials(day: dt.date, hd: HebrewDate, holidays: list, parasha: str | None) -> tuple[tuple[str, ...], str | None]:
+    """Special Shabbatot of a plain Shabbat, plus the month blessed on Shabbat Mevarchim."""
+    year = hd.year
+    purim_month = Months.ADAR_II if is_leap_year(year) else Months.ADAR
+    names = {h.name for h in holidays}
+
+    def before(target: dt.date) -> int:
+        return (target - day).days
+
+    found: list[str] = []
+    if hd.month == Months.TISHREI and 3 <= hd.day <= 9:
+        found.append("shuva")
+    if 0 <= before(_gday(year, purim_month, 1)) <= 6:
+        found.append("shekalim")
+    if 1 <= before(_gday(year, purim_month, 14)) <= 6:
+        found.append("zachor")
+    nisan = before(_gday(year, Months.NISAN, 1))
+    if 7 <= nisan <= 13:
+        found.append("parah")
+    if 0 <= nisan <= 6:
+        found.append("hachodesh")
+    if 1 <= before(_gday(year, Months.NISAN, 15)) <= 7:
+        found.append("hagadol")
+    tisha_bav = before(_gday(year, Months.AV, 9))
+    if 0 <= tisha_bav <= 6:
+        found.append("chazon")
+    if -7 <= tisha_bav <= -1:
+        found.append("nachamu")
+    if parasha == "beshalach":
+        found.append("shira")
+    rosh_chodesh = ROSH_CHODESH in names
+    if rosh_chodesh:
+        found.append("rosh_chodesh")
+    if "chanukah" in names:
+        found.append("chanukah")
+    if any(n.startswith("hol_hamoed") for n in names):
+        found.append("chol_hamoed")
+
+    blessed = None
+    next_month = hd.month.next_month(year) if hd.month != Months.ELUL else None
+    if next_month is not None and not rosh_chodesh:
+        # Rosh Chodesh starts on the 30th when the month has 30 days.
+        first_rc_day = (
+            _gday(year, hd.month, 30) if hd.month.days(year) == 30 else _gday(year, next_month, 1)
+        )
+        to_rc = before(first_rc_day)
+        if to_rc == 1:
+            found.append("machar_chodesh")  # Sunday is Rosh Chodesh
+        if 1 <= to_rc <= 7:
+            found.append("mevarchim")
+            blessed = next_month.name.lower()
+    return tuple(found), blessed
 
 
 def _spans(days, tz) -> Iterator[HolyEvent]:

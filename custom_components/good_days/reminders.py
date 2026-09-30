@@ -39,7 +39,9 @@ TEXT = {
     "tomorrow": ("Tomorrow: {t}", "מחר: {t}"),
     "in_days": ("In {n} days: {t}", "בעוד {n} ימים: {t}"),
     "in_2_days": ("In 2 days: {t}", "בעוד יומיים: {t}"),
+    "tonight": ("Tonight: {t}", "הערב: {t}"),
     "candle": ("Light a candle before {time}.", "הדליקו נר לפני {time}."),
+    "candle_after": ("Light a candle after havdalah ({time}).", "הדליקו נר אחרי ההבדלה ({time})."),
     "ack": ("Got it", "הבנתי"),
     "snooze": ("Remind me tomorrow", "תזכירו לי מחר"),
 }
@@ -58,20 +60,41 @@ def parse_time(value: str | None) -> dt.time:
         return dt.time(9, 0)
 
 
-def reminder_message(event: FamilyEvent, lang: str, now: dt.datetime) -> str:
-    """Text by the real distance at send time (a Shabbat hold can shift it)."""
+def candle_time(event: FamilyEvent, period) -> tuple[str, dt.datetime]:
+    """When to light a yahrzeit candle: ("before", t) or ("after", havdalah).
+
+    The yahrzeit begins at sunset; if that falls in Shabbat / Yom Tov, light before candle
+    lighting when the yahrzeit day is part of it, or after havdalah when it begins as it ends.
+    """
+    if period is None:
+        return "before", event.start
+    if period.covers_day(event.first_day):
+        return "before", period.start
+    return "after", period.end
+
+
+def reminder_message(
+    event: FamilyEvent, lang: str, now: dt.datetime, candle: tuple[str, dt.datetime] | None = None
+) -> str:
+    """Text by the real distance at send time."""
     title = event.title(lang)
     days = (event.first_day - dt_util.as_local(now).date()).days
+    evening = event.kind == KIND_YAHRZEIT and days == 1 and dt_util.as_local(now).hour >= 12
     if days <= 0:
         text = _t("today", lang, t=title)
+    elif evening:
+        text = _t("tonight", lang, t=title)
     elif days == 1:
         text = _t("tomorrow", lang, t=title)
     elif days == 2:
         text = _t("in_2_days", lang, t=title)
     else:
         text = _t("in_days", lang, n=days, t=title)
-    if event.kind == KIND_YAHRZEIT and not event.all_day and now < event.start and days <= 1:
-        text = f"{text}. {_t('candle', lang, time=dt_util.as_local(event.start).strftime('%H:%M'))}"
+    if event.kind == KIND_YAHRZEIT and not event.all_day and candle and days <= 1:
+        when, at = candle
+        if now < at or when == "after":
+            key = "candle" if when == "before" else "candle_after"
+            text = f"{text}. {_t(key, lang, time=dt_util.as_local(at).strftime('%H:%M'))}"
     return text
 
 
@@ -89,11 +112,22 @@ class ReminderManager:
         self._cache_key: tuple | None = None
         self._events: list[FamilyEvent] = []
 
+    def candle(self, event: FamilyEvent) -> tuple[str, dt.datetime]:
+        return candle_time(event, self.runtime.period_at(event.start))
+
     def due_at(self, event: FamilyEvent, days_before: int) -> dt.datetime:
-        if event.kind == KIND_YAHRZEIT and days_before == 0:
-            return event.start - dt.timedelta(minutes=YAHRZEIT_EVENING_LEAD_MIN)
-        day = event.first_day - dt.timedelta(days=days_before)
-        return dt.datetime.combine(day, self.time, dt_util.get_default_time_zone())
+        if event.kind == KIND_YAHRZEIT and days_before == 0 and not event.all_day:
+            when, at = self.candle(event)
+            if when == "after":
+                return at  # right after havdalah
+            due = at - dt.timedelta(minutes=YAHRZEIT_EVENING_LEAD_MIN)
+        else:
+            day = event.first_day - dt.timedelta(days=days_before)
+            due = dt.datetime.combine(day, self.time, dt_util.get_default_time_zone())
+        if self.quiet and (period := self.runtime.period_at(due)) is not None:
+            # Due on Shabbat / Yom Tov: send it before candle lighting instead.
+            due = period.start - dt.timedelta(minutes=YAHRZEIT_EVENING_LEAD_MIN)
+        return due
 
     async def _occurrences(self, now: dt.datetime) -> list[FamilyEvent]:
         today = dt_util.as_local(now).date()
@@ -174,7 +208,8 @@ class ReminderManager:
     async def _send(self, event: FamilyEvent, now: dt.datetime) -> None:
         lang = self.runtime.language
         title = _t("title", lang)
-        message = reminder_message(event, lang, now)
+        candle = self.candle(event) if event.kind == KIND_YAHRZEIT and not event.all_day else None
+        message = reminder_message(event, lang, now, candle)
         entry_id = self.runtime.entry.entry_id
         self.hass.bus.async_fire(
             EVENT_REMINDER,

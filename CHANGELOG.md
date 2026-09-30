@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.4.0 (2026-09-30)
+
+Torah details, calendar subscription, polish.
+
+- Special Shabbatot computed from the Hebrew calendar (Adar II in leap years, Chazon on Tisha B'Av when it falls on Shabbat): Shuva, Shekalim, Zachor, Parah, HaChodesh, HaGadol, Chazon, Nachamu, Shira, Rosh Chodesh, Chanukah, Chol HaMoed in the Shabbat title ("Shabbat Parashat Mishpatim (Shekalim)"); Mevarchim Chodesh and Machar Chodesh in the details. New `special_shabbat` attribute on `sensor.good_days_next_shabbat`; Assist reads the full title.
+- Calendar subscription: private ICS link of family dates (optionally Shabbat and holidays) for Google Calendar / phones, managed by admins in the panel (on / off, include holidays, new link). Off by default.
+- Panel: date rows no longer squeeze names on phones.
+- New `sensor.good_days_next_candle_lighting` (Shabbat or Yom Tov). The blueprint now uses it: before, Shabbat was missed when an all-day event (Chanukah, a Friday fast, Chol HaMoed) was on the calendar that Friday. Re-import the blueprint.
+- Reminders due on Shabbat / Yom Tov are sent an hour before candle lighting (before: held until havdalah, and lost when the date itself had ended by then).
+- Yahrzeit that begins on Shabbat / Yom Tov: "light before candle lighting" (was: before sunset, which is already Shabbat); begins as Shabbat ends: "light after havdalah". Evening reminders say "Tonight".
+- 30 Adar I in a plain year falls on 30 Shvat (first day of Rosh Chodesh Adar), not 1 Nisan.
+- A calendar failing with any error (timeouts, CalDAV) no longer blanks the card; it is listed as unreadable.
+- Card: refreshes arriving during a fetch are no longer dropped; all-day items use the display time zone (were off by hours when browser and server zones differ).
+- Panel: date converter ignores stale answers. ICS: bare carriage returns escaped; feed cached per day.
+
 ## v0.3.0 (2026-09-30)
 
 Reminders, Assist, blueprint.

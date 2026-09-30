@@ -38,7 +38,7 @@ TEXT = {
     ),
     "shabbat_now": ("{title} ends at {hv}.", "{title} יוצאת ב-{hv}."),
     "yom_tov_now": ("{title} ends at {hv}.", "{title} יוצא ב-{hv}."),
-    "parasha": (" Parashat {p}.", " פרשת {p}."),
+    "title": (" {t}.", " {t}."),
     "and": (" and ", " ו"),
 }
 
@@ -117,8 +117,8 @@ def speech_shabbat(runtime, lang: str, now: dt.datetime) -> str:
         hv_when=_when(dt_util.as_local(event.havdalah).date(), today, lang),
         hv=_hhmm(event.havdalah),
     )
-    if event.parasha:
-        text += _t("parasha", lang, p=event.parasha_name(lang))
+    if event.parasha or event.specials:  # "Shabbat Parashat Tetzaveh (Zachor)"
+        text += _t("title", lang, t=title)
     return text
 
 

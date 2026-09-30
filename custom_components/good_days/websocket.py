@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import logging
 from typing import Any
 
 import voluptuous as vol
@@ -11,15 +12,18 @@ from homeassistant.components import websocket_api
 from homeassistant.core import Context, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.util import dt as dt_util
 
 from .const import CAT_FAMILY, CATEGORIES, DOMAIN, WS_MAX_DAYS, WS_MAX_LIMIT, WS_UPCOMING
 from .engine import HolyEvent, hebrew_date, norm_language
 from .family import hebrew_from_gregorian, next_occurrence
 from .runtime import GoodDaysRuntime
+from .ics import ics_path, new_token
 from .storage import DateValidationError
 
 CATEGORY_FAMILY = CAT_FAMILY
+LOG = logging.getLogger(__name__)
 
 
 def resolve_runtime(hass: HomeAssistant, entry_id: str | None = None) -> GoodDaysRuntime:
@@ -37,7 +41,10 @@ def resolve_runtime(hass: HomeAssistant, entry_id: str | None = None) -> GoodDay
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    for command in (ws_upcoming, ws_dates_list, ws_dates_add, ws_dates_update, ws_dates_remove, ws_dates_convert):
+    for command in (
+        ws_upcoming, ws_dates_list, ws_dates_add, ws_dates_update, ws_dates_remove, ws_dates_convert,
+        ws_ics_get, ws_ics_set,
+    ):
         websocket_api.async_register_command(hass, command)
 
 
@@ -161,8 +168,11 @@ async def ws_upcoming(
     errors = []
     for entity_id, result in zip(external, results):
         if isinstance(result, BaseException):
+            if not isinstance(result, Exception):
+                raise result  # cancellation and friends
+            # Any calendar failure (timeouts, CalDAV errors...) only drops that calendar.
             if not isinstance(result, (HomeAssistantError, vol.Invalid)):
-                raise result
+                LOG.warning("Good Days: reading %s failed: %r", entity_id, result)
             errors.append({"entity_id": entity_id, "error": str(result) or type(result).__name__})
             continue
         for raw in result:
@@ -348,3 +358,62 @@ def ws_dates_convert(
             "display": {"he": hebrew_date(shown, "he"), "en": hebrew_date(shown, "en")},
         },
     )
+
+
+# Calendar subscription (ICS) ---------------------------------------------------
+
+
+def _ics_view(hass: HomeAssistant, runtime: GoodDaysRuntime) -> dict[str, Any]:
+    token = runtime.store.ics.get("token")
+    result: dict[str, Any] = {
+        "entry_id": runtime.entry.entry_id,
+        "enabled": bool(token),
+        "holidays": bool(runtime.store.ics.get("holidays")),
+        "path": ics_path(runtime.entry.entry_id, token) if token else None,
+        "url": None,
+    }
+    if token:
+        try:
+            base = get_url(hass, allow_internal=True, prefer_external=True)
+        except NoURLAvailableError:
+            base = None
+        result["url"] = f"{base}{result['path']}" if base else None
+    return result
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/ics/get", vol.Optional("entry_id"): cv.string}
+)
+@websocket_api.require_admin
+@callback
+def ws_ics_get(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    if (runtime := _runtime_or_error(hass, connection, msg)) is None:
+        return
+    connection.send_result(msg["id"], _ics_view(hass, runtime))
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/ics/set",
+        vol.Optional("entry_id"): cv.string,
+        vol.Required("enabled"): bool,
+        vol.Optional("holidays", default=False): bool,
+        vol.Optional("new_link", default=False): bool,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_ics_set(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Turn the feed on / off, include holidays, or replace the link (old one stops working)."""
+    if (runtime := _runtime_or_error(hass, connection, msg)) is None:
+        return
+    token = runtime.store.ics.get("token")
+    if not msg["enabled"]:
+        token = None
+    elif token is None or msg["new_link"]:
+        token = new_token()
+    await runtime.store.async_set_ics(token, msg["holidays"])
+    connection.send_result(msg["id"], _ics_view(hass, runtime))
+

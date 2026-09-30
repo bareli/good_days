@@ -137,6 +137,7 @@ class FamilyStore:
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}")
         self.dates: list[dict[str, Any]] = []
         self.reminders: dict[str, Any] = {}
+        self.ics: dict[str, Any] = {}  # {"token": str | None, "holidays": bool}
 
     async def async_load(self) -> None:
         data = await self._store.async_load() or {}
@@ -149,11 +150,17 @@ class FamilyStore:
             "acked": dict(reminders.get("acked") or {}),
             "snoozes": list(reminders.get("snoozes") or []),
         }
+        ics = data.get("ics") if isinstance(data.get("ics"), dict) else {}
+        self.ics = {"token": ics.get("token") or None, "holidays": bool(ics.get("holidays"))}
 
     async def _async_save(self) -> None:
-        await self._store.async_save({"dates": self.dates, "reminders": self.reminders})
+        await self._store.async_save({"dates": self.dates, "reminders": self.reminders, "ics": self.ics})
 
     async def async_save_reminders(self) -> None:
+        await self._async_save()
+
+    async def async_set_ics(self, token: str | None, holidays: bool) -> None:
+        self.ics = {"token": token, "holidays": holidays}
         await self._async_save()
 
     def get(self, date_id: str) -> dict[str, Any] | None:

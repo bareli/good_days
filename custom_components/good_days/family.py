@@ -60,7 +60,12 @@ def occurrences_in_year(record: dict[str, Any], year: int) -> list[dt.date]:
             # 30 Cheshvan / Kislev in a short year, or 30 Adar I in a plain year.
             if record.get("day30_rule") == DAY30_29:
                 this_day = month.days(year)
+            elif record["hebrew_month"] == ADAR_I:
+                # 30 Adar I is the first day of Rosh Chodesh Adar II; in a plain year that
+                # day is 30 Shvat (as Hebcal does), not 1 Nisan a month later.
+                this_day, this_month = 30, Months.SHVAT
             else:
+                # The 30th is the first day of Rosh Chodesh: the next month's first day.
                 this_day, this_month = 1, month.next_month(year)
         result.append(HebrewDate(year, this_month, this_day).to_gdate())
     return result
