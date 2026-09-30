@@ -8,6 +8,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
 from .const import DOMAIN, SIGNAL_UPDATED
+from .timer_manager import SIGNAL_TIMERS
 from .runtime import GoodDaysRuntime
 
 
@@ -34,11 +35,12 @@ class GoodDaysEntity(Entity):
         return self._entry.runtime_data
 
     async def async_added_to_hass(self) -> None:
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass, SIGNAL_UPDATED.format(self._entry.entry_id), self._handle_update
+        for signal in (SIGNAL_UPDATED, SIGNAL_TIMERS):
+            self.async_on_remove(
+                async_dispatcher_connect(
+                    self.hass, signal.format(self._entry.entry_id), self._handle_update
+                )
             )
-        )
 
     @callback
     def _handle_update(self) -> None:

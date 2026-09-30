@@ -165,7 +165,9 @@ entry_id: <optional, multi-instance>
 | **v0.1** | Holidays calendar entity (+ Shabbat timed events with candle/havdalah), sensors (next holiday, next Shabbat), WS `upcoming`, card merging holidays + external calendars, countdowns, Hebrew/English, RTL, visual editor, tests, HACS + hassfest CI. |
 | v0.2 | Family Hebrew-date dates (storage, services, editor/panel), `calendar.good_days_family`, Shabbat-conflict badges for external events, compact card variant. |
 | v0.3 | Reminders (notify + actionable buttons), Assist intent ("מה יש השבוע?" / "When is the next holiday?") with ready-made en/he sentences, blueprint "porch light before candle lighting". |
-| later | Feed "Shabbat Home" timers product; Hebcal-style Torah reading/parasha details; ICS export of family dates. |
+| v0.4 | Special Shabbatot, ICS subscription, review fixes (released). |
+| v0.5 | Shabbat Home timers inside Good Days (§12). |
+| later | Haftarah / Torah reading details, more presets, feedback. |
 
 ## 9. Testing (required before every commit)
 
@@ -214,3 +216,42 @@ Other v0.1 decisions: category `erev` (Erev Yom Tov days, off by default) added;
 4. Family dates editor location: card dialog vs sidebar panel.
 5. Adar / 30-Cheshvan defaults: confirm the customs to default to (user-configurable either way).
 6. Name/branding: "Good Days" / "ימים טובים" (repo `good_days`), icon needed.
+
+---
+
+## 12. v0.5 Shabbat Home timers (draft, 2026-09-30, needs Victor's approval)
+
+### 12.1 Why, and the competition
+- Goal: the house runs itself on Shabbat and Yom Tov: hot plate, urn, lights per room, AC, water heater, without anyone touching a switch, and the times follow candle lighting / havdalah automatically every week and on 2- and 3-day Chag.
+- **Competitor: `elazarcoh/ha-shabbat-scheduler`** (HACS custom, alpha, 0★, active Sep 2026). Very complete: any service on any target, per-day rules, simulation ("run now"), clone a day/profile, conflict reporting, 840 tests. Depends on the core Jewish Calendar sensors.
+- Our angle (only worth building if it holds):
+  1. **Zero extra setup**: same engine, same location/offsets as the rest of Good Days; no Jewish Calendar dependency.
+  2. **Hebrew/RTL-first, simple presets** for Israeli homes: "פלטה", "מיחם", "תאורה בערב", "מזגן", instead of a service editor.
+  3. **One place**: timers live next to the holidays, family dates and reminders; the card's "Now" banner shows what the house will do next.
+- If the goal is the richest scheduler, don't build this: recommend the competitor. If the goal is "Good Days does Shabbat end to end, simply", build a small v1.
+
+### 12.2 Scope of v1 (proposed)
+- **Timer rule**: `{id, name, preset?, targets: [entity_id], action: on|off, anchor, offset_min | time, applies_to: shabbat|yom_tov|both, days: all|first|last|each, enabled}`.
+  - anchors: `candle_lighting` (± minutes), `havdalah` (± minutes), `clock` (HH:MM on each holy day, e.g. lights off 23:00 Friday and Saturday nights; clock times on the erev day are allowed after candle lighting).
+  - actions: turn on / turn off (`homeassistant.turn_on/off`), which covers switch, light, input_boolean, fan, climate (on = last mode), water_heater. Scenes via `scene.turn_on` as targets. No arbitrary services in v1.
+- **Presets** (fill a rule, editable): hot plate on 20 min before candle lighting / off 30 min after havdalah; urn same; evening lights on at candle lighting, off 23:00; morning lights on 07:00; AC keep-on (on before, off after).
+- **Fire once, never re-assert** (same principle as the competitor): a manual change stays.
+- **Master switch** `switch.good_days_shabbat_timers` + "skip the next Shabbat / Chag" button.
+- **Sensor** `sensor.good_days_next_timer_action` (time; attrs: rule, action, targets) for the card and automations.
+- **Panel tab "Shabbat timers"**: rules list, add/edit dialog with presets, and a **preview of the next Shabbat/Chag as a timeline** (every action with its exact time), plus "run this rule now" to test.
+- **Reliability**: expand rules into concrete one-shot actions for the next 2 periods; schedule with `async_track_point_in_time`; recompute on rule change, options change, daily refresh. After a restart, run actions missed in the last 10 minutes (grace), skip older ones, and log them. History of the last 100 executions (panel + attribute).
+- **Safety**: validation (targets exist, offsets within ±12 h, clock times inside the period); conflicts (same target, opposing actions within 1 minute) are shown, not resolved.
+
+### 12.3 Out of scope for v1
+Arbitrary services / service data, conditions, per-room profiles, cloning days, climate setpoints, elevator / Shabbat-mode appliance protocols, dud_shemesh deep integration (it has its own Shabbat target).
+
+### 12.4 Decisions (Victor, 2026-09-30)
+1. **Full-featured scheduler**, but **actions stay on/off + scenes** (no arbitrary services). So v0.5 adds, beyond 12.2: HA **conditions** per rule (evaluated at fire time), **profiles** (e.g. "Regular", "Guests") with an active-profile select, **duplicate** rule / profile, **preview = simulation** of the next Shabbat/Chag timeline, **run now**, conflicts, skip, history; Yom Kippur as its own "applies to" kind (no hot plate on Yom Kippur).
+2. Missed after restart: **10-minute grace**, older ones skipped and logged.
+3. UI: **tab in the Good Days panel**.
+
+### 12.5 Original open questions
+1. Build it (small v1 as above), or point users to ha-shabbat-scheduler and spend v0.5 elsewhere?
+2. Actions: on/off (+ scenes) only, or any service in v1?
+3. Missed actions after a restart: 10-minute grace, or never run late?
+4. Where: a tab in the Good Days panel (recommended) or its own panel?

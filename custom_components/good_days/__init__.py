@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from . import websocket
+from . import websocket, websocket_timers
 from .ics import GoodDaysIcsView
 from .intents import async_register_intents
 from .reminders import async_register_actions
@@ -24,7 +24,13 @@ from .runtime import GoodDaysRuntime
 
 LOG = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.CALENDAR, Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.CALENDAR,
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.SELECT,
+]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -57,6 +63,7 @@ async def _integration_version(hass: HomeAssistant) -> str:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket.async_register(hass)
+    websocket_timers.async_register(hass)
     async_register_services(hass)
     async_register_actions(hass)
     async_register_intents(hass)

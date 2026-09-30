@@ -8,6 +8,7 @@ Home Assistant integration + Lovelace card that shows **what's coming up**: Shab
 - Family dates that repeat by **Hebrew date** (birthdays, yahrzeits, anniversaries), managed in a sidebar panel, with leap-year Adar and 30 Cheshvan / Kislev rules.
 - Reminders for family dates on your phone (Got it / Remind me tomorrow buttons), held during Shabbat and Yom Tov.
 - Special Shabbatot (Shekalim, Zachor, Parah, HaChodesh, HaGadol, Shuva, Chazon, Nachamu, Shira, Rosh Chodesh, Chanukah, Chol HaMoed) in titles; Mevarchim and Machar Chodesh in the details.
+- **Shabbat timers**: hot plate, urn, lights, AC and anything with on/off switch themselves around candle lighting and havdalah every Shabbat and Chag, with profiles, conditions and a preview.
 - Subscribe to your family dates from Google Calendar or your phone (private ICS link).
 - Assist: "מה יש השבוע?", "When is the next holiday?", "מתי הדלקת נרות?".
 - Hebrew-first card: RTL, Hebrew dates, "בעוד יומיים" countdowns, keyboard accessible.
@@ -32,6 +33,10 @@ Requires Home Assistant 2025.7 or newer.
 | `sensor.good_days_next_shabbat` | Candle lighting of the current or next Shabbat (timestamp). Attributes: `havdalah`, `parasha`, `special_shabbat` (e.g. `["Shekalim", "Mevarchim Chodesh Adar"]`), `title`, `hebrew_date`, `days_until`, `in_effect`. |
 | `sensor.good_days_next_candle_lighting` | Candle lighting of the current or next Shabbat **or Yom Tov** (timestamp), regardless of all-day events around it. Attributes: `havdalah`, `title`, `category`, `days_until`, `in_effect`. Best for automations. |
 | `sensor.good_days_next_holiday` | Name of the current or next holiday (not plain Shabbat or Rosh Chodesh). Attributes: `start`, `end`, `category`, `days_until`, `candle_lighting`, `havdalah`, `hebrew_date`. |
+| `switch.good_days_shabbat_timers` | Shabbat timers on / off (rules are kept). |
+| `switch.good_days_skip_next_shabbat_or_chag` | Skip the timers of the current or next Shabbat / Chag only; resets by itself. |
+| `select.good_days_timer_profile` | Active timer profile (e.g. Regular / Guests). |
+| `sensor.good_days_next_timer_action` | When the next timer fires; attributes `rule`, `action`, `targets`. |
 | `binary_sensor.good_days_holiday_today` | On during a holiday day. Attribute `holidays`. |
 | `calendar.good_days_family` | Family dates. Birthdays and anniversaries are all-day; a yahrzeit runs from sunset the evening before to sunset. |
 | `sensor.good_days_next_family_date` | Title of the current or next family date. Attributes: `name`, `kind`, `years`, `start`, `days_until`, `hebrew_date`, `conflicts_shabbat`. |
@@ -76,6 +81,26 @@ data:
   hebrew_month: marcheshvan   # tishrei ... elul; adar = Adar of a plain year; adar_i / adar_ii
   original_year: 5770
 ```
+
+## Shabbat timers
+
+Panel → **Shabbat timers** tab. Each timer turns devices **on or off** (switches, lights, plugs, fans, AC, water heaters, scenes...):
+
+- **Around candle lighting** or **around havdalah**: N minutes before / after, e.g. hot plate on 20 min before candle lighting, off 30 min after havdalah.
+- **At a time on each holy day**: e.g. lights off 23:00, on 07:00. A time later than candle lighting is the evening before (23:00 → Friday night); earlier times are on the day itself. Choose every day, the first or last day, or Erev (the day before).
+- **Applies to** Shabbat, Yom Tov and/or Yom Kippur (a hot plate usually not on Yom Kippur). Two- and three-day Chag with Shabbat are handled as one stretch.
+- **Only if** (optional): Home Assistant conditions checked when the timer fires (e.g. only when guests are staying).
+- **Presets** create the on and off timers for a hot plate, urn, evening lights, morning lights or AC.
+- **Profiles** (e.g. Regular, Guests, Summer): one is active (`select.good_days_timer_profile`); a new profile can start as a copy of another. **Duplicate** copies a timer.
+
+The tab shows a **preview** of the next Shabbat / Chag with every action and its exact time (a dry run), marks actions before candle lighting / after havdalah, and reports **conflicts** (the same device turned on and off at the same minute; nothing is resolved for you). **Run now** tests a timer immediately. The history keeps the last 100 runs.
+
+Rules of behaviour:
+- Each action runs **once**; a manual change afterwards is left alone.
+- If Home Assistant was down when an action was due, it still runs if it is at most **10 minutes** late; older ones are skipped and shown as *missed*.
+- **Skip next Shabbat / Chag** switches off the timers of that one Shabbat / Chag only.
+
+Everyone sees the timers; only admins can change them.
 
 ## Calendar subscription (ICS)
 
@@ -149,7 +174,7 @@ Family dates: `good_days/dates/list`, `dates/add`, `dates/update`, `dates/remove
 
 ## Roadmap
 
-- Later: feed a Shabbat Home timers product, Torah reading details, ICS export of family dates.
+- Ideas: haftarah and Torah reading details, more timer presets, your feedback.
 
 ## License
 

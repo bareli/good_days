@@ -35,6 +35,7 @@ from .const import (
 from .engine import EngineSettings, HolyEvent, hebrew_date, norm_language
 from .family import FamilyEvent
 from .reminders import ReminderManager
+from .timer_manager import TimerManager
 from .storage import FamilyStore
 
 PAST_DAYS = 7
@@ -73,6 +74,7 @@ class GoodDaysRuntime:
         self.family_events: list[FamilyEvent] = []
         self.family_version = 0  # bumped whenever dates or the window change
         self.reminders = ReminderManager(self)
+        self.timers = TimerManager(self)
         self.ics_cache: tuple | None = None  # (key, body), see ics.async_feed
         self.window: tuple[dt.date, dt.date] | None = None
         self._unsubs: list[Callable[[], None]] = []
@@ -86,6 +88,7 @@ class GoodDaysRuntime:
     async def async_start(self) -> None:
         await self.store.async_load()
         await self.async_refresh()
+        await self.timers.async_start()
         self._unsubs.append(
             async_track_time_change(self.hass, self._async_daily, hour=0, minute=5, second=0)
         )
@@ -98,6 +101,7 @@ class GoodDaysRuntime:
     def async_stop(self) -> None:
         while self._unsubs:
             self._unsubs.pop()()
+        self.timers.async_stop()
 
     async def _async_daily(self, _now: dt.datetime) -> None:
         await self.async_refresh()
@@ -107,6 +111,10 @@ class GoodDaysRuntime:
         async_dispatcher_send(self.hass, SIGNAL_UPDATED.format(self.entry.entry_id))
         self.entry.async_create_background_task(
             self.hass, self.reminders.async_check(now), f"{self.entry.entry_id} reminders"
+        )
+        # Cheap when nothing changed; picks up the next period as soon as one ends.
+        self.entry.async_create_background_task(
+            self.hass, self.timers.async_replan(), f"{self.entry.entry_id} timers"
         )
 
     async def async_refresh(self) -> None:

@@ -193,3 +193,53 @@ class FamilyStore:
             raise DateValidationError({"id": "not_found"})
         self.dates = [d for d in self.dates if d["id"] != date_id]
         await self._async_save()
+
+
+class TimerStore:
+    """`.storage/good_days.timers.<entry_id>`: Shabbat timer rules and their run state."""
+
+    HISTORY_MAX = 100
+
+    def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
+        self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.timers.{entry_id}")
+        self.rules: list[dict[str, Any]] = []
+        self.profiles: list[str] = ["default"]
+        self.active_profile = "default"
+        self.enabled = True
+        self.skip: list[str] = []  # period uids to skip
+        self.done: dict[str, str] = {}  # planned action key -> period end iso (for pruning)
+        self.history: list[dict[str, Any]] = []
+
+    async def async_load(self) -> None:
+        data = await self._store.async_load() or {}
+        self.rules = [r for r in data.get("rules", []) if isinstance(r, dict) and r.get("id")]
+        self.profiles = [p for p in data.get("profiles", []) if isinstance(p, str)] or ["default"]
+        self.active_profile = data.get("active_profile") if data.get("active_profile") in self.profiles else self.profiles[0]
+        self.enabled = bool(data.get("enabled", True))
+        self.skip = list(data.get("skip") or [])
+        self.done = dict(data.get("done") or {})
+        self.history = list(data.get("history") or [])[-self.HISTORY_MAX :]
+
+    async def async_save(self) -> None:
+        await self._store.async_save(
+            {
+                "rules": self.rules,
+                "profiles": self.profiles,
+                "active_profile": self.active_profile,
+                "enabled": self.enabled,
+                "skip": self.skip,
+                "done": self.done,
+                "history": self.history[-self.HISTORY_MAX :],
+            }
+        )
+
+    def get(self, rule_id: str) -> dict[str, Any] | None:
+        return next((r for r in self.rules if r["id"] == rule_id), None)
+
+    @staticmethod
+    def new_id() -> str:
+        return uuid.uuid4().hex
+
+    def add_history(self, entry: dict[str, Any]) -> None:
+        self.history.append(entry)
+        del self.history[: -self.HISTORY_MAX]

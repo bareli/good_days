@@ -117,8 +117,14 @@ ENTITY = {
         "next_holiday": ("Next holiday", "החג הבא"),
         "next_family": ("Next family date", "התאריך המשפחתי הבא"),
         "next_candle_lighting": ("Next candle lighting", "הדלקת הנרות הבאה"),
+        "next_timer_action": ("Next timer action", "הפעולה הבאה של הטיימרים"),
     },
     "binary_sensor": {"holiday_today": ("Holiday today", "חג היום")},
+    "switch": {
+        "shabbat_timers": ("Shabbat timers", "טיימרים לשבת"),
+        "skip_next": ("Skip next Shabbat or Chag", "דילוג על השבת או החג הבא"),
+    },
+    "select": {"timer_profile": ("Timer profile", "פרופיל טיימרים")},
 }
 
 # service -> (name, description), fields -> (name, description)

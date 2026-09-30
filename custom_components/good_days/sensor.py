@@ -23,6 +23,7 @@ async def async_setup_entry(
             NextHolidaySensor(entry),
             NextFamilySensor(entry),
             NextCandleLightingSensor(entry),
+            NextTimerActionSensor(entry),
         ]
     )
 
@@ -160,4 +161,25 @@ class NextCandleLightingSensor(GoodDaysEntity, SensorEntity):
             "in_effect": event.start <= now < event.end,
             "uid": event.uid,
         }
+
+
+class NextTimerActionSensor(GoodDaysEntity, SensorEntity):
+    """When the next Shabbat timer fires (none while timers are off)."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        super().__init__(entry, "next_timer_action")
+
+    @property
+    def native_value(self) -> dt.datetime | None:
+        action = self.runtime.timers.next_action(dt_util.now())
+        return action.when if action else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        action = self.runtime.timers.next_action(dt_util.now())
+        if action is None:
+            return None
+        return {"rule": action.rule_name, "action": action.action, "targets": list(action.targets)}
 

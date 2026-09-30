@@ -143,11 +143,27 @@
       },
       "next_candle_lighting": {
         "name": "Next candle lighting"
+      },
+      "next_timer_action": {
+        "name": "Next timer action"
       }
     },
     "binary_sensor": {
       "holiday_today": {
         "name": "Holiday today"
+      }
+    },
+    "switch": {
+      "shabbat_timers": {
+        "name": "Shabbat timers"
+      },
+      "skip_next": {
+        "name": "Skip next Shabbat or Chag"
+      }
+    },
+    "select": {
+      "timer_profile": {
+        "name": "Timer profile"
       }
     }
   },

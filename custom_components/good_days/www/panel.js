@@ -1,7 +1,7 @@
 /* Good Days sidebar panel: family dates (birthdays, yahrzeits, anniversaries) by Hebrew date. */
 
-const FSI = "⁨";
-const PDI = "⁩";
+const FSI = "\u2068";
+const PDI = "\u2069";
 const iso = (text) => FSI + text + PDI;
 
 const KINDS = ["birthday", "yahrzeit", "anniversary", "custom"];
@@ -13,10 +13,109 @@ const DAY30_MONTHS = new Set(["marcheshvan", "kislev", "adar_i"]);
 const MAX_NAME = 100;
 const MAX_NOTES = 500;
 const REFRESH_MS = 10 * 60 * 1000;
+const TIMER_DOMAINS = ["switch", "light", "input_boolean", "fan", "climate", "water_heater", "media_player",
+  "humidifier", "cover", "scene", "script", "automation", "siren", "vacuum", "valve", "lock"];
 
 const I18N = {
   en: {
-    title: "Family dates",
+    title: "Good Days",
+    tab_dates: "Family dates",
+    tab_timers: "Shabbat timers",
+    timers_status: "Timers status",
+    timers_enabled: "Shabbat timers on",
+    timers_skip: (p) => `Skip ${p}`,
+    profile: "Profile",
+    profile_default: "Regular",
+    profiles_manage: "Profiles",
+    profile_new: "New profile name",
+    profile_new_hint: "For example Guests, Summer, Away.",
+    profile_start: "Start with",
+    profile_empty: "No timers",
+    profile_copy: (p) => `A copy of ${p}`,
+    profile_add: "Add profile",
+    close: "Close",
+    next_action: (when, name, act) => `Next: ${when} · ${name} (${act})`,
+    next_action_named: (when, name) => `Next: ${when} · ${name}`,
+    no_next_action: "No timer is scheduled.",
+    period_skipped: "Skipped: nothing will run in this Shabbat / Chag.",
+    no_actions: "No timers apply.",
+    before_period: "before candle lighting",
+    after_period: "after havdalah",
+    done: "done",
+    conflict: (t, w) => `Conflict: ${t} is turned on and off at ${w}.`,
+    rules_title: (p) => `Timers · ${p}`,
+    rules_empty: "No timers yet. Add one, or start from a preset (hot plate, urn, lights).",
+    timer_add: "Add timer",
+    timer_edit: "Edit timer",
+    timer_preset: "From a preset",
+    preset: "Preset",
+    preset_hint: "Creates the on and the off timer; you can edit both.",
+    preset_hot_plate: "Hot plate",
+    preset_urn: "Water urn",
+    preset_evening_lights: "Evening lights",
+    preset_morning_lights: "Morning lights",
+    preset_air_conditioner: "Air conditioner",
+    targets: "Devices",
+    targets_hint: "Switches, lights, plugs, AC, scenes...",
+    action: "Turn",
+    act_on: "On",
+    act_off: "Off",
+    anchor: "When",
+    anchor_candle_lighting: "Around candle lighting",
+    anchor_havdalah: "Around havdalah",
+    anchor_clock: "At a time on each holy day",
+    minutes: "Minutes",
+    side: "Before / after",
+    side_before: "Before",
+    side_after: "After",
+    time: "Time",
+    time_hint: "Later than candle lighting (e.g. 23:00) is the evening before.",
+    days: "Days",
+    days_each: "Every day of Shabbat / Chag",
+    days_first: "First day only",
+    days_last: "Last day only",
+    days_erev: "Erev (the day before)",
+    at_candle_lighting: "at candle lighting",
+    at_havdalah: "at havdalah",
+    before_candle_lighting: (m) => `${iso(m)} min before candle lighting`,
+    after_candle_lighting: (m) => `${iso(m)} min after candle lighting`,
+    before_havdalah: (m) => `${iso(m)} min before havdalah`,
+    after_havdalah: (m) => `${iso(m)} min after havdalah`,
+    applies_to: "Applies to",
+    kind_shabbat: "Shabbat",
+    kind_yom_tov: "Yom Tov",
+    kind_yom_kippur: "Yom Kippur",
+    conditions: "Only if (optional)",
+    conditions_hint: "Home Assistant conditions, checked when the timer fires.",
+    has_conditions: (n) => `${iso(n)} condition(s)`,
+    enabled: "Enabled",
+    disabled: "off",
+    run_now: "Run now",
+    run_now_named: (n) => `Run ${n} now`,
+    ran: "Done",
+    run_failed: "Could not run it.",
+    duplicate: "Duplicate",
+    duplicate_named: (n) => `Duplicate ${n}`,
+    history: "History",
+    st_done: "done",
+    st_late: "done late",
+    st_skipped: "skipped",
+    st_missed: "missed",
+    st_failed: "failed",
+    e_invalid_targets: "Pick at least one device.",
+    e_unknown_targets: "One of the devices does not exist.",
+    e_scene_off: "Scenes can only be turned on.",
+    e_invalid_action: "Pick on or off.",
+    e_invalid_anchor: "Pick when.",
+    e_invalid_offset: "Minutes must be a whole number from 0 to 720.",
+    e_invalid_time: "Enter a time as HH:MM.",
+    e_invalid_days: "Pick the days.",
+    e_invalid_applies_to: "Pick at least one: Shabbat, Yom Tov or Yom Kippur.",
+    e_invalid_profile: "Pick a profile.",
+    e_invalid_conditions: "One of the conditions is not valid.",
+    e_too_many_rules: "Too many timers.",
+    e_invalid_profile_name: "Use a new name, up to 40 characters.",
+
     add: "Add date",
     empty: "No family dates yet. Add birthdays, yahrzeits and anniversaries by their Hebrew date.",
     loading: "Loading…",
@@ -100,7 +199,104 @@ const I18N = {
     m_adar_plain: "Adar (plain year)",
   },
   he: {
-    title: "תאריכים משפחתיים",
+    title: "ימים טובים",
+    tab_dates: "תאריכים משפחתיים",
+    tab_timers: "טיימרים לשבת",
+    timers_status: "מצב הטיימרים",
+    timers_enabled: "טיימרים לשבת פעילים",
+    timers_skip: (p) => `דילוג על ${p}`,
+    profile: "פרופיל",
+    profile_default: "רגיל",
+    profiles_manage: "פרופילים",
+    profile_new: "שם פרופיל חדש",
+    profile_new_hint: "למשל אורחים, קיץ, לא בבית.",
+    profile_start: "להתחיל עם",
+    profile_empty: "בלי טיימרים",
+    profile_copy: (p) => `עותק של ${p}`,
+    profile_add: "הוספת פרופיל",
+    close: "סגירה",
+    next_action: (when, name, act) => `הבא: ${when} · ${name} (${act})`,
+    next_action_named: (when, name) => `הבא: ${when} · ${name}`,
+    no_next_action: "אין טיימר מתוזמן.",
+    period_skipped: "דילוג: שום דבר לא יופעל בשבת / חג הזה.",
+    no_actions: "אין טיימרים שחלים.",
+    before_period: "לפני הדלקת נרות",
+    after_period: "אחרי ההבדלה",
+    done: "בוצע",
+    conflict: (t, w) => `התנגשות: ${t} נדלק וכבה ב-${w}.`,
+    rules_title: (p) => `טיימרים · ${p}`,
+    rules_empty: "אין עדיין טיימרים. הוסיפו טיימר או התחילו מתבנית (פלטה, מיחם, תאורה).",
+    timer_add: "הוספת טיימר",
+    timer_edit: "עריכת טיימר",
+    timer_preset: "מתבנית",
+    preset: "תבנית",
+    preset_hint: "יוצרת טיימר הדלקה וטיימר כיבוי; אפשר לערוך את שניהם.",
+    preset_hot_plate: "פלטה",
+    preset_urn: "מיחם",
+    preset_evening_lights: "תאורת ערב",
+    preset_morning_lights: "תאורת בוקר",
+    preset_air_conditioner: "מזגן",
+    targets: "מכשירים",
+    targets_hint: "מתגים, אורות, שקעים, מזגן, סצנות...",
+    action: "פעולה",
+    act_on: "הדלקה",
+    act_off: "כיבוי",
+    anchor: "מתי",
+    anchor_candle_lighting: "סביב הדלקת נרות",
+    anchor_havdalah: "סביב ההבדלה",
+    anchor_clock: "בשעה קבועה בכל יום של שבת / חג",
+    minutes: "דקות",
+    side: "לפני / אחרי",
+    side_before: "לפני",
+    side_after: "אחרי",
+    time: "שעה",
+    time_hint: "שעה מאוחרת מהדלקת הנרות (למשל 23:00) היא בערב שלפני.",
+    days: "ימים",
+    days_each: "בכל יום של שבת / חג",
+    days_first: "רק ביום הראשון",
+    days_last: "רק ביום האחרון",
+    days_erev: "בערב שבת / חג (היום שלפני)",
+    at_candle_lighting: "בהדלקת נרות",
+    at_havdalah: "בהבדלה",
+    before_candle_lighting: (m) => `${iso(m)} דק׳ לפני הדלקת נרות`,
+    after_candle_lighting: (m) => `${iso(m)} דק׳ אחרי הדלקת נרות`,
+    before_havdalah: (m) => `${iso(m)} דק׳ לפני ההבדלה`,
+    after_havdalah: (m) => `${iso(m)} דק׳ אחרי ההבדלה`,
+    applies_to: "חל על",
+    kind_shabbat: "שבת",
+    kind_yom_tov: "יום טוב",
+    kind_yom_kippur: "יום כיפור",
+    conditions: "רק אם (רשות)",
+    conditions_hint: "תנאים של Home Assistant, נבדקים ברגע ההפעלה.",
+    has_conditions: (n) => `${iso(n)} תנאים`,
+    enabled: "פעיל",
+    disabled: "מושבת",
+    run_now: "הפעלה עכשיו",
+    run_now_named: (n) => `הפעלת ${n} עכשיו`,
+    ran: "בוצע",
+    run_failed: "ההפעלה נכשלה.",
+    duplicate: "שכפול",
+    duplicate_named: (n) => `שכפול ${n}`,
+    history: "היסטוריה",
+    st_done: "בוצע",
+    st_late: "בוצע באיחור",
+    st_skipped: "דולג",
+    st_missed: "הוחמץ",
+    st_failed: "נכשל",
+    e_invalid_targets: "יש לבחור לפחות מכשיר אחד.",
+    e_unknown_targets: "אחד המכשירים לא קיים.",
+    e_scene_off: "סצנה אפשר רק להפעיל.",
+    e_invalid_action: "יש לבחור הדלקה או כיבוי.",
+    e_invalid_anchor: "יש לבחור מתי.",
+    e_invalid_offset: "מספר הדקות חייב להיות מספר שלם בין 0 ל-720.",
+    e_invalid_time: "יש להזין שעה בפורמט HH:MM.",
+    e_invalid_days: "יש לבחור ימים.",
+    e_invalid_applies_to: "יש לבחור לפחות אחד: שבת, יום טוב או יום כיפור.",
+    e_invalid_profile: "יש לבחור פרופיל.",
+    e_invalid_conditions: "אחד התנאים אינו תקין.",
+    e_too_many_rules: "יותר מדי טיימרים.",
+    e_invalid_profile_name: "יש להזין שם חדש, עד 40 תווים.",
+
     add: "הוספת תאריך",
     empty: "אין עדיין תאריכים משפחתיים. הוסיפו ימי הולדת, ימי השנה וימי נישואין לפי התאריך העברי.",
     loading: "טוען…",
@@ -235,6 +431,31 @@ const STYLE = `
   .chip.now { background: var(--primary-color); color: var(--text-primary-color, #fff); }
   .conflict { color: var(--warning-color, #ff9800); }
   .row-actions { display: flex; gap: 2px; flex: none; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--divider-color); margin-bottom: 16px; }
+  .tab { background: none; border: none; border-bottom: 3px solid transparent; padding: 10px 14px; font: inherit;
+    color: var(--secondary-text-color); cursor: pointer; }
+  .tab[aria-selected=true] { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 500; }
+  .tab:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+  .card.timers-status, .card.preview, .card.rules, .card.history { padding: 16px; margin-bottom: 16px; display: grid; gap: 10px; }
+  .card.preview h2, .card.rules h2 { margin: 0; font-size: 1.05rem; font-weight: 500; }
+  .row-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .row-inline select { width: auto; }
+  .rules-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+  .rules-head h2 { flex: 1; }
+  ol.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  ol.timeline li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+  ol.timeline li.done { opacity: 0.6; }
+  ol.timeline .time { font-variant-numeric: tabular-nums; min-width: 7em; }
+  ol.timeline .act { font-size: 0.78rem; padding: 1px 8px; border-radius: 999px; background: var(--secondary-background-color); }
+  ol.timeline .act.on { background: color-mix(in srgb, var(--success-color, #43a047) 18%, transparent); }
+  .badge-soft { font-size: 0.75rem; color: var(--secondary-text-color); border: 1px solid var(--divider-color); border-radius: 999px; padding: 0 6px; }
+  .warn { color: var(--warning-color, #ff9800); margin: 0; }
+  ul.dates li.disabled .name { color: var(--secondary-text-color); }
+  details.history summary { cursor: pointer; font-weight: 500; }
+  ul.history-list { margin: 8px 0 0; padding-inline-start: 18px; font-size: 0.85rem; display: grid; gap: 2px; }
+  .st-failed, .st-missed { color: var(--error-color, #db4437); }
+  ul.profile-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  ul.profile-list li { display: flex; justify-content: space-between; align-items: center; }
   .card.ics { margin-top: 16px; padding: 16px; display: grid; gap: 10px; }
   .card.ics h2 { margin: 0; font-size: 1.05rem; font-weight: 500; }
   .ics-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -281,6 +502,10 @@ class GoodDaysPanel extends HTMLElement {
     this._entries = [];
     this._entryId = null;
     this._error = null;
+    this._timers = null;
+    let tab = "dates";
+    try { tab = localStorage.getItem("good_days_tab") || "dates"; } catch (err) { /* private mode */ }
+    this._tab = tab === "timers" ? "timers" : "dates";
   }
 
   set hass(hass) {
@@ -419,7 +644,7 @@ class GoodDaysPanel extends HTMLElement {
 
   async _load() {
     if (!this._hass) return;
-    await this._loadIcs();
+    await Promise.all([this._loadIcs(), this._loadTimers()]);
     const msg = { type: "good_days/dates/list", language: langOf(this._hass) };
     if (this._entryId) msg.entry_id = this._entryId;
     try {
@@ -496,7 +721,14 @@ class GoodDaysPanel extends HTMLElement {
 
     const main = mk("main");
     root.appendChild(main);
-    this._renderMainAndIcs(main);
+    this._renderTabs(main);
+    const panel = mk("div");
+    panel.id = `panel-${this._tab}`;
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", `tab-${this._tab}`);
+    main.appendChild(panel);
+    if (this._tab === "timers") this._renderTimers(panel);
+    else this._renderMainAndIcs(panel);
     if (focusKey) {
       const again = root.querySelector(`[data-focus-key="${CSS.escape(focusKey)}"]`);
       if (again) again.focus();
@@ -531,7 +763,7 @@ class GoodDaysPanel extends HTMLElement {
       return;
     }
     const list = mk("ul", "dates");
-    list.setAttribute("aria-label", this._t("title"));
+    list.setAttribute("aria-label", this._t("tab_dates"));
     this._dates.forEach((record) => list.appendChild(this._renderRow(record)));
     card.appendChild(list);
   }
@@ -969,6 +1201,663 @@ class GoodDaysPanel extends HTMLElement {
     });
 
     refreshMode();
+    this._showDialog(dialog, opener, name);
+  }
+  // Shabbat timers tab ------------------------------------------------------
+
+  async _loadTimers() {
+    const msg = { type: "good_days/timers/get", language: langOf(this._hass) };
+    if (this._entryId) msg.entry_id = this._entryId;
+    try {
+      this._timers = await this._hass.callWS(msg);
+    } catch (err) {
+      this._timers = null;
+    }
+  }
+
+  async _timersCall(msg) {
+    const full = { language: langOf(this._hass), ...msg };
+    if (this._entryId) full.entry_id = this._entryId;
+    return this._hass.callWS(full);
+  }
+
+  async _timerSettings(patch) {
+    try {
+      const view = await this._timersCall({ type: "good_days/timers/settings", ...patch });
+      this._timers = view;
+      if (view.errors && Object.keys(view.errors).length) this._toast(this._t("save_error"));
+    } catch (err) {
+      this._toast(this._t("save_error"));
+    }
+    this._render();
+  }
+
+  _renderTabs(root) {
+    const tabs = mk("div", "tabs");
+    tabs.setAttribute("role", "tablist");
+    tabs.setAttribute("aria-label", this._t("title"));
+    const names = ["dates", "timers"];
+    names.forEach((name) => {
+      const tab = mk("button", "tab", this._t(`tab_${name}`));
+      tab.type = "button";
+      tab.id = `tab-${name}`;
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-selected", String(this._tab === name));
+      tab.setAttribute("aria-controls", `panel-${name}`);
+      tab.tabIndex = this._tab === name ? 0 : -1;
+      tab.setAttribute("data-focus-key", `tab-${name}`);
+      tab.addEventListener("click", () => this._selectTab(name));
+      tab.addEventListener("keydown", (ev) => {
+        const i = names.indexOf(name);
+        const rtl = langOf(this._hass) === "he";
+        let next = null;
+        if (ev.key === (rtl ? "ArrowLeft" : "ArrowRight")) next = names[(i + 1) % names.length];
+        if (ev.key === (rtl ? "ArrowRight" : "ArrowLeft")) next = names[(i - 1 + names.length) % names.length];
+        if (ev.key === "Home") next = names[0];
+        if (ev.key === "End") next = names[names.length - 1];
+        if (next) {
+          ev.preventDefault();
+          this._selectTab(next, true);
+        }
+      });
+      tabs.appendChild(tab);
+    });
+    root.appendChild(tabs);
+  }
+
+  _selectTab(name, focus = false) {
+    this._tab = name;
+    try { localStorage.setItem("good_days_tab", name); } catch (err) { /* private mode */ }
+    if (focus) this._returnFocus = `tab-${name}`;
+    this._render();
+  }
+
+  _friendly(entityId) {
+    const state = this._hass.states && this._hass.states[entityId];
+    return (state && state.attributes && state.attributes.friendly_name) || entityId;
+  }
+
+  _when(value, withDay = true) {
+    const date = new Date(value);
+    const locale = langOf(this._hass) === "he" ? "he-IL" : (this._hass.locale && this._hass.locale.language) || "en";
+    const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    if (!withDay) return iso(time);
+    return `${date.toLocaleDateString(locale, { weekday: "short" })} ${iso(time)}`;
+  }
+
+  _ruleSummary(rule) {
+    const parts = [this._t(`act_${rule.action}`)];
+    if (rule.anchor === "clock") {
+      parts.push(`${iso(rule.time)} · ${this._t(`days_${rule.days}`)}`);
+    } else {
+      const minutes = Math.abs(rule.offset_min || 0);
+      const side = (rule.offset_min || 0) < 0 ? "before" : "after";
+      parts.push(minutes === 0 ? this._t(`at_${rule.anchor}`) : this._t(`${side}_${rule.anchor}`, minutes));
+    }
+    parts.push(rule.applies_to.map((k) => this._t(`kind_${k}`)).join(", "));
+    return parts.join(" · ");
+  }
+
+  _renderTimers(main) {
+    const view = this._timers;
+    if (!view) {
+      main.appendChild(mk("p", "status error", this._t("load_error")));
+      return;
+    }
+    const admin = this._isAdmin();
+
+    // Status
+    const status = mk("section", "card timers-status");
+    status.setAttribute("aria-label", this._t("timers_status"));
+    const toggle = (key, checked, text, onChange) => {
+      const label = mk("label", "check");
+      const box = mk("input");
+      box.type = "checkbox";
+      box.setAttribute("role", "switch");
+      box.checked = checked;
+      box.disabled = !admin;
+      box.setAttribute("data-focus-key", key);
+      box.addEventListener("change", () => onChange(box.checked));
+      label.append(box, mk("span", null, text));
+      return label;
+    };
+    status.appendChild(toggle("timers-enabled", view.enabled, this._t("timers_enabled"), (on) => this._timerSettings({ enabled: on })));
+    const nextPeriod = view.preview[0];
+    if (nextPeriod) {
+      status.appendChild(toggle("timers-skip", view.skip_next, this._t("timers_skip", nextPeriod.title), (on) => this._timerSettings({ skip_next: on })));
+    }
+    const profileRow = mk("div", "row-inline");
+    const profileLabel = mk("label", null, this._t("profile"));
+    profileLabel.htmlFor = "timers-profile";
+    const profile = mk("select");
+    profile.id = "timers-profile";
+    profile.disabled = !admin;
+    profile.setAttribute("data-focus-key", "timers-profile");
+    view.profiles.forEach((p) => profile.appendChild(new Option(this._profileName(p), p)));
+    profile.value = view.active_profile;
+    profile.addEventListener("change", () => this._timerSettings({ active_profile: profile.value }));
+    profileRow.append(profileLabel, profile);
+    if (admin) {
+      const manage = mk("button", "text", this._t("profiles_manage"));
+      manage.type = "button";
+      manage.setAttribute("data-focus-key", "profiles-manage");
+      manage.addEventListener("click", () => this._openProfiles(manage));
+      profileRow.appendChild(manage);
+    }
+    status.appendChild(profileRow);
+    const next = view.next_action;
+    let nextText = this._t("no_next_action");
+    if (next) {
+      const act = this._t(`act_${next.action}`);
+      // Preset names already say on / off ("Hot plate (on)").
+      nextText = next.rule_name.toLowerCase().includes(`(${act.toLowerCase()})`)
+        ? this._t("next_action_named", this._when(next.when), next.rule_name)
+        : this._t("next_action", this._when(next.when), next.rule_name, act);
+    }
+    status.appendChild(mk("p", "hint", nextText));
+    main.appendChild(status);
+
+    // Preview (dry run of the next Shabbat / Chag)
+    view.preview.forEach((period, index) => {
+      const card = mk("section", "card preview");
+      const headingId = `preview-${index}`;
+      card.setAttribute("aria-labelledby", headingId);
+      const h = mk("h2", null, `${period.title} · ${this._when(period.start)} – ${this._when(period.end)}`);
+      h.id = headingId;
+      card.appendChild(h);
+      if (period.skipped) card.appendChild(mk("p", "warn", this._t("period_skipped")));
+      if (!period.actions.length) {
+        card.appendChild(mk("p", "hint", this._t("no_actions")));
+      } else {
+        const list = mk("ol", "timeline");
+        period.actions.forEach((a) => {
+          const li = mk("li", a.done ? "done" : null);
+          li.appendChild(mk("span", "time", this._when(a.when)));
+          li.appendChild(mk("span", `act ${a.action}`, this._t(`act_${a.action}`)));
+          const what = mk("span", "what", `${a.rule_name}: ${a.targets.map((t) => this._friendly(t)).join(", ")}`);
+          li.appendChild(what);
+          if (a.outside) li.appendChild(mk("span", "badge-soft", this._t(new Date(a.when) < new Date(period.start) ? "before_period" : "after_period")));
+          if (a.done) li.appendChild(mk("span", "badge-soft", this._t("done")));
+          list.appendChild(li);
+        });
+        card.appendChild(list);
+      }
+      period.conflicts.forEach((c) => {
+        card.appendChild(mk("p", "warn", this._t("conflict", this._friendly(c.target), this._when(c.when))));
+      });
+      main.appendChild(card);
+    });
+
+    // Rules
+    const rulesCard = mk("section", "card rules");
+    rulesCard.setAttribute("aria-labelledby", "rules-title");
+    const head = mk("div", "rules-head");
+    const title = mk("h2", null, this._t("rules_title", this._profileName(view.active_profile)));
+    title.id = "rules-title";
+    head.appendChild(title);
+    if (admin) {
+      const add = mk("button", "primary", this._t("timer_add"));
+      add.type = "button";
+      add.setAttribute("data-focus-key", "timer-add");
+      add.addEventListener("click", () => this._openTimerEditor(null, add));
+      const preset = mk("button", "text", this._t("timer_preset"));
+      preset.type = "button";
+      preset.setAttribute("data-focus-key", "timer-preset");
+      preset.addEventListener("click", () => this._openPreset(preset));
+      head.append(preset, add);
+    }
+    rulesCard.appendChild(head);
+    const rules = view.rules.filter((r) => r.profile === view.active_profile);
+    if (!rules.length) {
+      rulesCard.appendChild(mk("p", "empty", this._t("rules_empty")));
+    } else {
+      const list = mk("ul", "dates");
+      list.setAttribute("aria-labelledby", "rules-title");
+      rules.forEach((rule) => list.appendChild(this._renderRuleRow(rule, admin)));
+      rulesCard.appendChild(list);
+    }
+    main.appendChild(rulesCard);
+
+    // History
+    if (view.history.length) {
+      const details = mk("details", "card history");
+      details.appendChild(mk("summary", null, this._t("history")));
+      const list = mk("ul", "history-list");
+      view.history.forEach((h) => {
+        const text = `${this._when(h.when)} · ${h.rule_name} · ${this._t(`act_${h.action}`)} · ${this._t(`st_${h.status}`)}${h.reason ? ` (${h.reason})` : ""}`;
+        list.appendChild(mk("li", `st-${h.status}`, text));
+      });
+      details.appendChild(list);
+      main.appendChild(details);
+    }
+  }
+
+  _profileName(p) {
+    return p === "default" ? this._t("profile_default") : p;
+  }
+
+  _renderRuleRow(rule, admin) {
+    const li = mk("li", rule.enabled ? null : "disabled");
+    const icon = document.createElement("ha-icon");
+    icon.className = "kind";
+    icon.setAttribute("icon", rule.action === "on" ? "mdi:power" : "mdi:power-off");
+    icon.setAttribute("aria-hidden", "true");
+    li.appendChild(icon);
+    const info = mk("div", "info");
+    info.appendChild(mk("span", "name", rule.enabled ? rule.name : `${rule.name} (${this._t("disabled")})`));
+    const sub = mk("span", "sub");
+    sub.appendChild(mk("span", null, this._ruleSummary(rule)));
+    sub.appendChild(mk("span", null, rule.targets.map((t) => this._friendly(t)).join(", ")));
+    if (rule.conditions && rule.conditions.length) sub.appendChild(mk("span", null, this._t("has_conditions", rule.conditions.length)));
+    info.appendChild(sub);
+    li.appendChild(info);
+    if (!admin) return li;
+    const actions = mk("div", "row-actions");
+    const button = (key, text, label, cls, handler) => {
+      const b = mk("button", cls, text);
+      b.type = "button";
+      b.setAttribute("aria-label", label);
+      b.setAttribute("data-focus-key", `${key}-${rule.id}`);
+      b.addEventListener("click", () => handler(b));
+      actions.appendChild(b);
+    };
+    button("run", this._t("run_now"), this._t("run_now_named", rule.name), "text", async () => {
+      const res = await this._timersCall({ type: "good_days/timers/run", rule_id: rule.id }).catch(() => ({ errors: { base: 1 } }));
+      this._toast(res.errors && Object.keys(res.errors).length ? this._t("run_failed") : this._t("ran"));
+    });
+    button("dup", this._t("duplicate"), this._t("duplicate_named", rule.name), "text", async () => {
+      await this._timersCall({ type: "good_days/timers/duplicate", rule_id: rule.id }).catch(() => null);
+      await this._loadTimers();
+      this._render();
+    });
+    button("edit", this._t("edit"), this._t("edit_named", rule.name), "text", (b) => this._openTimerEditor(rule, b));
+    button("del", this._t("delete"), this._t("delete_named", rule.name), "text danger", (b) => this._confirmRemoveRule(rule, b));
+    li.appendChild(actions);
+    return li;
+  }
+
+  _confirmRemoveRule(rule, opener) {
+    const dialog = mk("dialog");
+    dialog.setAttribute("aria-labelledby", "confirm-title");
+    const form = mk("form");
+    const title = mk("h2", null, this._t("confirm_delete", rule.name));
+    title.id = "confirm-title";
+    const buttons = mk("div", "buttons");
+    const cancel = mk("button", "text", this._t("cancel"));
+    cancel.type = "button";
+    cancel.addEventListener("click", () => dialog.dismiss(false));
+    const ok = mk("button", "primary", this._t("delete"));
+    ok.type = "submit";
+    buttons.append(cancel, ok);
+    form.append(title, buttons);
+    dialog.appendChild(form);
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      ok.disabled = true;
+      await this._timersCall({ type: "good_days/timers/remove", rule_id: rule.id }).catch(() => null);
+      await this._loadTimers();
+      this._returnFocus = "timer-add";
+      dialog.dismiss(true);
+      this._toast(this._t("deleted"));
+    });
+    this._showDialog(dialog, opener, cancel);
+  }
+
+  // A labelled control with an inline error, like the family-date editor.
+  _field(form, fields, key, labelText, control, hint) {
+    const wrap = mk("div", `field ${key}`);
+    const id = `t-${key}`;
+    control.id = id;
+    const label = mk("label", null, labelText);
+    label.htmlFor = id;
+    const err = mk("span", "err");
+    err.id = `${id}-err`;
+    err.setAttribute("aria-live", "polite");
+    const described = [err.id];
+    wrap.append(label, control);
+    if (hint) {
+      const h = mk("span", "hint", hint);
+      h.id = `${id}-hint`;
+      described.push(h.id);
+      wrap.appendChild(h);
+    }
+    wrap.appendChild(err);
+    control.setAttribute("aria-describedby", described.join(" "));
+    fields[key] = { control, err };
+    form.appendChild(wrap);
+    return wrap;
+  }
+
+  _showFieldErrors(fields, formError, errs) {
+    Object.values(fields).forEach(({ control, err }) => { err.textContent = ""; control.removeAttribute("aria-invalid"); });
+    formError.textContent = "";
+    let first = null;
+    Object.entries(errs).forEach(([key, code]) => {
+      const text = this._t(`e_${code}`) || code;
+      const f = fields[key];
+      if (f && !f.control.closest("[hidden]")) {
+        f.err.textContent = text;
+        f.control.setAttribute("aria-invalid", "true");
+        if (!first) first = f.control;
+      } else {
+        formError.textContent = text;
+      }
+    });
+    if (first) first.focus();
+  }
+
+  _targetsControl(value) {
+    // Home Assistant's own entity picker; falls back to a text field (comma separated).
+    if (customElements.get("ha-selector")) {
+      const picker = document.createElement("ha-selector");
+      picker.hass = this._hass;
+      picker.selector = { entity: { multiple: true, filter: [{ domain: TIMER_DOMAINS }] } };
+      picker.value = value;
+      picker.required = true;
+      picker.addEventListener("value-changed", (ev) => { picker.value = ev.detail.value; });
+      picker.getValue = () => picker.value || [];
+      return picker;
+    }
+    const input = mk("input");
+    input.type = "text";
+    input.dir = "ltr";
+    input.value = (value || []).join(", ");
+    input.getValue = () => input.value.split(",").map((s) => s.trim()).filter(Boolean);
+    return input;
+  }
+
+  _openTimerEditor(rule, opener) {
+    const view = this._timers;
+    const editing = !!rule;
+    const r = rule || { name: "", targets: [], action: "on", anchor: "candle_lighting", offset_min: -20, time: "23:00",
+      days: "each", applies_to: ["shabbat", "yom_tov"], profile: view.active_profile, conditions: [], enabled: true };
+    const dialog = mk("dialog");
+    dialog.setAttribute("aria-labelledby", "timer-title");
+    const form = mk("form");
+    form.noValidate = true;
+    dialog.appendChild(form);
+    const title = mk("h2", null, this._t(editing ? "timer_edit" : "timer_add"));
+    title.id = "timer-title";
+    form.appendChild(title);
+    const fields = {};
+    const select = (options, value) => {
+      const s = mk("select");
+      options.forEach(([v, text]) => s.appendChild(new Option(text, v)));
+      s.value = value;
+      return s;
+    };
+
+    const name = mk("input");
+    name.type = "text";
+    name.maxLength = MAX_NAME;
+    name.value = r.name;
+    this._field(form, fields, "name", this._t("name"), name);
+
+    const targets = this._targetsControl(r.targets);
+    this._field(form, fields, "targets", this._t("targets"), targets, this._t("targets_hint"));
+
+    const action = select([["on", this._t("act_on")], ["off", this._t("act_off")]], r.action);
+    this._field(form, fields, "action", this._t("action"), action);
+
+    const anchor = select(["candle_lighting", "havdalah", "clock"].map((a) => [a, this._t(`anchor_${a}`)]), r.anchor);
+    this._field(form, fields, "anchor", this._t("anchor"), anchor);
+
+    const offsetRow = mk("div", "row3");
+    const minutes = mk("input");
+    minutes.type = "number";
+    minutes.min = "0";
+    minutes.max = "720";
+    minutes.step = "1";
+    minutes.inputMode = "numeric";
+    minutes.value = String(Math.abs(r.offset_min || 0));
+    const side = select([["before", this._t("side_before")], ["after", this._t("side_after")]], (r.offset_min || 0) < 0 ? "before" : "after");
+    form.appendChild(offsetRow);
+    this._field(offsetRow, fields, "offset_min", this._t("minutes"), minutes);
+    this._field(offsetRow, fields, "side", this._t("side"), side);
+
+    const clockRow = mk("div", "row3");
+    const time = mk("input");
+    time.type = "time";
+    time.value = r.time || "23:00";
+    const days = select(["each", "first", "last", "erev"].map((d) => [d, this._t(`days_${d}`)]), r.days || "each");
+    form.appendChild(clockRow);
+    this._field(clockRow, fields, "time", this._t("time"), time, this._t("time_hint"));
+    this._field(clockRow, fields, "days", this._t("days"), days);
+
+    const applies = mk("fieldset");
+    applies.appendChild(mk("legend", null, this._t("applies_to")));
+    const appliesBoxes = {};
+    ["shabbat", "yom_tov", "yom_kippur"].forEach((k) => {
+      const label = mk("label");
+      const box = mk("input");
+      box.type = "checkbox";
+      box.checked = r.applies_to.includes(k);
+      appliesBoxes[k] = box;
+      label.append(box, mk("span", null, this._t(`kind_${k}`)));
+      applies.appendChild(label);
+    });
+    const appliesErr = mk("span", "err");
+    appliesErr.setAttribute("aria-live", "polite");
+    applies.appendChild(appliesErr);
+    fields.applies_to = { control: applies, err: appliesErr };
+    form.appendChild(applies);
+
+    const profile = select(view.profiles.map((p) => [p, this._profileName(p)]), r.profile);
+    this._field(form, fields, "profile", this._t("profile"), profile);
+
+    let conditions = r.conditions || [];
+    if (customElements.get("ha-selector")) {
+      const cond = document.createElement("ha-selector");
+      cond.hass = this._hass;
+      cond.selector = { condition: {} };
+      cond.value = conditions;
+      cond.addEventListener("value-changed", (ev) => { conditions = ev.detail.value || []; cond.value = conditions; });
+      this._field(form, fields, "conditions", this._t("conditions"), cond, this._t("conditions_hint"));
+    }
+
+    const enabledLabel = mk("label", "check");
+    const enabled = mk("input");
+    enabled.type = "checkbox";
+    enabled.checked = r.enabled !== false;
+    enabledLabel.append(enabled, mk("span", null, this._t("enabled")));
+    form.appendChild(enabledLabel);
+
+    const formError = mk("p", "err");
+    formError.setAttribute("role", "alert");
+    form.appendChild(formError);
+    const buttons = mk("div", "buttons");
+    const cancel = mk("button", "text", this._t("cancel"));
+    cancel.type = "button";
+    cancel.addEventListener("click", () => dialog.dismiss(false));
+    const save = mk("button", "primary", this._t("save"));
+    save.type = "submit";
+    buttons.append(cancel, save);
+    form.appendChild(buttons);
+
+    const refresh = () => {
+      offsetRow.hidden = anchor.value === "clock";
+      clockRow.hidden = anchor.value !== "clock";
+    };
+    anchor.addEventListener("change", refresh);
+    refresh();
+
+    // Same rules as timers.validate_rule on the server.
+    const validate = (data) => {
+      const errs = {};
+      if (!data.name || data.name.length > MAX_NAME) errs.name = "invalid_name";
+      if (!data.targets.length) errs.targets = "invalid_targets";
+      if (data.anchor === "clock") {
+        if (!/^([01]?\d|2[0-3]):[0-5]\d$/.test(data.time || "")) errs.time = "invalid_time";
+      } else {
+        const m = Number(minutes.value);
+        if (!Number.isInteger(m) || m < 0 || m > 720) errs.offset_min = "invalid_offset";
+      }
+      if (!data.applies_to.length) errs.applies_to = "invalid_applies_to";
+      return errs;
+    };
+
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const m = Number(minutes.value);
+      const data = {
+        name: name.value.trim(),
+        targets: targets.getValue(),
+        action: action.value,
+        anchor: anchor.value,
+        offset_min: side.value === "before" ? -m : m,
+        time: (time.value || "").slice(0, 5),
+        days: days.value,
+        applies_to: Object.keys(appliesBoxes).filter((k) => appliesBoxes[k].checked),
+        profile: profile.value,
+        conditions,
+        enabled: enabled.checked,
+      };
+      const errs = validate(data);
+      if (Object.keys(errs).length) { this._showFieldErrors(fields, formError, errs); return; }
+      save.disabled = true;
+      try {
+        const res = await this._timersCall({ type: "good_days/timers/save", ...(editing ? { rule_id: rule.id } : {}), ...data });
+        if (res.errors && Object.keys(res.errors).length) {
+          this._showFieldErrors(fields, formError, res.errors);
+          save.disabled = false;
+          return;
+        }
+        await this._loadTimers();
+        this._returnFocus = editing ? `edit-${rule.id}` : "timer-add";
+        dialog.dismiss(true);
+        this._toast(this._t("saved"));
+      } catch (err) {
+        save.disabled = false;
+        formError.textContent = this._t("save_error");
+      }
+    });
+    this._showDialog(dialog, opener, name);
+  }
+
+  _openPreset(opener) {
+    const view = this._timers;
+    const dialog = mk("dialog");
+    dialog.setAttribute("aria-labelledby", "preset-title");
+    const form = mk("form");
+    form.noValidate = true;
+    dialog.appendChild(form);
+    const title = mk("h2", null, this._t("timer_preset"));
+    title.id = "preset-title";
+    form.appendChild(title);
+    const fields = {};
+    const preset = mk("select");
+    view.presets.forEach((p) => preset.appendChild(new Option(this._t(`preset_${p}`), p)));
+    this._field(form, fields, "preset", this._t("preset"), preset, this._t("preset_hint"));
+    const name = mk("input");
+    name.type = "text";
+    name.maxLength = MAX_NAME - 12;
+    name.value = this._t(`preset_${view.presets[0]}`);
+    preset.addEventListener("change", () => { name.value = this._t(`preset_${preset.value}`); });
+    this._field(form, fields, "name", this._t("name"), name);
+    const targets = this._targetsControl([]);
+    this._field(form, fields, "targets", this._t("targets"), targets);
+    const formError = mk("p", "err");
+    formError.setAttribute("role", "alert");
+    form.appendChild(formError);
+    const buttons = mk("div", "buttons");
+    const cancel = mk("button", "text", this._t("cancel"));
+    cancel.type = "button";
+    cancel.addEventListener("click", () => dialog.dismiss(false));
+    const save = mk("button", "primary", this._t("save"));
+    save.type = "submit";
+    buttons.append(cancel, save);
+    form.appendChild(buttons);
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const data = { preset: preset.value, name: name.value.trim(), targets: targets.getValue() };
+      const errs = {};
+      if (!data.name) errs.name = "invalid_name";
+      if (!data.targets.length) errs.targets = "invalid_targets";
+      if (Object.keys(errs).length) { this._showFieldErrors(fields, formError, errs); return; }
+      save.disabled = true;
+      try {
+        const res = await this._timersCall({ type: "good_days/timers/preset", ...data });
+        if (res.errors && Object.keys(res.errors).length) {
+          this._showFieldErrors(fields, formError, res.errors);
+          save.disabled = false;
+          return;
+        }
+        await this._loadTimers();
+        this._returnFocus = "timer-add";
+        dialog.dismiss(true);
+        this._toast(this._t("saved"));
+      } catch (err) {
+        save.disabled = false;
+        formError.textContent = this._t("save_error");
+      }
+    });
+    this._showDialog(dialog, opener, preset);
+  }
+
+  _openProfiles(opener) {
+    const view = this._timers;
+    const dialog = mk("dialog");
+    dialog.setAttribute("aria-labelledby", "profiles-title");
+    const form = mk("form");
+    form.noValidate = true;
+    dialog.appendChild(form);
+    const title = mk("h2", null, this._t("profiles_manage"));
+    title.id = "profiles-title";
+    form.appendChild(title);
+    const list = mk("ul", "profile-list");
+    view.profiles.forEach((p) => {
+      const li = mk("li");
+      li.appendChild(mk("span", "name", this._profileName(p)));
+      if (view.profiles.length > 1) {
+        const del = mk("button", "text danger", this._t("delete"));
+        del.type = "button";
+        del.setAttribute("aria-label", this._t("delete_named", this._profileName(p)));
+        del.addEventListener("click", async () => {
+          await this._timerSettings({ remove_profile: p });
+          dialog.dismiss(true);
+        });
+        li.appendChild(del);
+      }
+      list.appendChild(li);
+    });
+    form.appendChild(list);
+    const fields = {};
+    const name = mk("input");
+    name.type = "text";
+    name.maxLength = 40;
+    this._field(form, fields, "add_profile", this._t("profile_new"), name, this._t("profile_new_hint"));
+    const copy = mk("select");
+    copy.appendChild(new Option(this._t("profile_empty"), ""));
+    view.profiles.forEach((p) => copy.appendChild(new Option(this._t("profile_copy", this._profileName(p)), p)));
+    this._field(form, fields, "copy_from", this._t("profile_start"), copy);
+    const formError = mk("p", "err");
+    formError.setAttribute("role", "alert");
+    form.appendChild(formError);
+    const buttons = mk("div", "buttons");
+    const close = mk("button", "text", this._t("close"));
+    close.type = "button";
+    close.addEventListener("click", () => dialog.dismiss(false));
+    const add = mk("button", "primary", this._t("profile_add"));
+    add.type = "submit";
+    buttons.append(close, add);
+    form.appendChild(buttons);
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const value = name.value.trim();
+      if (!value || value.length > 40 || view.profiles.includes(value)) {
+        this._showFieldErrors(fields, formError, { add_profile: "invalid_profile_name" });
+        return;
+      }
+      const res = await this._timersCall({ type: "good_days/timers/settings", add_profile: value, ...(copy.value ? { copy_from: copy.value } : {}) }).catch(() => null);
+      if (!res || (res.errors && Object.keys(res.errors).length)) {
+        this._showFieldErrors(fields, formError, (res && res.errors) || { base: "save_error" });
+        return;
+      }
+      this._timers = res;
+      this._returnFocus = "profiles-manage";
+      dialog.dismiss(true);
+      this._toast(this._t("saved"));
+    });
     this._showDialog(dialog, opener, name);
   }
 }
