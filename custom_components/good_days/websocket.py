@@ -319,6 +319,7 @@ async def ws_dates_update(
     {
         vol.Required("type"): f"{DOMAIN}/dates/remove",
         vol.Optional("entry_id"): cv.string,
+        vol.Optional("language"): cv.string,
         vol.Required("date_id"): cv.string,
     }
 )
@@ -337,6 +338,7 @@ async def ws_dates_remove(
         vol.Required("type"): f"{DOMAIN}/dates/convert",
         vol.Required("date"): cv.string,
         vol.Optional("after_sunset", default=False): bool,
+        vol.Optional("language"): cv.string,
     }
 )
 @callback
@@ -382,7 +384,11 @@ def _ics_view(hass: HomeAssistant, runtime: GoodDaysRuntime) -> dict[str, Any]:
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): f"{DOMAIN}/ics/get", vol.Optional("entry_id"): cv.string}
+    {
+        vol.Required("type"): f"{DOMAIN}/ics/get",
+        vol.Optional("entry_id"): cv.string,
+        vol.Optional("language"): cv.string,
+    }
 )
 @websocket_api.require_admin
 @callback
@@ -396,6 +402,7 @@ def ws_ics_get(hass: HomeAssistant, connection: websocket_api.ActiveConnection, 
     {
         vol.Required("type"): f"{DOMAIN}/ics/set",
         vol.Optional("entry_id"): cv.string,
+        vol.Optional("language"): cv.string,
         vol.Required("enabled"): bool,
         vol.Optional("holidays", default=False): bool,
         vol.Optional("new_link", default=False): bool,
