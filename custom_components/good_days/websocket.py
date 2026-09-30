@@ -243,9 +243,15 @@ def _fields(msg: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in msg.items() if k in _DATE_FIELD_NAMES}
 
 
-def _date_view(runtime: GoodDaysRuntime, record: dict[str, Any], lang: str, now: dt.datetime) -> dict[str, Any]:
+def _date_view(
+    runtime: GoodDaysRuntime,
+    record: dict[str, Any],
+    lang: str,
+    now: dt.datetime,
+    cached: FamilyEvent | None = None,
+) -> dict[str, Any]:
     """The stored record plus its current or next occurrence (runs in the executor)."""
-    nxt = next_occurrence(record, runtime.settings, now)
+    nxt = cached or next_occurrence(record, runtime.settings, now)
     view: dict[str, Any] = {**record, "next": None}
     if nxt:
         view["next"] = {**runtime.render(nxt, lang, now), "days_until": runtime.days_until(nxt, now)}
@@ -278,8 +284,13 @@ async def ws_dates_list(
     lang = norm_language(msg.get("language") or runtime.language)
     now = dt_util.now()
     records = list(runtime.store.dates)
+    # The cached window already holds each date's next occurrence; compute only the rest.
+    cached: dict[str, FamilyEvent] = {}
+    for event in runtime.family_events:
+        if event.end > now:
+            cached.setdefault(event.date_id, event)
     views = await hass.async_add_executor_job(
-        lambda: [_date_view(runtime, r, lang, now) for r in records]
+        lambda: [_date_view(runtime, r, lang, now, cached.get(r["id"])) for r in records]
     )
     views.sort(key=lambda v: (v["next"] is None, (v["next"] or {}).get("start", ""), v["name"]))
     connection.send_result(msg["id"], {"entry_id": runtime.entry.entry_id, "dates": views})
