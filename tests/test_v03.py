@@ -236,8 +236,10 @@ async def test_blueprint_turns_light_on_before_candle_lighting(hass: HomeAssista
         "{{ as_timestamp(state_attr('calendar.good_days_holidays', 'start_time')) }}",
         hass,
     ).async_render()
+    auto = hass.states.get("automation.porch")
     assert hass.states.get("input_boolean.porch").state == "on", (
-        cal.attributes, probe, hass.states.get("automation.porch").attributes, str(dt_util.get_default_time_zone())
+        f"DIAG start={cal.attributes.get('start_time')} all_day={cal.attributes.get('all_day')} "
+        f"probe={probe} auto={auto.state} last={auto.attributes.get('last_triggered')}"
     )
 
     # Calendar end trigger at havdalah (18:49 Saturday). A non-zero delay is plain HA script
