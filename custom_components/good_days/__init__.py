@@ -15,6 +15,8 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from . import websocket
+from .intents import async_register_intents
+from .reminders import async_register_actions
 from .services import async_register_services
 from .const import DOMAIN
 from .runtime import GoodDaysRuntime
@@ -55,6 +57,8 @@ async def _integration_version(hass: HomeAssistant) -> str:
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket.async_register(hass)
     async_register_services(hass)
+    async_register_actions(hass)
+    async_register_intents(hass)
     return True
 
 

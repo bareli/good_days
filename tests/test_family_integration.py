@@ -48,8 +48,7 @@ async def test_services_crud_and_entities(hass: HomeAssistant, israel, freezer) 
     events = resp["calendar.good_days_family"]["events"]
     assert [e["summary"] for e in events] == ["Noa's birthday (7)", "Yahrzeit: Saba"]
     assert events[0]["start"] == "2026-10-10"
-    # Sunset the evening before: 18:09 at sea level; hdate >= 1.2 adds Jerusalem's elevation (18:12).
-    assert events[1]["start"] in ("2026-10-13T18:09:00+03:00", "2026-10-13T18:12:00+03:00")
+    assert events[1]["start"] == "2026-10-13T18:09:00+03:00"  # sea-level sunset the evening before
 
     await hass.services.async_call(DOMAIN, "update_date", {"date_id": noa["id"], "name": "Noa B."}, blocking=True)
     await hass.async_block_till_done()

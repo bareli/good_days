@@ -17,7 +17,6 @@ from .const import (
     CONF_CANDLE_LIGHTING,
     CONF_CATEGORIES,
     CONF_DIASPORA,
-    CONF_ELEVATION,
     CONF_HAVDALAH,
     CONF_LANGUAGE,
     CONF_LATITUDE,
@@ -35,6 +34,7 @@ from .const import (
 )
 from .engine import EngineSettings, HolyEvent, hebrew_date, norm_language
 from .family import FamilyEvent
+from .reminders import ReminderManager
 from .storage import FamilyStore
 
 PAST_DAYS = 7
@@ -46,7 +46,7 @@ def settings_from_entry(hass: HomeAssistant, entry: ConfigEntry) -> EngineSettin
     return EngineSettings(
         latitude=float(o.get(CONF_LATITUDE, hass.config.latitude)),
         longitude=float(o.get(CONF_LONGITUDE, hass.config.longitude)),
-        elevation=float(o.get(CONF_ELEVATION, hass.config.elevation or 0)),
+        elevation=0.0,
         time_zone=str(hass.config.time_zone),
         diaspora=bool(o.get(CONF_DIASPORA, False)),
         candle_lighting=int(o.get(CONF_CANDLE_LIGHTING, DEFAULT_CANDLE_LIGHTING)),
@@ -71,6 +71,8 @@ class GoodDaysRuntime:
         self.events: list[HolyEvent] = []
         self.store = FamilyStore(hass, entry.entry_id)
         self.family_events: list[FamilyEvent] = []
+        self.family_version = 0  # bumped whenever dates or the window change
+        self.reminders = ReminderManager(self)
         self.window: tuple[dt.date, dt.date] | None = None
         self._unsubs: list[Callable[[], None]] = []
 
@@ -100,8 +102,11 @@ class GoodDaysRuntime:
         await self.async_refresh()
 
     @callback
-    def _tick(self, _now: dt.datetime) -> None:
+    def _tick(self, now: dt.datetime) -> None:
         async_dispatcher_send(self.hass, SIGNAL_UPDATED.format(self.entry.entry_id))
+        self.entry.async_create_background_task(
+            self.hass, self.reminders.async_check(now), f"{self.entry.entry_id} reminders"
+        )
 
     async def async_refresh(self) -> None:
         today = dt_util.now().date()
@@ -112,6 +117,7 @@ class GoodDaysRuntime:
             family.compute_family, list(self.store.dates), self.settings, start, end
         )
         self.events, self.family_events, self.window = events, family_events, (start, end)
+        self.family_version += 1
         async_dispatcher_send(self.hass, SIGNAL_UPDATED.format(self.entry.entry_id))
 
     async def async_refresh_family(self) -> None:
@@ -122,6 +128,7 @@ class GoodDaysRuntime:
         self.family_events = await self.hass.async_add_executor_job(
             family.compute_family, list(self.store.dates), self.settings, start, end
         )
+        self.family_version += 1
         async_dispatcher_send(self.hass, SIGNAL_UPDATED.format(self.entry.entry_id))
 
     async def async_family_between(self, start: dt.datetime, end: dt.datetime) -> list[FamilyEvent]:

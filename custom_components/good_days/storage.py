@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 
 from .const import (
     ADAR_RULES,
@@ -125,18 +126,35 @@ class DateValidationError(Exception):
 
 
 class FamilyStore:
-    """`.storage/good_days.<entry_id>`: {"dates": [record, ...]}."""
+    """`.storage/good_days.<entry_id>`.
+
+    {"dates": [record], "reminders": {"since": iso, "sent": {key: day}, "acked": {key: day},
+    "snoozes": [{"date_id", "day", "due"}]}}. Reminder keys carry their occurrence day so old
+    ones can be pruned.
+    """
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
         self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}")
         self.dates: list[dict[str, Any]] = []
+        self.reminders: dict[str, Any] = {}
 
     async def async_load(self) -> None:
         data = await self._store.async_load() or {}
         self.dates = [d for d in data.get("dates", []) if isinstance(d, dict) and d.get("id")]
+        reminders = data.get("reminders") if isinstance(data.get("reminders"), dict) else {}
+        self.reminders = {
+            # First run: only reminders due from now on (no burst of old ones).
+            "since": reminders.get("since") or dt_util.utcnow().isoformat(),
+            "sent": dict(reminders.get("sent") or {}),
+            "acked": dict(reminders.get("acked") or {}),
+            "snoozes": list(reminders.get("snoozes") or []),
+        }
 
     async def _async_save(self) -> None:
-        await self._store.async_save({"dates": self.dates})
+        await self._store.async_save({"dates": self.dates, "reminders": self.reminders})
+
+    async def async_save_reminders(self) -> None:
+        await self._async_save()
 
     def get(self, date_id: str) -> dict[str, Any] | None:
         return next((d for d in self.dates if d["id"] == date_id), None)
@@ -147,7 +165,7 @@ class FamilyStore:
         clean, errors = validate_date(data)
         if errors:
             raise DateValidationError(errors)
-        record = {"id": uuid.uuid4().hex, **clean}
+        record = {"id": uuid.uuid4().hex, **clean, "created_at": dt_util.utcnow().isoformat()}
         self.dates.append(record)
         await self._async_save()
         return record

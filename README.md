@@ -6,6 +6,8 @@ Home Assistant integration + Lovelace card that shows **what's coming up**: Shab
 - Israel and diaspora (one or two days of Yom Tov).
 - Shabbat and Yom Tov are **timed** calendar events, candle lighting to havdalah, so calendar triggers work in automations.
 - Family dates that repeat by **Hebrew date** (birthdays, yahrzeits, anniversaries), managed in a sidebar panel, with leap-year Adar and 30 Cheshvan / Kislev rules.
+- Reminders for family dates on your phone (Got it / Remind me tomorrow buttons), held during Shabbat and Yom Tov.
+- Assist: "מה יש השבוע?", "When is the next holiday?", "מתי הדלקת נרות?".
 - Hebrew-first card: RTL, Hebrew dates, "בעוד יומיים" countdowns, keyboard accessible.
 
 ## Install
@@ -15,6 +17,8 @@ HACS: add `https://github.com/bareli/good_days` as a custom repository (category
 Manual: copy `custom_components/good_days` into `<config>/custom_components/`, restart.
 
 Then **Settings → Devices & services → Add integration → Good Days**. If the core Jewish Calendar integration is configured, its location, diaspora and candle lighting / havdalah minutes are offered as defaults (copied once, not linked).
+
+Times use sea-level sunset, like printed calendars (elevation is ignored).
 
 Requires Home Assistant 2025.7 or newer.
 
@@ -70,6 +74,36 @@ data:
   original_year: 5770
 ```
 
+## Reminders
+
+Options (Settings → Devices & services → Good Days → Configure):
+
+- **Send family-date reminders to**: notify services, e.g. `mobile_app_my_phone`. Phones get **Got it** (no more reminders for this occurrence) and **Remind me tomorrow** buttons.
+- **Reminder time** (default 09:00).
+- **Hold reminders during Shabbat and Yom Tov** (default on): reminders due then are sent after havdalah.
+
+Each family date chooses when (in the panel): on the day, 1, 3 or 7 days before (any 0-60 via the services). For a yahrzeit, "on the day" means the evening it begins, an hour before sunset, with the candle-lighting time in the message.
+
+Every reminder also fires the `good_days_reminder` event (`name, kind, day, years, title, message, date_id, entry_id`), even without notify targets, for your own automations.
+
+## Assist
+
+Copy [`docs/assist/en/good_days.yaml`](docs/assist/en/good_days.yaml) and/or [`docs/assist/he/good_days.yaml`](docs/assist/he/good_days.yaml) to `<config>/custom_sentences/<language>/` and restart. Then ask:
+
+| Intent | English | עברית |
+|---|---|---|
+| `GoodDaysUpcoming` | What's coming up this week? | מה יש השבוע? |
+| `GoodDaysNextHoliday` | When is the next holiday? | מתי החג הבא? |
+| `GoodDaysShabbatTimes` | When is candle lighting? | מתי כניסת השבת? |
+
+Answers are spoken in the language you asked in.
+
+## Blueprint: lights before candle lighting
+
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fbareli%2Fgood_days%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgood_days%2Fcandle_lighting_light.yaml)
+
+Turns lights or switches on N minutes before candle lighting of Shabbat and Yom Tov, and optionally off (with a delay) after havdalah. Source: [`blueprints/automation/good_days/candle_lighting_light.yaml`](blueprints/automation/good_days/candle_lighting_light.yaml).
+
 ## The card
 
 The card resource is registered automatically (storage-mode dashboards). YAML-mode dashboards: add `/good_days_static/card.js` as a JavaScript module.
@@ -103,7 +137,7 @@ Family dates: `good_days/dates/list`, `dates/add`, `dates/update`, `dates/remove
 
 ## Roadmap
 
-- v0.3: reminders with actionable notifications, Assist ("מה יש השבוע?"), blueprints.
+- Later: feed a Shabbat Home timers product, Torah reading details, ICS export of family dates.
 
 ## License
 

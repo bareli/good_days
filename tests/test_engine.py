@@ -140,3 +140,14 @@ def test_window_boundaries_and_uid_stability():
 def test_hebrew_date_formatting():
     assert hebrew_date(D(2026, 9, 26), "he") == "ט״ו תשרי תשפ״ז"
     assert hebrew_date(D(2026, 9, 26), "en") == "15 Tishrei 5787"
+
+
+def test_sunset_is_sea_level_whatever_the_elevation():
+    """Printed calendars use sea-level sunset; hdate >= 1.2 would shift it by the elevation."""
+    high = EngineSettings(31.778, 35.235, 3000, "Asia/Jerusalem", False, 40, 0)
+    low = EngineSettings(31.778, 35.235, 0, "Asia/Jerusalem", False, 40, 0)
+    first = [e for e in compute(high, D(2026, 10, 5), D(2026, 10, 11)) if e.category == "shabbat"][0]
+    second = [e for e in compute(low, D(2026, 10, 5), D(2026, 10, 11)) if e.category == "shabbat"][0]
+    assert first.candle_lighting == second.candle_lighting
+    assert first.candle_lighting.strftime("%H:%M") == "17:34"
+
