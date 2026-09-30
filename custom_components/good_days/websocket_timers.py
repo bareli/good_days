@@ -15,7 +15,7 @@ from .const import DOMAIN, MAX_NAME_LENGTH
 from .engine import norm_language
 from .runtime import GoodDaysRuntime
 from .timers import MAX_PROFILES, MAX_RULES, PRESETS, validate_rule
-from .websocket import resolve_runtime
+from .websocket import entry_label, resolve_runtime
 
 PROFILE_NAME = vol.All(cv.string, vol.Strip, vol.Length(min=1, max=40))
 
@@ -36,6 +36,7 @@ def _view(runtime: GoodDaysRuntime, lang: str) -> dict[str, Any]:
     periods = timers.periods(now, 1)
     return {
         "entry_id": runtime.entry.entry_id,
+        "label": entry_label(runtime.hass, runtime, lang),
         "enabled": store.enabled,
         "profiles": store.profiles,
         "active_profile": store.active_profile,

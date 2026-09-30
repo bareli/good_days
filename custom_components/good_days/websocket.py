@@ -39,11 +39,27 @@ def resolve_runtime(hass: HomeAssistant, entry_id: str | None = None) -> GoodDay
     )
 
 
+def entry_label(hass: HomeAssistant, runtime: GoodDaysRuntime, lang: str) -> str:
+    """Tells entries apart in pickers: title, place (HA's home name or coordinates), diaspora."""
+    settings = runtime.settings
+    at_home = (
+        abs(settings.latitude - float(hass.config.latitude)) < 1e-4
+        and abs(settings.longitude - float(hass.config.longitude)) < 1e-4
+    )
+    place = hass.config.location_name if at_home and hass.config.location_name else (
+        f"{settings.latitude:.2f}, {settings.longitude:.2f}"
+    )
+    parts = [runtime.entry.title, place]
+    if settings.diaspora:
+        parts.append("חוץ לארץ" if lang == "he" else "Diaspora")
+    return " · ".join(parts)
+
+
 @callback
 def async_register(hass: HomeAssistant) -> None:
     for command in (
         ws_upcoming, ws_dates_list, ws_dates_add, ws_dates_update, ws_dates_remove, ws_dates_convert,
-        ws_ics_get, ws_ics_set,
+        ws_ics_get, ws_ics_set, ws_entries,
     ):
         websocket_api.async_register_command(hass, command)
 
@@ -296,7 +312,25 @@ async def ws_dates_list(
         lambda: [_date_view(runtime, r, lang, now, cached.get(r["id"])) for r in records]
     )
     views.sort(key=lambda v: (v["next"] is None, (v["next"] or {}).get("start", ""), v["name"]))
-    connection.send_result(msg["id"], {"entry_id": runtime.entry.entry_id, "dates": views})
+    connection.send_result(
+        msg["id"],
+        {"entry_id": runtime.entry.entry_id, "label": entry_label(hass, runtime, lang), "dates": views},
+    )
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/entries", vol.Optional("language"): cv.string}
+)
+@callback
+def ws_entries(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Loaded entries for the panel's instance picker (every user; no settings exposed)."""
+    result = []
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        runtime = getattr(entry, "runtime_data", None)
+        if isinstance(runtime, GoodDaysRuntime):
+            lang = norm_language(msg.get("language") or runtime.language)
+            result.append({"entry_id": entry.entry_id, "title": entry.title, "label": entry_label(hass, runtime, lang)})
+    connection.send_result(msg["id"], {"entries": result})
 
 
 async def _mutate(hass, connection, msg, action) -> None:

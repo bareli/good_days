@@ -241,7 +241,7 @@ class GoodDaysConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_LOOKAHEAD_DAYS: DEFAULT_LOOKAHEAD_DAYS,
                     **clean,
                 }
-                return self.async_create_entry(title="Good Days", data={}, options=options)
+                return self.async_create_entry(title=self._new_title(), data={}, options=options)
             defaults = _form_values(user_input, defaults)
         return self.async_show_form(
             step_id="user",
@@ -249,6 +249,15 @@ class GoodDaysConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={"source": "Jewish Calendar" if imported else "Home Assistant"},
         )
+
+    def _new_title(self) -> str:
+        """"Good Days", then "Good Days 2", "Good Days 3"... so two entries never look the same."""
+        taken = {entry.title for entry in self.hass.config_entries.async_entries(DOMAIN)}
+        title, number = "Good Days", 1
+        while title in taken:
+            number += 1
+            title = f"Good Days {number}"
+        return title
 
     @staticmethod
     @callback
