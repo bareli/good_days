@@ -1,8 +1,10 @@
 """Shared entity base for Good Days platforms."""
 from __future__ import annotations
 
+from homeassistant.auth.permissions.const import POLICY_CONTROL
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
+from homeassistant.exceptions import Unauthorized
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
@@ -45,3 +47,15 @@ class GoodDaysEntity(Entity):
     @callback
     def _handle_update(self) -> None:
         self.async_write_ha_state()
+
+    async def async_require_admin(self) -> None:
+        """Timer settings are admin configuration, as in the timers/settings WS command.
+
+        A call without a user (automation, script, the system) is allowed.
+        """
+        context = self._context
+        if context is None or not context.user_id:
+            return
+        user = await self.hass.auth.async_get_user(context.user_id)
+        if user is not None and not user.is_admin:
+            raise Unauthorized(context=context, entity_id=self.entity_id, permission=POLICY_CONTROL)

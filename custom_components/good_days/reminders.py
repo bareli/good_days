@@ -250,10 +250,25 @@ class ReminderManager:
 
     async def async_snooze(self, date_id: str, day: str, now: dt.datetime | None = None) -> None:
         due = (now or dt_util.now()) + dt.timedelta(days=1)
-        self.runtime.store.reminders["snoozes"].append(
-            {"date_id": date_id, "day": day, "due": due.isoformat()}
-        )
+        state = self.runtime.store.reminders
+        # One snooze per occurrence: pressing again moves it, never piles up.
+        state["snoozes"] = [
+            s for s in state["snoozes"] if (s.get("date_id"), s.get("day")) != (date_id, day)
+        ] + [{"date_id": date_id, "day": day, "due": due.isoformat()}]
         await self.runtime.store.async_save_reminders()
+
+    def is_valid_action(self, date_id: str, day: str, now: dt.datetime | None = None) -> bool:
+        """A button press names an existing date and an ISO day inside the reminder window."""
+        if self.runtime.store.get(date_id) is None:
+            return False
+        try:
+            occurrence = dt.date.fromisoformat(day)
+        except ValueError:
+            return False
+        today = dt_util.as_local(now or dt_util.now()).date()
+        low = today - dt.timedelta(days=REMINDER_LOOKBACK_DAYS + 1)
+        high = today + dt.timedelta(days=MAX_REMINDER_DAYS + 1)
+        return low <= occurrence <= high
 
 
 @callback
@@ -271,7 +286,7 @@ def async_register_actions(hass: HomeAssistant) -> None:
         entry = hass.config_entries.async_get_entry(entry_id)
         runtime = getattr(entry, "runtime_data", None) if entry else None
         manager = getattr(runtime, "reminders", None)
-        if manager is None:
+        if manager is None or not manager.is_valid_action(date_id, day):
             return
         if command == ACTION_ACK:
             await manager.async_ack(date_id, day)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import math
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -26,9 +27,11 @@ MAX_RULES = 200
 MAX_PROFILES = 10
 DEFAULT_PROFILE = "default"
 CONFLICT_WINDOW = dt.timedelta(minutes=1)
+# On / off devices plus scenes (SPEC §12.4): domains homeassistant.turn_on / turn_off really
+# operate. No script / automation (arbitrary actions), no lock / cover / valve (no turn_on).
 TARGET_DOMAINS = {
     "switch", "light", "input_boolean", "fan", "climate", "water_heater", "media_player",
-    "humidifier", "cover", "scene", "script", "automation", "siren", "vacuum", "valve", "lock",
+    "humidifier", "scene", "siren", "vacuum",
 }
 RE_TIME = re.compile(r"^([01]?\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$")
 RE_ENTITY = re.compile(r"^[a-z_]+\.[a-z0-9_]+$")
@@ -63,9 +66,10 @@ def _int(value: Any) -> int | None:
         return None
     try:
         number = float(value)
-    except (TypeError, ValueError):
+        # nan / inf / 1e400 parse as floats but have no integer value.
+        return int(number) if math.isfinite(number) and number == int(number) else None
+    except (TypeError, ValueError, OverflowError):
         return None
-    return int(number) if number == int(number) else None
 
 
 def validate_rule(

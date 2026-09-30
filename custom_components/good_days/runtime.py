@@ -1,8 +1,9 @@
 """Per-entry runtime: settings, the cached event window, refresh timers, item rendering."""
 from __future__ import annotations
 
+import bisect
 import datetime as dt
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -59,6 +60,27 @@ def _iso(value: dt.datetime | None) -> str | None:
     return value.isoformat() if value else None
 
 
+class PeriodIndex:
+    """Shabbat / Yom Tov periods sorted by start, for overlap checks by bisection.
+
+    Periods are maximal runs, so they never overlap each other and their ends are sorted too.
+    """
+
+    def __init__(self, events: Iterable[HolyEvent]) -> None:
+        self.periods: list[HolyEvent] = sorted((e for e in events if e.period), key=lambda e: e.start)
+        self._ends: Sequence[dt.datetime] = [p.end for p in self.periods]
+
+    def overlaps(self, start: dt.datetime, end: dt.datetime) -> bool:
+        """True when [start, end) touches any period (an instant counts as one minute)."""
+        probe_end = end if end > start else start + dt.timedelta(minutes=1)
+        for period in self.periods[bisect.bisect_right(self._ends, start) :]:
+            if period.start >= probe_end:
+                return False
+            if period.overlaps(start, probe_end):
+                return True
+        return False
+
+
 class GoodDaysRuntime:
     """Holds the pre-computed events for one config entry."""
 
@@ -70,6 +92,7 @@ class GoodDaysRuntime:
         self.lookahead = int(entry.options.get(CONF_LOOKAHEAD_DAYS, DEFAULT_LOOKAHEAD_DAYS))
         self._language_option = entry.options.get(CONF_LANGUAGE, LANG_AUTO)
         self.events: list[HolyEvent] = []
+        self._period_index = PeriodIndex([])
         self.store = FamilyStore(hass, entry.entry_id)
         self.family_events: list[FamilyEvent] = []
         self.family_version = 0  # bumped whenever dates or the window change
@@ -126,6 +149,7 @@ class GoodDaysRuntime:
             family.compute_family, list(self.store.dates), self.settings, start, end
         )
         self.events, self.family_events, self.window = events, family_events, (start, end)
+        self._period_index = PeriodIndex(events)
         self.family_version += 1
         async_dispatcher_send(self.hass, SIGNAL_UPDATED.format(self.entry.entry_id))
 
@@ -158,8 +182,7 @@ class GoodDaysRuntime:
 
     def periods_overlapping(self, start: dt.datetime, end: dt.datetime) -> bool:
         """True when [start, end) touches any Shabbat / Yom Tov period in the cached window."""
-        probe_end = end if end > start else start + dt.timedelta(minutes=1)
-        return any(e.period and e.overlaps(start, probe_end) for e in self.events)
+        return self._period_index.overlaps(start, end)
 
     async def async_events_between(self, start: dt.datetime, end: dt.datetime) -> list[HolyEvent]:
         """All events (every category) overlapping [start, end)."""

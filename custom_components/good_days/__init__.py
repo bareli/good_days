@@ -142,6 +142,7 @@ async def _async_update_listener(hass: HomeAssistant, entry: GoodDaysConfigEntry
 
 async def async_unload_entry(hass: HomeAssistant, entry: GoodDaysConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    await entry.runtime_data.timers.async_flush()  # a timer run's delayed write
     others = [
         e
         for e in hass.config_entries.async_entries(DOMAIN)

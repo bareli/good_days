@@ -74,7 +74,7 @@ def test_build_ics_format():
     assert all(len(line.encode("utf-8")) <= 75 for line in text.split("\r\n"))
     unfolded = text.replace("\r\n ", "")
     assert "DTSTART;VALUE=DATE:20261014\r\nDTEND;VALUE=DATE:20261015" in unfolded
-    assert "SUMMARY:יום הולדת לנועה\\, \"הקטנה\"\\; " in unfolded
+    assert "SUMMARY:יום הולדת ל\u2068נועה\\, \"הקטנה\"\\; " in unfolded
     assert "DTSTART:20261009T143400Z\r\nDTEND:20261010T154900Z" in unfolded  # 17:34 / 18:49 IDT
     assert "UID:family-x-2026-10-14@good_days" in unfolded
 
@@ -106,7 +106,7 @@ async def test_ics_feed_is_off_by_default_and_token_protected(
     assert resp.status == 200
     assert resp.headers["Content-Type"].startswith("text/calendar")
     body = await resp.text()
-    assert "SUMMARY:Noa's birthday" in body and "Shabbat" not in body
+    assert "SUMMARY:\u2068Noa\u2069's birthday" in body and "Shabbat" not in body
 
     assert (await client.get(path.replace(".ics", "x.ics"))).status == 404
     assert (await client.get(f"/api/good_days/ics/other/{path.rsplit('/', 1)[1]}")).status == 404

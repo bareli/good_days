@@ -17,8 +17,8 @@ from homeassistant.util import dt as dt_util
 
 from .const import CAT_FAMILY, CATEGORIES, DOMAIN, WS_MAX_DAYS, WS_MAX_LIMIT, WS_UPCOMING
 from .engine import HolyEvent, hebrew_date, norm_language
-from .family import hebrew_from_gregorian, next_occurrence
-from .runtime import GoodDaysRuntime
+from .family import FamilyEvent, hebrew_from_gregorian, next_occurrence
+from .runtime import GoodDaysRuntime, PeriodIndex
 from .ics import ics_path, new_token
 from .storage import DateValidationError
 
@@ -39,11 +39,27 @@ def resolve_runtime(hass: HomeAssistant, entry_id: str | None = None) -> GoodDay
     )
 
 
+def entry_label(hass: HomeAssistant, runtime: GoodDaysRuntime, lang: str) -> str:
+    """Tells entries apart in pickers: title, place (HA's home name or coordinates), diaspora."""
+    settings = runtime.settings
+    at_home = (
+        abs(settings.latitude - float(hass.config.latitude)) < 1e-4
+        and abs(settings.longitude - float(hass.config.longitude)) < 1e-4
+    )
+    place = hass.config.location_name if at_home and hass.config.location_name else (
+        f"{settings.latitude:.2f}, {settings.longitude:.2f}"
+    )
+    parts = [runtime.entry.title, place]
+    if settings.diaspora:
+        parts.append("חוץ לארץ" if lang == "he" else "Diaspora")
+    return " · ".join(parts)
+
+
 @callback
 def async_register(hass: HomeAssistant) -> None:
     for command in (
         ws_upcoming, ws_dates_list, ws_dates_add, ws_dates_update, ws_dates_remove, ws_dates_convert,
-        ws_ics_get, ws_ics_set,
+        ws_ics_get, ws_ics_set, ws_entries,
     ):
         websocket_api.async_register_command(hass, command)
 
@@ -80,7 +96,7 @@ async def _fetch_calendar(
 
 
 def _external_item(
-    entity_id: str, raw: dict[str, Any], periods: list[HolyEvent], lang: str, now: dt.datetime
+    entity_id: str, raw: dict[str, Any], periods: PeriodIndex, lang: str, now: dt.datetime
 ) -> dict[str, Any] | None:
     parsed = _parse_external(raw)
     if parsed is None:
@@ -99,7 +115,7 @@ def _external_item(
         "candle_lighting": None,
         "havdalah": None,
         "in_effect": start <= now < end,
-        "conflicts_shabbat": any(p.overlaps(start, probe_end) for p in periods),
+        "conflicts_shabbat": periods.overlaps(start, probe_end),
         "description": raw.get("description") or "",
         "location": raw.get("location") or "",
         "_sort": start,
@@ -139,25 +155,26 @@ async def ws_upcoming(
         categories = runtime.categories | {CATEGORY_FAMILY}
 
     events = await runtime.async_events_between(now - dt.timedelta(days=1), end)
-    periods = [e for e in events if e.period]
-    items: list[dict[str, Any]] = []
-    for event in events:
-        if event.category in categories and event.end > now:
-            item = runtime.render(event, lang, now)
-            items.append({**item, "_sort": event.start, "_end": event.end})
+    periods = PeriodIndex(events)
+    # (start, rank) now; titles and full items only for what can make the cut (below).
+    # rank orders equal starts: holidays, then family, then external calendars.
+    ours: list[tuple[dt.datetime, tuple[bool, bool], HolyEvent | FamilyEvent]] = [
+        (e.start, (False, True), e) for e in events if e.category in categories and e.end > now
+    ]
     if CATEGORY_FAMILY in categories:
-        for event in await runtime.async_family_between(now - dt.timedelta(days=1), end):
-            if event.end > now:
-                item = runtime.render(event, lang, now)
-                item["conflicts_shabbat"] = any(p.overlaps(event.start, event.end) for p in periods)
-                items.append({**item, "_sort": event.start, "_end": event.end})
+        ours += [
+            (e.start, (True, False), e)
+            for e in await runtime.async_family_between(now - dt.timedelta(days=1), end)
+            if e.end > now
+        ]
 
-    # Our own calendars are already merged above; never list them twice.
+    # This entry's own calendars are already merged above; never list them twice. Another
+    # Good Days entry's calendar (e.g. the parents' city) is read like any other calendar.
     registry = er.async_get(hass)
     external = []
     for entity_id in dict.fromkeys(msg["calendars"]):
         reg = registry.async_get(entity_id)
-        if reg is None or reg.platform != DOMAIN:
+        if reg is None or reg.platform != DOMAIN or reg.config_entry_id != runtime.entry.entry_id:
             external.append(entity_id)
 
     context = connection.context(msg)
@@ -166,6 +183,7 @@ async def ws_upcoming(
         return_exceptions=True,
     )
     errors = []
+    items: list[dict[str, Any]] = []
     for entity_id, result in zip(external, results):
         if isinstance(result, BaseException):
             if not isinstance(result, Exception):
@@ -180,11 +198,32 @@ async def ws_upcoming(
             if item and item["_end"] > now:
                 items.append(item)
 
-    items.sort(key=lambda i: (i["_sort"], i["source"] != "holidays", i["source"] != "family", i["title"]))
-    items = items[: msg["limit"]]
-    for item in items:
-        item.pop("_sort")
-        item.pop("_end")
+    limit = msg["limit"]
+    entries = ours + [(i["_sort"], (True, True), i) for i in items]
+    entries.sort(key=lambda e: (e[0], e[1]))
+    if len(entries) > limit:
+        # Keep everything tied with the last kept entry: the title decides among those.
+        edge = entries[limit - 1][:2]
+        cut = limit
+        while cut < len(entries) and entries[cut][:2] == edge:
+            cut += 1
+        entries = entries[:cut]
+
+    def title(value: Any) -> str:
+        return value["title"] if isinstance(value, dict) else value.title(lang)
+
+    entries.sort(key=lambda e: (e[0], e[1], title(e[2])))
+    items = []
+    for _start, _rank, value in entries[:limit]:
+        if isinstance(value, dict):
+            value.pop("_sort")
+            value.pop("_end")
+            items.append(value)
+            continue
+        item = runtime.render(value, lang, now)
+        if isinstance(value, FamilyEvent):
+            item["conflicts_shabbat"] = periods.overlaps(value.start, value.end)
+        items.append(item)
 
     current = runtime.in_effect(now)
     connection.send_result(
@@ -195,6 +234,8 @@ async def ws_upcoming(
             "language": lang,
             "current": runtime.render(current, lang, now) if current else None,
             "errors": errors,
+            # The effective set used for this reply (the card editor shows it when unset).
+            "categories": [c for c in (*CATEGORIES, CATEGORY_FAMILY) if c in categories],
         },
     )
 
@@ -221,9 +262,15 @@ def _fields(msg: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in msg.items() if k in _DATE_FIELD_NAMES}
 
 
-def _date_view(runtime: GoodDaysRuntime, record: dict[str, Any], lang: str, now: dt.datetime) -> dict[str, Any]:
+def _date_view(
+    runtime: GoodDaysRuntime,
+    record: dict[str, Any],
+    lang: str,
+    now: dt.datetime,
+    cached: FamilyEvent | None = None,
+) -> dict[str, Any]:
     """The stored record plus its current or next occurrence (runs in the executor)."""
-    nxt = next_occurrence(record, runtime.settings, now)
+    nxt = cached or next_occurrence(record, runtime.settings, now)
     view: dict[str, Any] = {**record, "next": None}
     if nxt:
         view["next"] = {**runtime.render(nxt, lang, now), "days_until": runtime.days_until(nxt, now)}
@@ -256,11 +303,34 @@ async def ws_dates_list(
     lang = norm_language(msg.get("language") or runtime.language)
     now = dt_util.now()
     records = list(runtime.store.dates)
+    # The cached window already holds each date's next occurrence; compute only the rest.
+    cached: dict[str, FamilyEvent] = {}
+    for event in runtime.family_events:
+        if event.end > now:
+            cached.setdefault(event.date_id, event)
     views = await hass.async_add_executor_job(
-        lambda: [_date_view(runtime, r, lang, now) for r in records]
+        lambda: [_date_view(runtime, r, lang, now, cached.get(r["id"])) for r in records]
     )
     views.sort(key=lambda v: (v["next"] is None, (v["next"] or {}).get("start", ""), v["name"]))
-    connection.send_result(msg["id"], {"entry_id": runtime.entry.entry_id, "dates": views})
+    connection.send_result(
+        msg["id"],
+        {"entry_id": runtime.entry.entry_id, "label": entry_label(hass, runtime, lang), "dates": views},
+    )
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/entries", vol.Optional("language"): cv.string}
+)
+@callback
+def ws_entries(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Loaded entries for the panel's instance picker (every user; no settings exposed)."""
+    result = []
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        runtime = getattr(entry, "runtime_data", None)
+        if isinstance(runtime, GoodDaysRuntime):
+            lang = norm_language(msg.get("language") or runtime.language)
+            result.append({"entry_id": entry.entry_id, "title": entry.title, "label": entry_label(hass, runtime, lang)})
+    connection.send_result(msg["id"], {"entries": result})
 
 
 async def _mutate(hass, connection, msg, action) -> None:
@@ -319,6 +389,7 @@ async def ws_dates_update(
     {
         vol.Required("type"): f"{DOMAIN}/dates/remove",
         vol.Optional("entry_id"): cv.string,
+        vol.Optional("language"): cv.string,
         vol.Required("date_id"): cv.string,
     }
 )
@@ -337,6 +408,7 @@ async def ws_dates_remove(
         vol.Required("type"): f"{DOMAIN}/dates/convert",
         vol.Required("date"): cv.string,
         vol.Optional("after_sunset", default=False): bool,
+        vol.Optional("language"): cv.string,
     }
 )
 @callback
@@ -382,7 +454,11 @@ def _ics_view(hass: HomeAssistant, runtime: GoodDaysRuntime) -> dict[str, Any]:
 
 
 @websocket_api.websocket_command(
-    {vol.Required("type"): f"{DOMAIN}/ics/get", vol.Optional("entry_id"): cv.string}
+    {
+        vol.Required("type"): f"{DOMAIN}/ics/get",
+        vol.Optional("entry_id"): cv.string,
+        vol.Optional("language"): cv.string,
+    }
 )
 @websocket_api.require_admin
 @callback
@@ -396,6 +472,7 @@ def ws_ics_get(hass: HomeAssistant, connection: websocket_api.ActiveConnection, 
     {
         vol.Required("type"): f"{DOMAIN}/ics/set",
         vol.Optional("entry_id"): cv.string,
+        vol.Optional("language"): cv.string,
         vol.Required("enabled"): bool,
         vol.Optional("holidays", default=False): bool,
         vol.Optional("new_link", default=False): bool,

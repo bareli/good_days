@@ -33,9 +33,11 @@ class TimersSwitch(GoodDaysEntity, SwitchEntity):
         return self.runtime.timers.store.enabled
 
     async def async_turn_on(self, **kwargs: Any) -> None:
+        await self.async_require_admin()
         await async_apply_settings(self.runtime, {"enabled": True})
 
     async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.async_require_admin()
         await async_apply_settings(self.runtime, {"enabled": False})
 
 
@@ -58,7 +60,9 @@ class SkipNextSwitch(GoodDaysEntity, SwitchEntity):
         return {"period": periods[0].title(self.runtime.language), "start": periods[0].start.isoformat()}
 
     async def async_turn_on(self, **kwargs: Any) -> None:
+        await self.async_require_admin()
         await async_apply_settings(self.runtime, {"skip_next": True})
 
     async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.async_require_admin()
         await async_apply_settings(self.runtime, {"skip_next": False})

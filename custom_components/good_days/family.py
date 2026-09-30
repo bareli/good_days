@@ -115,14 +115,17 @@ class FamilyEvent:
     def title(self, lang: str) -> str:
         he = lang == "he"
         n = self.years
+        # The user-typed name is a bidi isolate (FSI ... PDI): a Hebrew name in English text,
+        # or a Latin one in Hebrew, must not pull the count or the "'s" to its other side.
+        name = f"\u2068{self.name}\u2069"
         if self.kind == KIND_BIRTHDAY:
             if he:
-                return f"יום הולדת {n} ל{self.name}" if n else f"יום הולדת ל{self.name}"
-            return f"{self.name}'s birthday ({n})" if n else f"{self.name}'s birthday"
+                return f"יום הולדת {n} ל{name}" if n else f"יום הולדת ל{name}"
+            return f"{name}'s birthday ({n})" if n else f"{name}'s birthday"
         if self.kind in KIND_TEXT:
             label = KIND_TEXT[self.kind][1 if he else 0]
             suffix = f" ({n})" if n else ""
-            return f"{label}: {self.name}{suffix}"
+            return f"{label}: {name}{suffix}"
         return self.name
 
     def description(self, lang: str) -> str:
