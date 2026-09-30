@@ -1666,7 +1666,11 @@ class GoodDaysPanel extends HTMLElement {
       this._toast(res.errors && Object.keys(res.errors).length ? this._t("run_failed") : this._t("ran"));
     });
     button("dup", this._t("duplicate"), this._t("duplicate_named", rule.name), "text", async () => {
-      await this._timersCall({ type: "good_days/timers/duplicate", rule_id: rule.id }).catch(() => null);
+      const res = await this._timersCall({ type: "good_days/timers/duplicate", rule_id: rule.id }).catch(() => ({ errors: { base: 1 } }));
+      if (res && res.errors && Object.keys(res.errors).length) {
+        this._toast(this._t("save_error"));
+        return;
+      }
       await this._loadTimers();
       this._render();
     });
@@ -1682,6 +1686,8 @@ class GoodDaysPanel extends HTMLElement {
     const form = mk("form");
     const title = mk("h2", null, this._t("confirm_delete", rule.name));
     title.id = "confirm-title";
+    const formError = mk("p", "err");
+    formError.setAttribute("role", "alert");
     const buttons = mk("div", "buttons");
     const cancel = mk("button", "text", this._t("cancel"));
     cancel.type = "button";
@@ -1689,12 +1695,19 @@ class GoodDaysPanel extends HTMLElement {
     const ok = mk("button", "primary", this._t("delete"));
     ok.type = "submit";
     buttons.append(cancel, ok);
-    form.append(title, buttons);
+    form.append(title, formError, buttons);
     dialog.appendChild(form);
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
       ok.disabled = true;
-      await this._timersCall({ type: "good_days/timers/remove", rule_id: rule.id }).catch(() => null);
+      formError.textContent = "";
+      const res = await this._timersCall({ type: "good_days/timers/remove", rule_id: rule.id }).catch(() => ({ errors: { base: 1 } }));
+      if (res && res.errors && Object.keys(res.errors).length) {
+        ok.disabled = false;
+        formError.textContent = this._t("save_error");
+        this._toast(this._t("save_error"));
+        return;
+      }
       await this._loadTimers();
       this._returnFocus = "timer-add";
       dialog.dismiss(true);
