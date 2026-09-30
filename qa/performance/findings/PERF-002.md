@@ -4,7 +4,7 @@
 |---|---|
 | Type | SCALABILITY RISK |
 | Severity | LOW |
-| Status | OPEN |
+| Status | CLOSED, verified 2026-10-01 (merged from fix/qa-2026-09-30) |
 | Issue | [#13](https://github.com/bareli/good_days/issues/13) |
 | Feature | Panel dates tab / `good_days/dates/list` |
 | Test case | PERF-001 |
