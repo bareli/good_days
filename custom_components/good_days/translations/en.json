@@ -76,12 +76,54 @@
         "memorial": "Other memorial and national days",
         "erev": "Erev Yom Tov days"
       }
+    },
+    "kind": {
+      "options": {
+        "birthday": "Birthday",
+        "yahrzeit": "Yahrzeit",
+        "anniversary": "Anniversary",
+        "custom": "Other"
+      }
+    },
+    "hebrew_month": {
+      "options": {
+        "tishrei": "Tishrei",
+        "marcheshvan": "Cheshvan",
+        "kislev": "Kislev",
+        "tevet": "Tevet",
+        "shvat": "Shvat",
+        "adar": "Adar (plain year)",
+        "adar_i": "Adar I",
+        "adar_ii": "Adar II",
+        "nisan": "Nisan",
+        "iyyar": "Iyar",
+        "sivan": "Sivan",
+        "tammuz": "Tammuz",
+        "av": "Av",
+        "elul": "Elul"
+      }
+    },
+    "adar_rule": {
+      "options": {
+        "adar_i": "Adar I",
+        "adar_ii": "Adar II",
+        "both": "Both"
+      }
+    },
+    "day30_rule": {
+      "options": {
+        "next": "1st of the next month",
+        "29": "29th of the same month"
+      }
     }
   },
   "entity": {
     "calendar": {
       "holidays": {
         "name": "Holidays"
+      },
+      "family": {
+        "name": "Family"
       }
     },
     "sensor": {
@@ -90,11 +132,152 @@
       },
       "next_holiday": {
         "name": "Next holiday"
+      },
+      "next_family": {
+        "name": "Next family date"
       }
     },
     "binary_sensor": {
       "holiday_today": {
         "name": "Holiday today"
+      }
+    }
+  },
+  "services": {
+    "add_date": {
+      "name": "Add family date",
+      "description": "Add a birthday, yahrzeit or anniversary that repeats by Hebrew date.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Who the date is for."
+        },
+        "kind": {
+          "name": "Kind",
+          "description": "Birthday, yahrzeit, anniversary or other."
+        },
+        "hebrew_day": {
+          "name": "Hebrew day",
+          "description": "1-30."
+        },
+        "hebrew_month": {
+          "name": "Hebrew month",
+          "description": "Adar = Adar of a plain year."
+        },
+        "original_year": {
+          "name": "Hebrew year",
+          "description": "Year of birth / passing / wedding, e.g. 5745. Shows age or count."
+        },
+        "gregorian_date": {
+          "name": "Gregorian date",
+          "description": "Instead of the Hebrew date: converted for you."
+        },
+        "after_sunset": {
+          "name": "After sunset",
+          "description": "The Gregorian date was after sunset (next Hebrew day)."
+        },
+        "adar_rule": {
+          "name": "Adar in a leap year",
+          "description": "For a date in plain Adar. Default: birthdays Adar II, yahrzeits Adar I."
+        },
+        "day30_rule": {
+          "name": "Missing 30th day",
+          "description": "For 30 Cheshvan / Kislev in a short year. Default: 1st of the next month."
+        },
+        "reminder_days": {
+          "name": "Reminder days",
+          "description": "Days before to remind (used from v0.3)."
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Free text."
+        },
+        "entry_id": {
+          "name": "Good Days instance",
+          "description": "Default: the first one."
+        }
+      }
+    },
+    "update_date": {
+      "name": "Update family date",
+      "description": "Change fields of a family date.",
+      "fields": {
+        "date_id": {
+          "name": "Date ID",
+          "description": "ID from list_dates."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Who the date is for."
+        },
+        "kind": {
+          "name": "Kind",
+          "description": "Birthday, yahrzeit, anniversary or other."
+        },
+        "hebrew_day": {
+          "name": "Hebrew day",
+          "description": "1-30."
+        },
+        "hebrew_month": {
+          "name": "Hebrew month",
+          "description": "Adar = Adar of a plain year."
+        },
+        "original_year": {
+          "name": "Hebrew year",
+          "description": "Year of birth / passing / wedding, e.g. 5745. Shows age or count."
+        },
+        "gregorian_date": {
+          "name": "Gregorian date",
+          "description": "Instead of the Hebrew date: converted for you."
+        },
+        "after_sunset": {
+          "name": "After sunset",
+          "description": "The Gregorian date was after sunset (next Hebrew day)."
+        },
+        "adar_rule": {
+          "name": "Adar in a leap year",
+          "description": "For a date in plain Adar. Default: birthdays Adar II, yahrzeits Adar I."
+        },
+        "day30_rule": {
+          "name": "Missing 30th day",
+          "description": "For 30 Cheshvan / Kislev in a short year. Default: 1st of the next month."
+        },
+        "reminder_days": {
+          "name": "Reminder days",
+          "description": "Days before to remind (used from v0.3)."
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Free text."
+        },
+        "entry_id": {
+          "name": "Good Days instance",
+          "description": "Default: the first one."
+        }
+      }
+    },
+    "remove_date": {
+      "name": "Remove family date",
+      "description": "Delete a family date.",
+      "fields": {
+        "date_id": {
+          "name": "Date ID",
+          "description": "ID from list_dates."
+        },
+        "entry_id": {
+          "name": "Good Days instance",
+          "description": "Default: the first one."
+        }
+      }
+    },
+    "list_dates": {
+      "name": "List family dates",
+      "description": "Return all family dates with their next occurrence.",
+      "fields": {
+        "entry_id": {
+          "name": "Good Days instance",
+          "description": "Default: the first one."
+        }
       }
     }
   }

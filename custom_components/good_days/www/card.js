@@ -6,7 +6,8 @@ const FSI = "⁨"; // first-strong isolate
 const PDI = "⁩";
 const iso = (text) => FSI + text + PDI;
 
-const CATEGORIES = ["shabbat", "yom_tov", "chol_hamoed", "minor", "fast", "rosh_chodesh", "modern", "memorial", "erev"];
+const CATEGORIES = ["shabbat", "yom_tov", "chol_hamoed", "minor", "fast", "rosh_chodesh", "modern", "memorial", "erev", "family"];
+const KIND_ICONS = { birthday: "mdi:cake-variant", yahrzeit: "mdi:candle", anniversary: "mdi:ring", custom: "mdi:calendar-heart" };
 const CATEGORY_ICONS = {
   shabbat: "mdi:candle",
   yom_tov: "mdi:star-david",
@@ -42,6 +43,7 @@ const I18N = {
     calendar_error: (name) => `Could not read ${name}`,
     next: "Next",
     source_holidays: "Jewish holidays",
+    source_family: "Family dates",
     details_calendar: "Calendar",
     details_location: "Location",
     details_hebrew: "Hebrew date",
@@ -63,6 +65,7 @@ const I18N = {
     c_modern: "Israeli national days",
     c_memorial: "Other memorial days",
     c_erev: "Erev Yom Tov",
+    c_family: "Family dates",
   },
   he: {
     title: "מה מתקרב",
@@ -85,6 +88,7 @@ const I18N = {
     calendar_error: (name) => `לא ניתן לקרוא את ${name}`,
     next: "הבא",
     source_holidays: "חגי ישראל",
+    source_family: "תאריכים משפחתיים",
     details_calendar: "לוח שנה",
     details_location: "מיקום",
     details_hebrew: "תאריך עברי",
@@ -106,6 +110,7 @@ const I18N = {
     c_modern: "ימים לאומיים",
     c_memorial: "ימי זיכרון נוספים",
     c_erev: "ערבי חג",
+    c_family: "תאריכים משפחתיים",
   },
 };
 
@@ -377,6 +382,7 @@ class GoodDaysCard extends HTMLElement {
     const colors = (this._config && this._config.colors) || {};
     if (colors[item.source]) return colors[item.source];
     if (item.source === "holidays") return colors.holidays || "var(--primary-color)";
+    if (item.source === "family") return colors.family || "var(--accent-color, #ff9800)";
     const ids = this._config.calendars || [];
     const index = Math.max(0, ids.indexOf(item.source));
     return PALETTE[index % PALETTE.length];
@@ -384,6 +390,7 @@ class GoodDaysCard extends HTMLElement {
 
   _sourceName(item) {
     if (item.source === "holidays") return this._t("source_holidays");
+    if (item.source === "family") return this._t("source_family");
     const state = this._hass.states[item.source];
     return (state && state.attributes.friendly_name) || item.source;
   }
@@ -504,10 +511,11 @@ class GoodDaysCard extends HTMLElement {
     dot.setAttribute("aria-hidden", "true");
     button.appendChild(dot);
 
-    if (item.source === "holidays" && CATEGORY_ICONS[item.category]) {
+    const iconName = item.source === "family" ? KIND_ICONS[item.kind] : item.source === "holidays" ? CATEGORY_ICONS[item.category] : null;
+    if (iconName) {
       const icon = document.createElement("ha-icon");
       icon.className = "cat";
-      icon.setAttribute("icon", CATEGORY_ICONS[item.category]);
+      icon.setAttribute("icon", iconName);
       icon.setAttribute("aria-hidden", "true");
       button.appendChild(icon);
     }
@@ -539,8 +547,8 @@ class GoodDaysCard extends HTMLElement {
     details.id = detailsId;
     details.hidden = !expanded;
     if (expanded) {
-      if (item.source === "holidays") {
-        // Server description already has the Hebrew date, candle lighting and havdalah.
+      if (item.source === "holidays" || item.source === "family") {
+        // Server description already has the Hebrew date (and candle lighting / havdalah, notes).
         if (item.description) details.appendChild(mk("span", "desc", item.description));
       } else {
         if (item.description) details.appendChild(mk("span", "desc", item.description));
@@ -572,7 +580,10 @@ class GoodDaysCard extends HTMLElement {
     }
     row.addEventListener("click", () => {
       this.dispatchEvent(new CustomEvent("hass-more-info", {
-        detail: { entityId: item && item.source !== "holidays" ? item.source : "calendar.good_days_holidays" },
+        detail: {
+          entityId: !item || item.source === "holidays" ? "calendar.good_days_holidays"
+            : item.source === "family" ? "calendar.good_days_family" : item.source,
+        },
         bubbles: true, composed: true,
       }));
     });

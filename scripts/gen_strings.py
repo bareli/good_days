@@ -64,14 +64,83 @@ SELECTORS = {
         "memorial": ("Other memorial and national days", "ימי זיכרון וימים לאומיים נוספים"),
         "erev": ("Erev Yom Tov days", "ערבי חג"),
     },
+    "kind": {
+        "birthday": ("Birthday", "יום הולדת"),
+        "yahrzeit": ("Yahrzeit", "יום השנה (יארצייט)"),
+        "anniversary": ("Anniversary", "יום נישואין"),
+        "custom": ("Other", "אחר"),
+    },
+    "hebrew_month": {
+        "tishrei": ("Tishrei", "תשרי"),
+        "marcheshvan": ("Cheshvan", "חשוון"),
+        "kislev": ("Kislev", "כסלו"),
+        "tevet": ("Tevet", "טבת"),
+        "shvat": ("Shvat", "שבט"),
+        "adar": ("Adar (plain year)", "אדר (שנה פשוטה)"),
+        "adar_i": ("Adar I", "אדר א׳"),
+        "adar_ii": ("Adar II", "אדר ב׳"),
+        "nisan": ("Nisan", "ניסן"),
+        "iyyar": ("Iyar", "אייר"),
+        "sivan": ("Sivan", "סיוון"),
+        "tammuz": ("Tammuz", "תמוז"),
+        "av": ("Av", "אב"),
+        "elul": ("Elul", "אלול"),
+    },
+    "adar_rule": {
+        "adar_i": ("Adar I", "אדר א׳"),
+        "adar_ii": ("Adar II", "אדר ב׳"),
+        "both": ("Both", "שניהם"),
+    },
+    "day30_rule": {
+        "next": ("1st of the next month", "א׳ בחודש הבא"),
+        "29": ("29th of the same month", "כ״ט באותו חודש"),
+    },
 }
 ENTITY = {
-    "calendar": {"holidays": ("Holidays", "חגים")},
+    "calendar": {
+        "holidays": ("Holidays", "חגים"),
+        "family": ("Family", "משפחה"),
+    },
     "sensor": {
         "next_shabbat": ("Next Shabbat", "השבת הבאה"),
         "next_holiday": ("Next holiday", "החג הבא"),
+        "next_family": ("Next family date", "התאריך המשפחתי הבא"),
     },
     "binary_sensor": {"holiday_today": ("Holiday today", "חג היום")},
+}
+
+# service -> (name, description), fields -> (name, description)
+SERVICE_FIELDS = {
+    "date_id": (("Date ID", "מזהה תאריך"), ("ID from list_dates.", "המזהה מ-list_dates.")),
+    "name": (("Name", "שם"), ("Who the date is for.", "של מי התאריך.")),
+    "kind": (("Kind", "סוג"), ("Birthday, yahrzeit, anniversary or other.", "יום הולדת, יום השנה, יום נישואין או אחר.")),
+    "hebrew_day": (("Hebrew day", "יום בחודש העברי"), ("1-30.", "1-30.")),
+    "hebrew_month": (("Hebrew month", "חודש עברי"), ("Adar = Adar of a plain year.", "אדר = אדר של שנה פשוטה.")),
+    "original_year": (("Hebrew year", "שנה עברית"), ("Year of birth / passing / wedding, e.g. 5745. Shows age or count.", "שנת הלידה / הפטירה / החתונה, למשל 5745. מציג גיל או מספר שנים.")),
+    "gregorian_date": (("Gregorian date", "תאריך לועזי"), ("Instead of the Hebrew date: converted for you.", "במקום התאריך העברי: יומר אוטומטית.")),
+    "after_sunset": (("After sunset", "אחרי השקיעה"), ("The Gregorian date was after sunset (next Hebrew day).", "התאריך הלועזי היה אחרי השקיעה (היום העברי הבא).")),
+    "adar_rule": (("Adar in a leap year", "אדר בשנה מעוברת"), ("For a date in plain Adar. Default: birthdays Adar II, yahrzeits Adar I.", "לתאריך באדר של שנה פשוטה. ברירת מחדל: יום הולדת באדר ב׳, יום השנה באדר א׳.")),
+    "day30_rule": (("Missing 30th day", "כשאין יום ל׳"), ("For 30 Cheshvan / Kislev in a short year. Default: 1st of the next month.", "ל׳ חשוון / כסלו בשנה חסרה. ברירת מחדל: א׳ בחודש הבא.")),
+    "reminder_days": (("Reminder days", "ימי תזכורת"), ("Days before to remind (used from v0.3).", "כמה ימים לפני להזכיר (מגרסה 0.3).")),
+    "notes": (("Notes", "הערות"), ("Free text.", "טקסט חופשי.")),
+    "entry_id": (("Good Days instance", "מופע ימים טובים"), ("Default: the first one.", "ברירת מחדל: הראשון.")),
+}
+DATE_FIELDS = ["name", "kind", "hebrew_day", "hebrew_month", "original_year", "gregorian_date",
+               "after_sunset", "adar_rule", "day30_rule", "reminder_days", "notes", "entry_id"]
+SERVICES = {
+    "add_date": (("Add family date", "הוספת תאריך משפחתי"),
+                 ("Add a birthday, yahrzeit or anniversary that repeats by Hebrew date.",
+                  "הוספת יום הולדת, יום השנה או יום נישואין שחוזר לפי התאריך העברי."),
+                 DATE_FIELDS),
+    "update_date": (("Update family date", "עדכון תאריך משפחתי"),
+                    ("Change fields of a family date.", "שינוי שדות של תאריך משפחתי."),
+                    ["date_id", *DATE_FIELDS]),
+    "remove_date": (("Remove family date", "מחיקת תאריך משפחתי"),
+                    ("Delete a family date.", "מחיקת תאריך משפחתי."),
+                    ["date_id", "entry_id"]),
+    "list_dates": (("List family dates", "רשימת תאריכים משפחתיים"),
+                   ("Return all family dates with their next occurrence.", "החזרת כל התאריכים המשפחתיים עם המועד הבא."),
+                   ["entry_id"]),
 }
 
 
@@ -111,6 +180,17 @@ def build(i: int) -> dict:
         "entity": {
             platform: {key: {"name": names[i]} for key, names in items.items()}
             for platform, items in ENTITY.items()
+        },
+        "services": {
+            service: {
+                "name": name[i],
+                "description": description[i],
+                "fields": {
+                    f: {"name": SERVICE_FIELDS[f][0][i], "description": SERVICE_FIELDS[f][1][i]}
+                    for f in fields_
+                },
+            }
+            for service, (name, description, fields_) in SERVICES.items()
         },
     }
 

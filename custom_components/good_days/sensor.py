@@ -1,4 +1,4 @@
-"""Next Shabbat (candle lighting timestamp) and next holiday (name) sensors."""
+"""Next Shabbat (candle lighting timestamp), next holiday and next family date sensors."""
 from __future__ import annotations
 
 import datetime as dt
@@ -17,7 +17,7 @@ from .entity import GoodDaysEntity
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    async_add_entities([NextShabbatSensor(entry), NextHolidaySensor(entry)])
+    async_add_entities([NextShabbatSensor(entry), NextHolidaySensor(entry), NextFamilySensor(entry)])
 
 
 def _iso(value: dt.datetime | None) -> str | None:
@@ -85,5 +85,38 @@ class NextHolidaySensor(GoodDaysEntity, SensorEntity):
             "candle_lighting": item["candle_lighting"],
             "havdalah": item["havdalah"],
             "in_effect": item["in_effect"],
+            "uid": event.uid,
+        }
+
+
+class NextFamilySensor(GoodDaysEntity, SensorEntity):
+    """Title of the current or next family date."""
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        super().__init__(entry, "next_family")
+
+    @property
+    def native_value(self) -> str | None:
+        event = self.runtime.next_family(dt_util.now())
+        return event.title(self.runtime.language)[:255] if event else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        now = dt_util.now()
+        event = self.runtime.next_family(now)
+        if event is None:
+            return None
+        item = self.runtime.render(event, self.runtime.language, now)
+        return {
+            "name": event.name,
+            "kind": event.kind,
+            "years": event.years,
+            "start": item["start"],
+            "end": item["end"],
+            "all_day": event.all_day,
+            "days_until": self.runtime.days_until(event, now),
+            "hebrew_date": item["hebrew_date"],
+            "in_effect": item["in_effect"],
+            "conflicts_shabbat": item["conflicts_shabbat"],
             "uid": event.uid,
         }

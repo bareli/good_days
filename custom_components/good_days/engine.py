@@ -194,6 +194,8 @@ def hebrew_date(day: dt.date, lang: str) -> str:
     hd = HebrewDate.from_gdate(day)
     month = _hdate_tr("Months", hd.month.name.lower(), lang)
     if lang == "he":
+        if hd.month.name in ("ADAR_I", "ADAR_II") and not month.endswith(("׳", "'")):
+            month += "׳"  # hdate writes plain "אדר א" / "אדר ב"
         return f"{_gematria(hd.day)} {month} {_gematria(hd.year % 1000)}"
     return f"{hd.day} {month} {hd.year}"
 
@@ -206,19 +208,23 @@ def _midnight(day: dt.date, tz: ZoneInfo) -> dt.datetime:
     return dt.datetime.combine(day, dt.time.min, tz)
 
 
+def make_location(settings: EngineSettings) -> Location:
+    return Location(
+        name="Home",
+        latitude=settings.latitude,
+        longitude=settings.longitude,
+        timezone=ZoneInfo(settings.time_zone),
+        altitude=settings.elevation,
+        diaspora=settings.diaspora,
+    )
+
+
 def compute(settings: EngineSettings, start: dt.date, end: dt.date) -> list[HolyEvent]:
     """All events overlapping the local days start..end (inclusive), sorted by start."""
     tz = ZoneInfo(settings.time_zone)
     holidays_db = HolidayDatabase(settings.diaspora)
     parasha_db = ParashaDatabase(settings.diaspora)
-    location = Location(
-        name="Home",
-        latitude=settings.latitude,
-        longitude=settings.longitude,
-        timezone=tz,
-        altitude=settings.elevation,
-        diaspora=settings.diaspora,
-    )
+    location = make_location(settings)
 
     days: list[tuple[dt.date, HebrewDate, list]] = []
     day = start - dt.timedelta(days=PAD_DAYS)

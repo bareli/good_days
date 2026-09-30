@@ -1,4 +1,4 @@
-"""calendar.good_days_holidays: Shabbatot, holidays, fasts (filtered by the entry's categories)."""
+"""calendar.good_days_holidays (Shabbatot, holidays, fasts) and calendar.good_days_family."""
 from __future__ import annotations
 
 import datetime as dt
@@ -10,13 +10,14 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .engine import HolyEvent
+from .family import FamilyEvent
 from .entity import GoodDaysEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    async_add_entities([HolidaysCalendar(entry)])
+    async_add_entities([HolidaysCalendar(entry), FamilyCalendar(entry)])
 
 
 class HolidaysCalendar(GoodDaysEntity, CalendarEntity):
@@ -25,7 +26,7 @@ class HolidaysCalendar(GoodDaysEntity, CalendarEntity):
     def __init__(self, entry: ConfigEntry) -> None:
         super().__init__(entry, "holidays")
 
-    def _to_event(self, event: HolyEvent) -> CalendarEvent:
+    def _to_event(self, event: HolyEvent | FamilyEvent) -> CalendarEvent:
         lang = self.runtime.language
         if event.all_day:
             start: dt.date | dt.datetime = event.first_day
@@ -51,3 +52,21 @@ class HolidaysCalendar(GoodDaysEntity, CalendarEntity):
         events = await self.runtime.async_events_between(start_date, end_date)
         cats = self.runtime.categories
         return [self._to_event(e) for e in events if e.category in cats]
+
+
+class FamilyCalendar(HolidaysCalendar):
+    """Hebrew-date birthdays, yahrzeits (evening before, sunset to sunset) and anniversaries."""
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        GoodDaysEntity.__init__(self, entry, "family")
+
+    @property
+    def event(self) -> CalendarEvent | None:
+        found = self.runtime.next_family(dt_util.now())
+        return self._to_event(found) if found else None
+
+    async def async_get_events(
+        self, hass: HomeAssistant, start_date: dt.datetime, end_date: dt.datetime
+    ) -> list[CalendarEvent]:
+        events = await self.runtime.async_family_between(start_date, end_date)
+        return [self._to_event(e) for e in events]

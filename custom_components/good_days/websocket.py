@@ -13,11 +13,13 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .const import CATEGORIES, DOMAIN, WS_MAX_DAYS, WS_MAX_LIMIT, WS_UPCOMING
+from .const import CAT_FAMILY, CATEGORIES, DOMAIN, WS_MAX_DAYS, WS_MAX_LIMIT, WS_UPCOMING
 from .engine import HolyEvent, hebrew_date, norm_language
+from .family import hebrew_from_gregorian, next_occurrence
 from .runtime import GoodDaysRuntime
+from .storage import DateValidationError
 
-CATEGORY_FAMILY = "family"  # v0.2; accepted now so card configs stay valid
+CATEGORY_FAMILY = CAT_FAMILY
 
 
 def resolve_runtime(hass: HomeAssistant, entry_id: str | None = None) -> GoodDaysRuntime:
@@ -35,7 +37,8 @@ def resolve_runtime(hass: HomeAssistant, entry_id: str | None = None) -> GoodDay
 
 @callback
 def async_register(hass: HomeAssistant) -> None:
-    websocket_api.async_register_command(hass, ws_upcoming)
+    for command in (ws_upcoming, ws_dates_list, ws_dates_add, ws_dates_update, ws_dates_remove, ws_dates_convert):
+        websocket_api.async_register_command(hass, command)
 
 
 def _parse_external(raw: dict[str, Any]) -> tuple[dt.datetime, dt.datetime, bool] | None:
@@ -123,7 +126,10 @@ async def ws_upcoming(
     lang = norm_language(msg.get("language") or runtime.language)
     now = dt_util.now()
     end = now + dt.timedelta(days=msg["days"])
-    categories = set(msg["categories"]) & set(CATEGORIES) if "categories" in msg else runtime.categories
+    if "categories" in msg:
+        categories = set(msg["categories"])
+    else:
+        categories = runtime.categories | {CATEGORY_FAMILY}
 
     events = await runtime.async_events_between(now - dt.timedelta(days=1), end)
     periods = [e for e in events if e.period]
@@ -132,6 +138,12 @@ async def ws_upcoming(
         if event.category in categories and event.end > now:
             item = runtime.render(event, lang, now)
             items.append({**item, "_sort": event.start, "_end": event.end})
+    if CATEGORY_FAMILY in categories:
+        for event in await runtime.async_family_between(now - dt.timedelta(days=1), end):
+            if event.end > now:
+                item = runtime.render(event, lang, now)
+                item["conflicts_shabbat"] = any(p.overlaps(event.start, event.end) for p in periods)
+                items.append({**item, "_sort": event.start, "_end": event.end})
 
     # Our own calendars are already merged above; never list them twice.
     registry = er.async_get(hass)
@@ -158,7 +170,7 @@ async def ws_upcoming(
             if item and item["_end"] > now:
                 items.append(item)
 
-    items.sort(key=lambda i: (i["_sort"], i["source"] != "holidays", i["title"]))
+    items.sort(key=lambda i: (i["_sort"], i["source"] != "holidays", i["source"] != "family", i["title"]))
     items = items[: msg["limit"]]
     for item in items:
         item.pop("_sort")
@@ -173,5 +185,166 @@ async def ws_upcoming(
             "language": lang,
             "current": runtime.render(current, lang, now) if current else None,
             "errors": errors,
+        },
+    )
+
+
+# Family dates (sidebar panel) ------------------------------------------------
+
+_DATE_FIELDS = {
+    vol.Optional("name"): cv.string,
+    vol.Optional("kind"): cv.string,
+    vol.Optional("hebrew_day"): vol.Any(int, cv.string),
+    vol.Optional("hebrew_month"): cv.string,
+    vol.Optional("original_year"): vol.Any(None, int, cv.string),
+    vol.Optional("adar_rule"): vol.Any(None, cv.string),
+    vol.Optional("day30_rule"): vol.Any(None, cv.string),
+    vol.Optional("reminder_days"): vol.Any(None, [vol.Any(int, cv.string)]),
+    vol.Optional("notes"): vol.Any(None, cv.string),
+    vol.Optional("gregorian_date"): vol.Any(None, cv.string),
+    vol.Optional("after_sunset"): bool,
+}
+_DATE_FIELD_NAMES = {str(key) for key in _DATE_FIELDS}
+
+
+def _fields(msg: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in msg.items() if k in _DATE_FIELD_NAMES}
+
+
+def _date_view(runtime: GoodDaysRuntime, record: dict[str, Any], lang: str, now: dt.datetime) -> dict[str, Any]:
+    """The stored record plus its current or next occurrence (runs in the executor)."""
+    nxt = next_occurrence(record, runtime.settings, now)
+    view: dict[str, Any] = {**record, "next": None}
+    if nxt:
+        view["next"] = {**runtime.render(nxt, lang, now), "days_until": runtime.days_until(nxt, now)}
+    return view
+
+
+def _runtime_or_error(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> GoodDaysRuntime | None:
+    try:
+        return resolve_runtime(hass, msg.get("entry_id"))
+    except HomeAssistantError as err:
+        connection.send_error(msg["id"], "not_loaded", str(err))
+        return None
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/dates/list",
+        vol.Optional("entry_id"): cv.string,
+        vol.Optional("language"): cv.string,
+    }
+)
+@websocket_api.async_response
+async def ws_dates_list(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    if (runtime := _runtime_or_error(hass, connection, msg)) is None:
+        return
+    lang = norm_language(msg.get("language") or runtime.language)
+    now = dt_util.now()
+    records = list(runtime.store.dates)
+    views = await hass.async_add_executor_job(
+        lambda: [_date_view(runtime, r, lang, now) for r in records]
+    )
+    views.sort(key=lambda v: (v["next"] is None, (v["next"] or {}).get("start", ""), v["name"]))
+    connection.send_result(msg["id"], {"entry_id": runtime.entry.entry_id, "dates": views})
+
+
+async def _mutate(hass, connection, msg, action) -> None:
+    """Run a store change; validation problems come back as {"errors": {field: code}}."""
+    if (runtime := _runtime_or_error(hass, connection, msg)) is None:
+        return
+    try:
+        record = await action(runtime)
+    except DateValidationError as err:
+        connection.send_result(msg["id"], {"errors": err.errors})
+        return
+    await runtime.async_refresh_family()
+    result: dict[str, Any] = {"errors": {}}
+    if record is not None:
+        lang = norm_language(msg.get("language") or runtime.language)
+        result["date"] = await hass.async_add_executor_job(
+            _date_view, runtime, record, lang, dt_util.now()
+        )
+    connection.send_result(msg["id"], result)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/dates/add",
+        vol.Optional("entry_id"): cv.string,
+        vol.Optional("language"): cv.string,
+        **_DATE_FIELDS,
+    }
+)
+@websocket_api.async_response
+async def ws_dates_add(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    await _mutate(hass, connection, msg, lambda runtime: runtime.store.async_add(_fields(msg)))
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/dates/update",
+        vol.Optional("entry_id"): cv.string,
+        vol.Optional("language"): cv.string,
+        vol.Required("date_id"): cv.string,
+        **_DATE_FIELDS,
+    }
+)
+@websocket_api.async_response
+async def ws_dates_update(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    await _mutate(
+        hass, connection, msg, lambda runtime: runtime.store.async_update(msg["date_id"], _fields(msg))
+    )
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/dates/remove",
+        vol.Optional("entry_id"): cv.string,
+        vol.Required("date_id"): cv.string,
+    }
+)
+@websocket_api.async_response
+async def ws_dates_remove(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    async def remove(runtime: GoodDaysRuntime) -> None:
+        await runtime.store.async_remove(msg["date_id"])
+
+    await _mutate(hass, connection, msg, remove)
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/dates/convert",
+        vol.Required("date"): cv.string,
+        vol.Optional("after_sunset", default=False): bool,
+    }
+)
+@callback
+def ws_dates_convert(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Gregorian birth / death date to a Hebrew date (the panel's converter)."""
+    try:
+        day = dt.date.fromisoformat(msg["date"])
+    except ValueError:
+        connection.send_result(msg["id"], {"errors": {"gregorian_date": "invalid_date"}})
+        return
+    shown = day + dt.timedelta(days=1) if msg["after_sunset"] else day
+    connection.send_result(
+        msg["id"],
+        {
+            "errors": {},
+            **hebrew_from_gregorian(day, msg["after_sunset"]),
+            "display": {"he": hebrew_date(shown, "he"), "en": hebrew_date(shown, "en")},
         },
     )

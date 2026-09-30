@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.0 (2026-09-30)
+
+Family dates by Hebrew date.
+
+- Birthdays, yahrzeits, anniversaries and other dates that repeat by Hebrew date, stored per instance.
+- Rules per date: plain Adar in a leap year (defaults: birthdays Adar II, yahrzeits Adar I; or Adar I / Adar II / both), Adar I / II dates in plain years, missing 30 Cheshvan / Kislev / Adar I (1st of next month or 29th).
+- Yahrzeits are timed events from sunset the evening before to sunset; others all-day. Age / number of years when the Hebrew year is known.
+- `calendar.good_days_family`, `sensor.good_days_next_family_date`.
+- Sidebar panel **Good Days**: list with next occurrence and countdown, add / edit dialog (Hebrew or Gregorian date with after-sunset converter), delete confirmation, inline validation matching the server, en/he RTL, keyboard and screen-reader friendly.
+- Services `add_date`, `update_date`, `remove_date`, `list_dates`; WebSocket `good_days/dates/*`.
+- Card: family dates merged by default (category `family`), kind icons, "falls on Shabbat" badge for family dates too.
+- Hebrew dates write Adar I / II with a geresh (אדר א׳ / אדר ב׳).
+
 ## v0.1.1 (2026-09-30)
 
 - CI: HACS validation skipped while the repository is private (it downloads files unauthenticated). No functional changes.

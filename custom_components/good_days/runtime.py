@@ -11,7 +11,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_change, async_track_time_interval
 from homeassistant.util import dt as dt_util
 
-from . import engine
+from . import engine, family
 from .const import (
     CATEGORIES,
     CONF_CANDLE_LIGHTING,
@@ -30,9 +30,12 @@ from .const import (
     LANG_AUTO,
     NON_HOLIDAY_CATEGORIES,
     SIGNAL_UPDATED,
+    SOURCE_FAMILY,
     SOURCE_HOLIDAYS,
 )
 from .engine import EngineSettings, HolyEvent, hebrew_date, norm_language
+from .family import FamilyEvent
+from .storage import FamilyStore
 
 PAST_DAYS = 7
 MAX_ADHOC_DAYS = 3 * 366  # calendar panel requests outside the cached window
@@ -66,6 +69,8 @@ class GoodDaysRuntime:
         self.lookahead = int(entry.options.get(CONF_LOOKAHEAD_DAYS, DEFAULT_LOOKAHEAD_DAYS))
         self._language_option = entry.options.get(CONF_LANGUAGE, LANG_AUTO)
         self.events: list[HolyEvent] = []
+        self.store = FamilyStore(hass, entry.entry_id)
+        self.family_events: list[FamilyEvent] = []
         self.window: tuple[dt.date, dt.date] | None = None
         self._unsubs: list[Callable[[], None]] = []
 
@@ -76,6 +81,7 @@ class GoodDaysRuntime:
         return norm_language(self._language_option)
 
     async def async_start(self) -> None:
+        await self.store.async_load()
         await self.async_refresh()
         self._unsubs.append(
             async_track_time_change(self.hass, self._async_daily, hour=0, minute=5, second=0)
@@ -102,8 +108,42 @@ class GoodDaysRuntime:
         start = today - dt.timedelta(days=PAST_DAYS)
         end = today + dt.timedelta(days=self.lookahead)
         events = await self.hass.async_add_executor_job(engine.compute, self.settings, start, end)
-        self.events, self.window = events, (start, end)
+        family_events = await self.hass.async_add_executor_job(
+            family.compute_family, list(self.store.dates), self.settings, start, end
+        )
+        self.events, self.family_events, self.window = events, family_events, (start, end)
         async_dispatcher_send(self.hass, SIGNAL_UPDATED.format(self.entry.entry_id))
+
+    async def async_refresh_family(self) -> None:
+        """Recompute family occurrences after a date was added, changed or removed."""
+        if self.window is None:
+            return
+        start, end = self.window
+        self.family_events = await self.hass.async_add_executor_job(
+            family.compute_family, list(self.store.dates), self.settings, start, end
+        )
+        async_dispatcher_send(self.hass, SIGNAL_UPDATED.format(self.entry.entry_id))
+
+    async def async_family_between(self, start: dt.datetime, end: dt.datetime) -> list[FamilyEvent]:
+        if end <= start:
+            return []
+        first, last = dt_util.as_local(start).date(), dt_util.as_local(end).date()
+        if self.window and self.window[0] <= first and last <= self.window[1]:
+            events: Iterable[FamilyEvent] = self.family_events
+        else:
+            last = min(last, first + dt.timedelta(days=MAX_ADHOC_DAYS))
+            events = await self.hass.async_add_executor_job(
+                family.compute_family, list(self.store.dates), self.settings, first, last
+            )
+        return [e for e in events if e.overlaps(start, end)]
+
+    def next_family(self, now: dt.datetime) -> FamilyEvent | None:
+        return next((e for e in self.family_events if e.end > now), None)
+
+    def periods_overlapping(self, start: dt.datetime, end: dt.datetime) -> bool:
+        """True when [start, end) touches any Shabbat / Yom Tov period in the cached window."""
+        probe_end = end if end > start else start + dt.timedelta(minutes=1)
+        return any(e.period and e.overlaps(start, probe_end) for e in self.events)
 
     async def async_events_between(self, start: dt.datetime, end: dt.datetime) -> list[HolyEvent]:
         """All events (every category) overlapping [start, end)."""
@@ -148,11 +188,12 @@ class GoodDaysRuntime:
             return 0
         return (dt_util.as_local(event.start).date() - dt_util.as_local(now).date()).days
 
-    def render(self, event: HolyEvent, lang: str, now: dt.datetime) -> dict[str, Any]:
+    def render(self, event: HolyEvent | FamilyEvent, lang: str, now: dt.datetime) -> dict[str, Any]:
         """WebSocket / attribute shape (SPEC §7.3)."""
-        return {
+        is_family = isinstance(event, FamilyEvent)
+        item = {
             "uid": event.uid,
-            "source": SOURCE_HOLIDAYS,
+            "source": SOURCE_FAMILY if is_family else SOURCE_HOLIDAYS,
             "title": event.title(lang),
             "start": event.first_day.isoformat() if event.all_day else event.start.isoformat(),
             "end": (event.last_day + dt.timedelta(days=1)).isoformat()
@@ -164,6 +205,12 @@ class GoodDaysRuntime:
             "candle_lighting": _iso(event.candle_lighting),
             "havdalah": _iso(event.havdalah),
             "in_effect": event.start <= now < event.end,
-            "conflicts_shabbat": False,
+            "conflicts_shabbat": is_family and self.periods_overlapping(event.start, event.end),
             "description": event.description(lang),
         }
+        if is_family:
+            item.update(
+                kind=event.kind, name=event.name, years=event.years, date_id=event.date_id,
+                day=event.first_day.isoformat(),
+            )
+        return item

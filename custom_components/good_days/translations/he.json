@@ -76,12 +76,54 @@
         "memorial": "ימי זיכרון וימים לאומיים נוספים",
         "erev": "ערבי חג"
       }
+    },
+    "kind": {
+      "options": {
+        "birthday": "יום הולדת",
+        "yahrzeit": "יום השנה (יארצייט)",
+        "anniversary": "יום נישואין",
+        "custom": "אחר"
+      }
+    },
+    "hebrew_month": {
+      "options": {
+        "tishrei": "תשרי",
+        "marcheshvan": "חשוון",
+        "kislev": "כסלו",
+        "tevet": "טבת",
+        "shvat": "שבט",
+        "adar": "אדר (שנה פשוטה)",
+        "adar_i": "אדר א׳",
+        "adar_ii": "אדר ב׳",
+        "nisan": "ניסן",
+        "iyyar": "אייר",
+        "sivan": "סיוון",
+        "tammuz": "תמוז",
+        "av": "אב",
+        "elul": "אלול"
+      }
+    },
+    "adar_rule": {
+      "options": {
+        "adar_i": "אדר א׳",
+        "adar_ii": "אדר ב׳",
+        "both": "שניהם"
+      }
+    },
+    "day30_rule": {
+      "options": {
+        "next": "א׳ בחודש הבא",
+        "29": "כ״ט באותו חודש"
+      }
     }
   },
   "entity": {
     "calendar": {
       "holidays": {
         "name": "חגים"
+      },
+      "family": {
+        "name": "משפחה"
       }
     },
     "sensor": {
@@ -90,11 +132,152 @@
       },
       "next_holiday": {
         "name": "החג הבא"
+      },
+      "next_family": {
+        "name": "התאריך המשפחתי הבא"
       }
     },
     "binary_sensor": {
       "holiday_today": {
         "name": "חג היום"
+      }
+    }
+  },
+  "services": {
+    "add_date": {
+      "name": "הוספת תאריך משפחתי",
+      "description": "הוספת יום הולדת, יום השנה או יום נישואין שחוזר לפי התאריך העברי.",
+      "fields": {
+        "name": {
+          "name": "שם",
+          "description": "של מי התאריך."
+        },
+        "kind": {
+          "name": "סוג",
+          "description": "יום הולדת, יום השנה, יום נישואין או אחר."
+        },
+        "hebrew_day": {
+          "name": "יום בחודש העברי",
+          "description": "1-30."
+        },
+        "hebrew_month": {
+          "name": "חודש עברי",
+          "description": "אדר = אדר של שנה פשוטה."
+        },
+        "original_year": {
+          "name": "שנה עברית",
+          "description": "שנת הלידה / הפטירה / החתונה, למשל 5745. מציג גיל או מספר שנים."
+        },
+        "gregorian_date": {
+          "name": "תאריך לועזי",
+          "description": "במקום התאריך העברי: יומר אוטומטית."
+        },
+        "after_sunset": {
+          "name": "אחרי השקיעה",
+          "description": "התאריך הלועזי היה אחרי השקיעה (היום העברי הבא)."
+        },
+        "adar_rule": {
+          "name": "אדר בשנה מעוברת",
+          "description": "לתאריך באדר של שנה פשוטה. ברירת מחדל: יום הולדת באדר ב׳, יום השנה באדר א׳."
+        },
+        "day30_rule": {
+          "name": "כשאין יום ל׳",
+          "description": "ל׳ חשוון / כסלו בשנה חסרה. ברירת מחדל: א׳ בחודש הבא."
+        },
+        "reminder_days": {
+          "name": "ימי תזכורת",
+          "description": "כמה ימים לפני להזכיר (מגרסה 0.3)."
+        },
+        "notes": {
+          "name": "הערות",
+          "description": "טקסט חופשי."
+        },
+        "entry_id": {
+          "name": "מופע ימים טובים",
+          "description": "ברירת מחדל: הראשון."
+        }
+      }
+    },
+    "update_date": {
+      "name": "עדכון תאריך משפחתי",
+      "description": "שינוי שדות של תאריך משפחתי.",
+      "fields": {
+        "date_id": {
+          "name": "מזהה תאריך",
+          "description": "המזהה מ-list_dates."
+        },
+        "name": {
+          "name": "שם",
+          "description": "של מי התאריך."
+        },
+        "kind": {
+          "name": "סוג",
+          "description": "יום הולדת, יום השנה, יום נישואין או אחר."
+        },
+        "hebrew_day": {
+          "name": "יום בחודש העברי",
+          "description": "1-30."
+        },
+        "hebrew_month": {
+          "name": "חודש עברי",
+          "description": "אדר = אדר של שנה פשוטה."
+        },
+        "original_year": {
+          "name": "שנה עברית",
+          "description": "שנת הלידה / הפטירה / החתונה, למשל 5745. מציג גיל או מספר שנים."
+        },
+        "gregorian_date": {
+          "name": "תאריך לועזי",
+          "description": "במקום התאריך העברי: יומר אוטומטית."
+        },
+        "after_sunset": {
+          "name": "אחרי השקיעה",
+          "description": "התאריך הלועזי היה אחרי השקיעה (היום העברי הבא)."
+        },
+        "adar_rule": {
+          "name": "אדר בשנה מעוברת",
+          "description": "לתאריך באדר של שנה פשוטה. ברירת מחדל: יום הולדת באדר ב׳, יום השנה באדר א׳."
+        },
+        "day30_rule": {
+          "name": "כשאין יום ל׳",
+          "description": "ל׳ חשוון / כסלו בשנה חסרה. ברירת מחדל: א׳ בחודש הבא."
+        },
+        "reminder_days": {
+          "name": "ימי תזכורת",
+          "description": "כמה ימים לפני להזכיר (מגרסה 0.3)."
+        },
+        "notes": {
+          "name": "הערות",
+          "description": "טקסט חופשי."
+        },
+        "entry_id": {
+          "name": "מופע ימים טובים",
+          "description": "ברירת מחדל: הראשון."
+        }
+      }
+    },
+    "remove_date": {
+      "name": "מחיקת תאריך משפחתי",
+      "description": "מחיקת תאריך משפחתי.",
+      "fields": {
+        "date_id": {
+          "name": "מזהה תאריך",
+          "description": "המזהה מ-list_dates."
+        },
+        "entry_id": {
+          "name": "מופע ימים טובים",
+          "description": "ברירת מחדל: הראשון."
+        }
+      }
+    },
+    "list_dates": {
+      "name": "רשימת תאריכים משפחתיים",
+      "description": "החזרת כל התאריכים המשפחתיים עם המועד הבא.",
+      "fields": {
+        "entry_id": {
+          "name": "מופע ימים טובים",
+          "description": "ברירת מחדל: הראשון."
+        }
       }
     }
   }
