@@ -14,7 +14,7 @@ const MAX_NAME = 100;
 const MAX_NOTES = 500;
 const REFRESH_MS = 10 * 60 * 1000;
 const TIMER_DOMAINS = ["switch", "light", "input_boolean", "fan", "climate", "water_heater", "media_player",
-  "humidifier", "cover", "scene", "script", "automation", "siren", "vacuum", "valve", "lock"];
+  "humidifier", "scene", "siren", "vacuum"];
 
 const I18N = {
   en: {
@@ -639,10 +639,15 @@ class GoodDaysPanel extends HTMLElement {
 
   async _init() {
     try {
-      const entries = await this._hass.callWS({ type: "config_entries/get", domain: "good_days" });
-      this._entries = (entries || []).filter((e) => e.state === "loaded");
+      const res = await this._hass.callWS({ type: "good_days/entries", language: langOf(this._hass) });
+      this._entries = (res && res.entries) || [];
     } catch (e) {
-      this._entries = [];
+      try {
+        const entries = await this._hass.callWS({ type: "config_entries/get", domain: "good_days" });
+        this._entries = (entries || []).filter((e2) => e2.state === "loaded");
+      } catch (e2) {
+        this._entries = [];
+      }
     }
     if (this._entries.length) this._entryId = this._entries[0].entry_id;
     await this._load();
@@ -824,7 +829,7 @@ class GoodDaysPanel extends HTMLElement {
       const seen = {};
       this._entries.forEach((e) => {
         seen[e.title] = (seen[e.title] || 0) + 1;
-        const text = counts[e.title] > 1 ? this._t("instance_n", e.title, seen[e.title]) : e.title;
+        const text = e.label || (counts[e.title] > 1 ? this._t("instance_n", e.title, seen[e.title]) : e.title);
         select.appendChild(new Option(text, e.entry_id));
       });
       select.value = this._entryId;
