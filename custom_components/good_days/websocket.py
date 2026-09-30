@@ -218,6 +218,8 @@ async def ws_upcoming(
             "language": lang,
             "current": runtime.render(current, lang, now) if current else None,
             "errors": errors,
+            # The effective set used for this reply (the card editor shows it when unset).
+            "categories": [c for c in (*CATEGORIES, CATEGORY_FAMILY) if c in categories],
         },
     )
 
