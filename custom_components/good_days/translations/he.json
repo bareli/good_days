@@ -140,6 +140,9 @@
       },
       "next_family": {
         "name": "התאריך המשפחתי הבא"
+      },
+      "next_candle_lighting": {
+        "name": "הדלקת הנרות הבאה"
       }
     },
     "binary_sensor": {

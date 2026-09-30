@@ -73,6 +73,7 @@ class GoodDaysRuntime:
         self.family_events: list[FamilyEvent] = []
         self.family_version = 0  # bumped whenever dates or the window change
         self.reminders = ReminderManager(self)
+        self.ics_cache: tuple | None = None  # (key, body), see ics.async_feed
         self.window: tuple[dt.date, dt.date] | None = None
         self._unsubs: list[Callable[[], None]] = []
 
@@ -174,6 +175,13 @@ class GoodDaysRuntime:
 
     def current_or_next(self, now: dt.datetime, categories: set[str] | None = None) -> HolyEvent | None:
         return next((e for e in self.visible(categories) if e.end > now), None)
+
+    def next_period(self, now: dt.datetime) -> HolyEvent | None:
+        """Current or next Shabbat / Yom Tov (candle lighting to havdalah), any category."""
+        return next((e for e in self.events if e.period and e.end > now), None)
+
+    def period_at(self, when: dt.datetime) -> HolyEvent | None:
+        return next((e for e in self.events if e.period and e.start <= when < e.end), None)
 
     def next_shabbat(self, now: dt.datetime) -> HolyEvent | None:
         return next((e for e in self.events if e.period and e.is_shabbat and e.end > now), None)

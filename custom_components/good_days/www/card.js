@@ -243,8 +243,13 @@ class GoodDaysCard extends HTMLElement {
   }
 
   async _fetch() {
-    if (!this._hass || !this._config || this._loading) return;
+    if (!this._hass || !this._config) return;
+    if (this._loading) {
+      this._refetch = true; // config or data changed mid-request: fetch again afterwards
+      return;
+    }
     this._loading = true;
+    this._refetch = false;
     const cfg = this._config;
     const msg = {
       type: "good_days/upcoming",
@@ -273,6 +278,10 @@ class GoodDaysCard extends HTMLElement {
       }
     } finally {
       this._loading = false;
+    }
+    if (this._refetch) {
+      this._fetch();
+      return;
     }
     this._render();
   }
@@ -320,12 +329,29 @@ class GoodDaysCard extends HTMLElement {
     return `${get("year")}-${get("month")}-${get("day")}`;
   }
 
+  // Epoch ms of local midnight of "YYYY-MM-DD" in the display time zone (server or browser).
+  _midnightMs(key) {
+    const wall = Date.UTC(+key.slice(0, 4), +key.slice(5, 7) - 1, +key.slice(8, 10));
+    const format = new Intl.DateTimeFormat("en-CA", {
+      timeZone: this._timeZone(), hourCycle: "h23",
+      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+    });
+    const offset = (ms) => {
+      const parts = format.formatToParts(new Date(ms));
+      const get = (t) => +parts.find((p) => p.type === t).value;
+      return Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute")) - ms;
+    };
+    // Two passes: the zone offset at midnight itself, correct on DST change days.
+    const first = wall - offset(wall);
+    return wall - offset(first);
+  }
+
   _startMs(item) {
-    return item.all_day ? Date.parse(item.start + "T00:00:00") : Date.parse(item.start);
+    return item.all_day ? this._midnightMs(item.start) : Date.parse(item.start);
   }
 
   _endMs(item) {
-    return item.all_day ? Date.parse(item.end + "T00:00:00") : Date.parse(item.end);
+    return item.all_day ? this._midnightMs(item.end) : Date.parse(item.end);
   }
 
   _itemDayKey(item) {

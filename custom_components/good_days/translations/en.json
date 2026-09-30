@@ -140,6 +140,9 @@
       },
       "next_family": {
         "name": "Next family date"
+      },
+      "next_candle_lighting": {
+        "name": "Next candle lighting"
       }
     },
     "binary_sensor": {

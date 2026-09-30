@@ -15,6 +15,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from . import websocket
+from .ics import GoodDaysIcsView
 from .intents import async_register_intents
 from .reminders import async_register_actions
 from .services import async_register_services
@@ -59,6 +60,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async_register_services(hass)
     async_register_actions(hass)
     async_register_intents(hass)
+    hass.http.register_view(GoodDaysIcsView(hass))
     return True
 
 

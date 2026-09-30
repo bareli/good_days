@@ -80,13 +80,28 @@ async def test_no_burst_of_old_reminders_on_install(hass: HomeAssistant, israel,
     assert calls == []
 
 
-async def test_reminder_held_during_shabbat(hass: HomeAssistant, israel, freezer) -> None:
+async def test_reminder_due_on_shabbat_is_sent_before_candle_lighting(hass: HomeAssistant, israel, freezer) -> None:
     _, calls, _ = await _setup(hass, freezer)
-    await _add(hass, SUNDAY_BIRTHDAY)
-    await _at(hass, freezer, "2026-10-10 06:00:30+00:00")  # Shabbat 09:00
+    await _add(hass, SUNDAY_BIRTHDAY)  # 1 day before = Shabbat 09:00
+    await _at(hass, freezer, "2026-10-09 13:30:00+00:00")  # Fri 16:30
     assert calls == []
-    await _at(hass, freezer, "2026-10-10 16:00:00+00:00")  # 19:00, after havdalah 18:49
-    assert [c.data["message"] for c in calls] == ["Tomorrow: Dan's birthday"]
+    await _at(hass, freezer, "2026-10-09 13:35:00+00:00")  # Fri 16:35 (candle lighting 17:34 - 60)
+    assert [c.data["message"] for c in calls] == ["In 2 days: Dan's birthday"]
+    await _at(hass, freezer, "2026-10-10 06:00:30+00:00")
+    await _at(hass, freezer, "2026-10-10 16:00:00+00:00")
+    assert len(calls) == 1
+
+
+async def test_reminder_for_a_date_on_yom_tov_is_not_lost(hass: HomeAssistant, israel, freezer) -> None:
+    # Rosh Hashana 5788: 1 Tishrei = Sat 2027-10-02, 2 Tishrei = Sun 2027-10-03 (one period).
+    freezer.move_to("2027-09-28 07:00:00+00:00")
+    calls = async_mock_service(hass, "notify", PHONE)
+    await setup_entry(hass, make_entry(hass, notify_targets=[PHONE], reminder_time="09:00"))
+    await _add(hass, {"name": "Tal", "kind": "birthday", "hebrew_day": 2, "hebrew_month": "tishrei", "reminder_days": [0]})
+    for when in ("2027-09-30 12:00:00+00:00", "2027-10-01 13:00:00+00:00", "2027-10-01 14:30:00+00:00",
+                 "2027-10-03 06:00:30+00:00", "2027-10-03 17:00:00+00:00"):
+        await _at(hass, freezer, when)
+    assert [c.data["message"] for c in calls] == ["In 2 days: Tal's birthday"]
 
 
 async def test_reminder_on_shabbat_when_not_quiet(hass: HomeAssistant, israel, freezer) -> None:
@@ -140,12 +155,28 @@ async def test_snooze_fires_next_day(hass: HomeAssistant, israel, freezer) -> No
 async def test_yahrzeit_evening_reminder_with_candle_time(hass: HomeAssistant, israel, freezer) -> None:
     _, calls, _ = await _setup(hass, freezer, language="he")
     await _add(hass, YAHRZEIT)
-    await _at(hass, freezer, "2026-10-13 13:00:00+00:00")  # 16:00, before sunset - 60 min
+    await _at(hass, freezer, "2026-10-13 14:00:00+00:00")  # 17:00, before sunset 18:09 - 60 min
     assert calls == []
-    await _at(hass, freezer, "2026-10-13 14:15:00+00:00")  # 17:15, after sunset (18:09 / 18:12) - 60 min
-    assert len(calls) == 1
-    message = calls[0].data["message"]
-    assert message.startswith("מחר: יום השנה: Saba. הדליקו נר לפני 18:")
+    await _at(hass, freezer, "2026-10-13 14:10:00+00:00")  # 17:10
+    assert [c.data["message"] for c in calls] == ["הערב: יום השנה: Saba. הדליקו נר לפני 18:09."]
+
+
+async def test_yahrzeit_beginning_on_shabbat_lights_before_candle_lighting(hass: HomeAssistant, israel, freezer) -> None:
+    _, calls, _ = await _setup(hass, freezer)
+    # 29 Tishrei 5787 = Shabbat 2026-10-10: begins Friday evening, inside Shabbat.
+    await _add(hass, {**YAHRZEIT, "hebrew_day": 29, "hebrew_month": "tishrei"})
+    await _at(hass, freezer, "2026-10-09 13:35:00+00:00")  # Fri 16:35 = candle lighting 17:34 - 60
+    assert [c.data["message"] for c in calls] == ["Tonight: Yahrzeit: Saba. Light a candle before 17:34."]
+
+
+async def test_yahrzeit_beginning_as_shabbat_ends_lights_after_havdalah(hass: HomeAssistant, israel, freezer) -> None:
+    _, calls, _ = await _setup(hass, freezer)
+    # 30 Tishrei 5787 = Sunday 2026-10-11: begins at sunset on Shabbat, before havdalah.
+    await _add(hass, {**YAHRZEIT, "hebrew_day": 30, "hebrew_month": "tishrei"})
+    await _at(hass, freezer, "2026-10-10 15:00:00+00:00")  # Sat 18:00, still Shabbat
+    assert calls == []
+    await _at(hass, freezer, "2026-10-10 15:50:00+00:00")  # 18:50, havdalah 18:49
+    assert [c.data["message"] for c in calls] == ["Tonight: Yahrzeit: Saba. Light a candle after havdalah (18:49)."]
 
 
 async def test_options_validate_reminders(hass: HomeAssistant, israel) -> None:
@@ -186,10 +217,10 @@ async def test_intents(hass: HomeAssistant, israel, freezer) -> None:
     await _add(hass, WEEKDAY_BIRTHDAY)
 
     assert await _speech(hass, "GoodDaysShabbatTimes", "en") == (
-        "Candle lighting on Friday at 17:34, havdalah on Saturday at 18:49. Parashat Bereshit."
+        "Candle lighting on Friday at 17:34, havdalah on Saturday at 18:49. Shabbat Parashat Bereshit."
     )
     assert await _speech(hass, "GoodDaysShabbatTimes", "he") == (
-        "הדלקת נרות ביום שישי ב-17:34, הבדלה בשבת ב-18:49. פרשת בראשית."
+        "הדלקת נרות ביום שישי ב-17:34, הבדלה בשבת ב-18:49. שבת פרשת בראשית."
     )
     assert await _speech(hass, "GoodDaysNextHoliday", "en") == "Chanukah, in 59 days, on Saturday."
     assert await _speech(hass, "GoodDaysUpcoming", "en") == (
@@ -231,14 +262,41 @@ async def test_blueprint_turns_light_on_before_candle_lighting(hass: HomeAssista
         await _at(hass, freezer, f"2026-10-09 14:{minute:02d}:00+00:00")
     assert hass.states.get("input_boolean.porch").state == "on"
 
-    # Calendar end trigger at havdalah (18:49 Saturday). A non-zero delay is plain HA script
+    # Off within a minute after havdalah (18:49 Saturday). A non-zero delay is plain HA script
     # behaviour and would block async_block_till_done under a frozen clock.
     for when in ("2026-10-10 09:00:00+00:00", "2026-10-10 15:30:00+00:00", "2026-10-10 15:48:00+00:00"):
         await _at(hass, freezer, when)
     assert hass.states.get("input_boolean.porch").state == "on"
-    await _at(hass, freezer, "2026-10-10 15:49:30+00:00")
+    await _at(hass, freezer, "2026-10-10 15:50:00+00:00")
     assert hass.states.get("input_boolean.porch").state == "off"
 
-    # Stop the calendar trigger's refresh timer before teardown.
+    # Stop the automation's listeners before teardown.
+    await hass.services.async_call("automation", "turn_off", {"entity_id": "automation.porch"}, blocking=True)
+    await hass.async_block_till_done()
+
+
+async def test_blueprint_fires_on_shabbat_chanukah(hass: HomeAssistant, israel, freezer) -> None:
+    """An all-day span (Chanukah) running on Friday must not hide candle lighting."""
+    freezer.move_to("2026-12-11 11:00:00+00:00")  # Friday 13:00, Chanukah day 7
+    await setup_entry(hass, make_entry(hass))
+    await async_setup_component(hass, "homeassistant", {})
+    await async_setup_component(hass, "input_boolean", {"input_boolean": {"porch": {"initial": False}}})
+    blueprint = Blueprint(
+        load_yaml_dict(BLUEPRINT), expected_domain="automation", schema=AUTOMATION_BLUEPRINT_SCHEMA
+    )
+    inputs = BlueprintInputs(
+        blueprint,
+        {"use_blueprint": {"path": "good_days/candle_lighting_light.yaml", "input": {
+            "lights": {"entity_id": "input_boolean.porch"}, "minutes_before": 10,
+        }}},
+    )
+    assert await async_setup_component(
+        hass, "automation", {"automation": [{**inputs.async_substitute(), "id": "porch", "alias": "porch"}]}
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get("calendar.good_days_holidays").attributes["message"] == "Chanukah"
+    for minute in range(40, 47):  # candle lighting 15:55 local = 13:55 UTC, on from 13:45
+        await _at(hass, freezer, f"2026-12-11 13:{minute:02d}:00+00:00")
+    assert hass.states.get("input_boolean.porch").state == "on"
     await hass.services.async_call("automation", "turn_off", {"entity_id": "automation.porch"}, blocking=True)
     await hass.async_block_till_done()

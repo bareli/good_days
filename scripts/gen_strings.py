@@ -116,6 +116,7 @@ ENTITY = {
         "next_shabbat": ("Next Shabbat", "השבת הבאה"),
         "next_holiday": ("Next holiday", "החג הבא"),
         "next_family": ("Next family date", "התאריך המשפחתי הבא"),
+        "next_candle_lighting": ("Next candle lighting", "הדלקת הנרות הבאה"),
     },
     "binary_sensor": {"holiday_today": ("Holiday today", "חג היום")},
 }
