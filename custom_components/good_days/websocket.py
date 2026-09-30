@@ -152,12 +152,13 @@ async def ws_upcoming(
             if e.end > now
         ]
 
-    # Our own calendars are already merged above; never list them twice.
+    # This entry's own calendars are already merged above; never list them twice. Another
+    # Good Days entry's calendar (e.g. the parents' city) is read like any other calendar.
     registry = er.async_get(hass)
     external = []
     for entity_id in dict.fromkeys(msg["calendars"]):
         reg = registry.async_get(entity_id)
-        if reg is None or reg.platform != DOMAIN:
+        if reg is None or reg.platform != DOMAIN or reg.config_entry_id != runtime.entry.entry_id:
             external.append(entity_id)
 
     context = connection.context(msg)
