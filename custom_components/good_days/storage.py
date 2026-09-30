@@ -211,6 +211,7 @@ class TimerStore:
         self.skip: list[str] = []  # period uids to skip
         self.done: dict[str, str] = {}  # planned action key -> period end iso (for pruning)
         self.history: list[dict[str, Any]] = []
+        self._pending = False
 
     async def async_load(self) -> None:
         data = await self._store.async_load() or {}
@@ -222,18 +223,30 @@ class TimerStore:
         self.done = dict(data.get("done") or {})
         self.history = list(data.get("history") or [])[-self.HISTORY_MAX :]
 
+    def _data(self) -> dict[str, Any]:
+        return {
+            "rules": self.rules,
+            "profiles": self.profiles,
+            "active_profile": self.active_profile,
+            "enabled": self.enabled,
+            "skip": self.skip,
+            "done": self.done,
+            "history": self.history[-self.HISTORY_MAX :],
+        }
+
     async def async_save(self) -> None:
-        await self._store.async_save(
-            {
-                "rules": self.rules,
-                "profiles": self.profiles,
-                "active_profile": self.active_profile,
-                "enabled": self.enabled,
-                "skip": self.skip,
-                "done": self.done,
-                "history": self.history[-self.HISTORY_MAX :],
-            }
-        )
+        self._pending = False
+        await self._store.async_save(self._data())
+
+    def async_delay_save(self, delay: float) -> None:
+        """Coalesce writes (timer runs); Home Assistant writes pending data on shutdown."""
+        self._pending = True
+        self._store.async_delay_save(self._data, delay)
+
+    async def async_flush(self) -> None:
+        """Write a pending delayed save now (unload / reload reads the file again)."""
+        if self._pending:
+            await self.async_save()
 
     def get(self, rule_id: str) -> dict[str, Any] | None:
         return next((r for r in self.rules if r["id"] == rule_id), None)

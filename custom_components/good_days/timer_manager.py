@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import condition
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.event import async_track_point_in_time
+from homeassistant.helpers.event import async_call_later, async_track_point_in_time
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
@@ -29,6 +29,11 @@ GRACE = dt.timedelta(minutes=10)  # missed while Home Assistant was down: still 
 PLAN_PERIODS = 2
 SERVICE_TIMEOUT = 30
 SIGNAL_TIMERS = f"{DOMAIN}_timers_{{}}"
+# Rules sharing a time fire together: one store write and one entity update per burst.
+# The done keys must reach the disk well inside GRACE; a crash inside this delay can at worst
+# re-run an action late (same state again). A normal shutdown or unload writes at once.
+SAVE_DELAY = 2
+SIGNAL_DELAY = 1
 
 STATUS_DONE = "done"
 STATUS_LATE = "late"  # run after a restart, within the grace window
@@ -45,6 +50,7 @@ class TimerManager:
         self._unsubs: list[Callable[[], None]] = []
         self._signature: tuple = ()
         self._lock = asyncio.Lock()
+        self._signal_unsub: Callable[[], None] | None = None
         self.planned: list[PlannedAction] = []
 
     @property
@@ -58,6 +64,22 @@ class TimerManager:
     @callback
     def async_stop(self) -> None:
         self._cancel()
+        if self._signal_unsub:
+            self._signal_unsub()
+            self._signal_unsub = None
+
+    async def async_flush(self) -> None:
+        await self.store.async_flush()
+
+    @callback
+    def _async_signal_soon(self) -> None:
+        if self._signal_unsub is None:
+            self._signal_unsub = async_call_later(self.hass, SIGNAL_DELAY, self._async_signal_now)
+
+    @callback
+    def _async_signal_now(self, _now: dt.datetime) -> None:
+        self._signal_unsub = None
+        async_dispatcher_send(self.hass, self.signal)
 
     def _cancel(self) -> None:
         while self._unsubs:
@@ -142,8 +164,8 @@ class TimerManager:
                 self._record(action, STATUS_LATE if late else STATUS_DONE)
             except (HomeAssistantError, TimeoutError) as err:
                 self._record(action, STATUS_FAILED, str(err) or type(err).__name__)
-        await self.store.async_save()
-        async_dispatcher_send(self.hass, self.signal)
+        self.store.async_delay_save(SAVE_DELAY)
+        self._async_signal_soon()
 
     async def async_execute(self, action: str, targets: list[str]) -> None:
         """Switch the targets; raises when any target has no such service (nothing was done to it)."""
