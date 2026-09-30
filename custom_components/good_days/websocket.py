@@ -17,8 +17,8 @@ from homeassistant.util import dt as dt_util
 
 from .const import CAT_FAMILY, CATEGORIES, DOMAIN, WS_MAX_DAYS, WS_MAX_LIMIT, WS_UPCOMING
 from .engine import HolyEvent, hebrew_date, norm_language
-from .family import hebrew_from_gregorian, next_occurrence
-from .runtime import GoodDaysRuntime
+from .family import FamilyEvent, hebrew_from_gregorian, next_occurrence
+from .runtime import GoodDaysRuntime, PeriodIndex
 from .ics import ics_path, new_token
 from .storage import DateValidationError
 
@@ -80,7 +80,7 @@ async def _fetch_calendar(
 
 
 def _external_item(
-    entity_id: str, raw: dict[str, Any], periods: list[HolyEvent], lang: str, now: dt.datetime
+    entity_id: str, raw: dict[str, Any], periods: PeriodIndex, lang: str, now: dt.datetime
 ) -> dict[str, Any] | None:
     parsed = _parse_external(raw)
     if parsed is None:
@@ -99,7 +99,7 @@ def _external_item(
         "candle_lighting": None,
         "havdalah": None,
         "in_effect": start <= now < end,
-        "conflicts_shabbat": any(p.overlaps(start, probe_end) for p in periods),
+        "conflicts_shabbat": periods.overlaps(start, probe_end),
         "description": raw.get("description") or "",
         "location": raw.get("location") or "",
         "_sort": start,
@@ -139,18 +139,18 @@ async def ws_upcoming(
         categories = runtime.categories | {CATEGORY_FAMILY}
 
     events = await runtime.async_events_between(now - dt.timedelta(days=1), end)
-    periods = [e for e in events if e.period]
-    items: list[dict[str, Any]] = []
-    for event in events:
-        if event.category in categories and event.end > now:
-            item = runtime.render(event, lang, now)
-            items.append({**item, "_sort": event.start, "_end": event.end})
+    periods = PeriodIndex(events)
+    # (start, rank) now; titles and full items only for what can make the cut (below).
+    # rank orders equal starts: holidays, then family, then external calendars.
+    ours: list[tuple[dt.datetime, tuple[bool, bool], HolyEvent | FamilyEvent]] = [
+        (e.start, (False, True), e) for e in events if e.category in categories and e.end > now
+    ]
     if CATEGORY_FAMILY in categories:
-        for event in await runtime.async_family_between(now - dt.timedelta(days=1), end):
-            if event.end > now:
-                item = runtime.render(event, lang, now)
-                item["conflicts_shabbat"] = any(p.overlaps(event.start, event.end) for p in periods)
-                items.append({**item, "_sort": event.start, "_end": event.end})
+        ours += [
+            (e.start, (True, False), e)
+            for e in await runtime.async_family_between(now - dt.timedelta(days=1), end)
+            if e.end > now
+        ]
 
     # Our own calendars are already merged above; never list them twice.
     registry = er.async_get(hass)
@@ -166,6 +166,7 @@ async def ws_upcoming(
         return_exceptions=True,
     )
     errors = []
+    items: list[dict[str, Any]] = []
     for entity_id, result in zip(external, results):
         if isinstance(result, BaseException):
             if not isinstance(result, Exception):
@@ -180,11 +181,32 @@ async def ws_upcoming(
             if item and item["_end"] > now:
                 items.append(item)
 
-    items.sort(key=lambda i: (i["_sort"], i["source"] != "holidays", i["source"] != "family", i["title"]))
-    items = items[: msg["limit"]]
-    for item in items:
-        item.pop("_sort")
-        item.pop("_end")
+    limit = msg["limit"]
+    entries = ours + [(i["_sort"], (True, True), i) for i in items]
+    entries.sort(key=lambda e: (e[0], e[1]))
+    if len(entries) > limit:
+        # Keep everything tied with the last kept entry: the title decides among those.
+        edge = entries[limit - 1][:2]
+        cut = limit
+        while cut < len(entries) and entries[cut][:2] == edge:
+            cut += 1
+        entries = entries[:cut]
+
+    def title(value: Any) -> str:
+        return value["title"] if isinstance(value, dict) else value.title(lang)
+
+    entries.sort(key=lambda e: (e[0], e[1], title(e[2])))
+    items = []
+    for _start, _rank, value in entries[:limit]:
+        if isinstance(value, dict):
+            value.pop("_sort")
+            value.pop("_end")
+            items.append(value)
+            continue
+        item = runtime.render(value, lang, now)
+        if isinstance(value, FamilyEvent):
+            item["conflicts_shabbat"] = periods.overlaps(value.start, value.end)
+        items.append(item)
 
     current = runtime.in_effect(now)
     connection.send_result(
