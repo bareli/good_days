@@ -214,9 +214,10 @@ const STYLE = `
   .chip.now { background: color-mix(in srgb, var(--primary-color) 65%, black); color: #fff; }
   .details { margin: 0 6px 8px; margin-inline-start: 26px; font-size: 0.93rem; color: var(--secondary-text-color); display: grid; gap: 2px; }
   .details .desc { white-space: pre-line; color: var(--primary-text-color); }
-  button.compact { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 8px; cursor: pointer;
+  button.compact { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: flex-start; gap: 8px; cursor: pointer;
     padding: 4px 0; color: var(--primary-text-color); }
-  button.compact .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  button.compact .dot { margin-top: calc(0.7em - 5px); }
+  button.compact .name { flex: 1; min-width: 0; line-height: 1.4; white-space: normal; overflow-wrap: anywhere; }
   .ltr { direction: ltr; unicode-bidi: isolate; }
   @media (prefers-reduced-motion: no-preference) { button.item { transition: background-color 0.15s; } }
 `;
@@ -816,7 +817,7 @@ class GoodDaysCard extends HTMLElement {
   }
 
   // Compact line: the current Shabbat / Yom Tov, else the next candle lighting, else the next item.
-  // A holiday already in progress leads the line; "Next" never goes with "now".
+  // The time leads, so a narrow screen wraps the titles, never the time; "Next" never goes with "now".
   _compactLine(items, nowMs, todayKey) {
     const current = this._currentPeriod(nowMs);
     if (current) {
@@ -828,13 +829,13 @@ class GoodDaysCard extends HTMLElement {
     if (!target) return { item: null, text: this._data ? this._t("empty") : this._t("loading") };
     const parts = [];
     if (this._startMs(target) <= nowMs) {
-      parts.push(target.title, this._countdown(target, nowMs, todayKey).text);
+      parts.push(this._countdown(target, nowMs, todayKey).text, target.title);
     } else {
-      const ongoing = items.find((i) => this._startMs(i) <= nowMs);
-      if (ongoing) parts.push(ongoing.title);
-      parts.push(`${this._t("next")}: ${target.title}`, this._countdown(target, nowMs, todayKey).text);
       if (this._config.show_candle_lighting !== false && target.candle_lighting) parts.push(this._t("candles", this._time(target.candle_lighting)));
       else if (!target.all_day) parts.push(...this._timeParts(target));
+      parts.push(this._countdown(target, nowMs, todayKey).text, `${this._t("next")}: ${target.title}`);
+      const ongoing = items.find((i) => this._startMs(i) <= nowMs);
+      if (ongoing) parts.push(ongoing.title);
     }
     return { item: target, text: parts.join(" · ") };
   }
@@ -851,14 +852,11 @@ class GoodDaysCard extends HTMLElement {
       dot.setAttribute("aria-hidden", "true");
       row.appendChild(dot);
     }
-    // One line, ellipsised: the full text stays available as a tooltip and to screen readers.
+    // One line where it fits; on a narrow screen it wraps rather than hide anything (WCAG 1.4.10).
     const name = mk("span", "name", line.text);
-    name.title = line.text;
     row.appendChild(name);
     this._updaters.push((now, today) => {
-      const text = this._compactLine(items, now, today).text;
-      name.textContent = text;
-      name.title = text;
+      name.textContent = this._compactLine(items, now, today).text;
     });
     row.addEventListener("click", () => {
       this.dispatchEvent(new CustomEvent("hass-more-info", {
