@@ -11,6 +11,8 @@ on:
 jobs:
   hacs:
     name: HACS Validation
+    # HACS downloads hacs.json / manifest.json unauthenticated: always fails on a private repo.
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
