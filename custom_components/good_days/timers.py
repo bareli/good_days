@@ -27,9 +27,11 @@ MAX_RULES = 200
 MAX_PROFILES = 10
 DEFAULT_PROFILE = "default"
 CONFLICT_WINDOW = dt.timedelta(minutes=1)
+# On / off devices plus scenes (SPEC §12.4): domains homeassistant.turn_on / turn_off really
+# operate. No script / automation (arbitrary actions), no lock / cover / valve (no turn_on).
 TARGET_DOMAINS = {
     "switch", "light", "input_boolean", "fan", "climate", "water_heater", "media_player",
-    "humidifier", "cover", "scene", "script", "automation", "siren", "vacuum", "valve", "lock",
+    "humidifier", "scene", "siren", "vacuum",
 }
 RE_TIME = re.compile(r"^([01]?\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$")
 RE_ENTITY = re.compile(r"^[a-z_]+\.[a-z0-9_]+$")

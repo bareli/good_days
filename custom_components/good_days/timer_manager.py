@@ -146,11 +146,18 @@ class TimerManager:
         async_dispatcher_send(self.hass, self.signal)
 
     async def async_execute(self, action: str, targets: list[str]) -> None:
+        """Switch the targets; raises when any target has no such service (nothing was done to it)."""
         service = "turn_on" if action == "on" else "turn_off"
-        async with asyncio.timeout(SERVICE_TIMEOUT):
-            await self.hass.services.async_call(
-                "homeassistant", service, {"entity_id": targets}, blocking=True
-            )
+        # homeassistant.turn_on / off only logs a warning for these, which would read as "done".
+        unsupported = sorted(t for t in targets if not self.hass.services.has_service(t.split(".")[0], service))
+        supported = [t for t in targets if t not in unsupported]
+        if supported:
+            async with asyncio.timeout(SERVICE_TIMEOUT):
+                await self.hass.services.async_call(
+                    "homeassistant", service, {"entity_id": supported}, blocking=True
+                )
+        if unsupported:
+            raise HomeAssistantError(f"Cannot turn {action}: {', '.join(unsupported)}")
 
     async def async_validate_conditions(self, conditions: list[dict[str, Any]]) -> bool:
         try:
