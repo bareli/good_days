@@ -35,7 +35,7 @@ async def test_services_crud_and_entities(hass: HomeAssistant, israel, freezer) 
     assert listed["dates"][0]["next"]["years"] == 7
 
     state = hass.states.get("sensor.good_days_next_family_date")
-    assert state.state == "Noa's birthday (7)"
+    assert state.state == "\u2068Noa\u2069's birthday (7)"
     assert state.attributes["days_until"] == 3
     assert state.attributes["conflicts_shabbat"] is True
 
@@ -46,17 +46,17 @@ async def test_services_crud_and_entities(hass: HomeAssistant, israel, freezer) 
         blocking=True, return_response=True,
     )
     events = resp["calendar.good_days_family"]["events"]
-    assert [e["summary"] for e in events] == ["Noa's birthday (7)", "Yahrzeit: Saba"]
+    assert [e["summary"] for e in events] == ["\u2068Noa\u2069's birthday (7)", "Yahrzeit: \u2068Saba\u2069"]
     assert events[0]["start"] == "2026-10-10"
     assert events[1]["start"] == "2026-10-13T18:09:00+03:00"  # sea-level sunset the evening before
 
     await hass.services.async_call(DOMAIN, "update_date", {"date_id": noa["id"], "name": "Noa B."}, blocking=True)
     await hass.async_block_till_done()
-    assert hass.states.get("sensor.good_days_next_family_date").state == "Noa B.'s birthday (7)"
+    assert hass.states.get("sensor.good_days_next_family_date").state == "\u2068Noa B.\u2069's birthday (7)"
 
     await hass.services.async_call(DOMAIN, "remove_date", {"date_id": noa["id"]}, blocking=True)
     await hass.async_block_till_done()
-    assert hass.states.get("sensor.good_days_next_family_date").state == "Yahrzeit: Saba"
+    assert hass.states.get("sensor.good_days_next_family_date").state == "Yahrzeit: \u2068Saba\u2069"
 
 
 async def test_service_validation(hass: HomeAssistant, israel) -> None:
@@ -99,7 +99,7 @@ async def test_ws_dates_crud_with_inline_errors(hass: HomeAssistant, israel, fre
     msg = await client.receive_json()
     date = msg["result"]["date"]
     assert msg["result"]["errors"] == {}
-    assert date["next"]["title"] == "יום הולדת 7 לNoa"
+    assert date["next"]["title"] == "יום הולדת 7 ל\u2068Noa\u2069"
     assert date["next"]["days_until"] == 3
 
     await client.send_json_auto_id({"type": "good_days/dates/update", "date_id": date["id"], "hebrew_day": 30, "hebrew_month": "elul"})
@@ -117,7 +117,7 @@ async def test_ws_dates_crud_with_inline_errors(hass: HomeAssistant, israel, fre
     await client.send_json_auto_id({"type": "good_days/upcoming", "calendars": [], "days": 7, "language": "en"})
     items = (await client.receive_json())["result"]["items"]
     family = [i for i in items if i["source"] == "family"]
-    assert [i["title"] for i in family] == ["Noa's birthday (7)"]
+    assert [i["title"] for i in family] == ["\u2068Noa\u2069's birthday (7)"]
     assert family[0]["conflicts_shabbat"] is True and family[0]["kind"] == "birthday"
 
     await client.send_json_auto_id({"type": "good_days/upcoming", "calendars": [], "days": 7, "categories": ["shabbat"]})

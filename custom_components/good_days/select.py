@@ -32,4 +32,5 @@ class TimerProfileSelect(GoodDaysEntity, SelectEntity):
         return self.runtime.timers.store.active_profile
 
     async def async_select_option(self, option: str) -> None:
+        await self.async_require_admin()
         await async_apply_settings(self.runtime, {"active_profile": option})

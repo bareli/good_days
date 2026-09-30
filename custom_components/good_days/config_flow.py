@@ -80,12 +80,17 @@ def _base_defaults(hass: HomeAssistant) -> dict[str, Any]:
     }
 
 
+class _TimeWithoutSeconds(selector.TimeSelector):
+    """HH:MM input. The frontend's time selector supports `no_second`; core's config schema
+    (2026.2 - 2026.9) does not list it yet, so it is accepted here."""
+
+    CONFIG_SCHEMA = vol.Schema({vol.Optional("no_second"): bool})
+
+
 def _minutes() -> selector.NumberSelector:
+    # The unit is a word in the translated label; a raw "min" code is not translated.
     return selector.NumberSelector(
-        selector.NumberSelectorConfig(
-            min=0, max=MAX_OFFSET_MINUTES, step=1, unit_of_measurement="min",
-            mode=selector.NumberSelectorMode.BOX,
-        )
+        selector.NumberSelectorConfig(min=0, max=MAX_OFFSET_MINUTES, step=1, mode=selector.NumberSelectorMode.BOX)
     )
 
 
@@ -118,8 +123,7 @@ def _option_fields(hass: HomeAssistant, d: dict[str, Any]) -> dict:
         ),
         vol.Required(CONF_LOOKAHEAD_DAYS, default=d[CONF_LOOKAHEAD_DAYS]): selector.NumberSelector(
             selector.NumberSelectorConfig(
-                min=MIN_LOOKAHEAD_DAYS, max=MAX_LOOKAHEAD_DAYS, step=1, unit_of_measurement="d",
-                mode=selector.NumberSelectorMode.BOX,
+                min=MIN_LOOKAHEAD_DAYS, max=MAX_LOOKAHEAD_DAYS, step=1, mode=selector.NumberSelectorMode.BOX,
             )
         ),
         vol.Optional(CONF_NOTIFY_TARGETS, default=list(d[CONF_NOTIFY_TARGETS])): selector.SelectSelector(
@@ -130,7 +134,7 @@ def _option_fields(hass: HomeAssistant, d: dict[str, Any]) -> dict:
                 mode=selector.SelectSelectorMode.DROPDOWN,
             )
         ),
-        vol.Required(CONF_REMINDER_TIME, default=d[CONF_REMINDER_TIME]): selector.TimeSelector(),
+        vol.Required(CONF_REMINDER_TIME, default=d[CONF_REMINDER_TIME]): _TimeWithoutSeconds({"no_second": True}),
         vol.Required(CONF_QUIET_ON_SHABBAT, default=d[CONF_QUIET_ON_SHABBAT]): selector.BooleanSelector(),
     }
 
@@ -237,7 +241,7 @@ class GoodDaysConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_LOOKAHEAD_DAYS: DEFAULT_LOOKAHEAD_DAYS,
                     **clean,
                 }
-                return self.async_create_entry(title="Good Days", data={}, options=options)
+                return self.async_create_entry(title=self._new_title(), data={}, options=options)
             defaults = _form_values(user_input, defaults)
         return self.async_show_form(
             step_id="user",
@@ -245,6 +249,15 @@ class GoodDaysConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={"source": "Jewish Calendar" if imported else "Home Assistant"},
         )
+
+    def _new_title(self) -> str:
+        """"Good Days", then "Good Days 2", "Good Days 3"... so two entries never look the same."""
+        taken = {entry.title for entry in self.hass.config_entries.async_entries(DOMAIN)}
+        title, number = "Good Days", 1
+        while title in taken:
+            number += 1
+            title = f"Good Days {number}"
+        return title
 
     @staticmethod
     @callback
