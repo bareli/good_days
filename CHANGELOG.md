@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.6.0 (unreleased)
+
+Fixes from a full QA cycle on a real Home Assistant (29 issues, #6 to #34).
+
+- **Shabbat timers**: saving, deleting, duplicating and "run now" from the panel work again (the panel's language field was rejected) (#17). Non-admin users can no longer switch timers off, skip a Shabbat or change the profile through the entities; automations still can (#6). Targets are limited to devices that switch on and off (scripts, automations, locks, covers and valves removed); a device that cannot be switched is logged as failed, not done (#9). Several timers firing together write the store once (#14).
+- **Panel**: view and edit another profile's timers without making it active; profiles show a timer count and can be renamed (#23). A skipped Shabbat is shown as skipped and the reset is explained (#25). Non-admins see why the timers are read-only (#26). "Run now" names what it does (#24). Two Good Days instances are told apart by name (#34). The Hebrew year accepts letters (תש״ע) (#22). Device picker, colours and long names are accessible (#11, #15, #16, #19). Faster with many family dates (#13).
+- **Card**: keyboard focus stays in place across refreshes (#10). A clear summary of the next Shabbat / Chag with candle lighting and havdalah, readable on a wall tablet (#20). Compact mode shows the next candle lighting, not a holiday already in progress (#21). Day headers in gematria (#31). Yahrzeit rows say what the time means (#29). The editor shows the categories really in use (#28). Findable as "ימים טובים" in the card picker (#27). Merges a second Good Days instance's calendar (#33). Contrast and narrow screens (#15, #16, #19).
+- **Settings**: the Shabbat reminder option now says reminders are sent before candle lighting (#18); reminder time without seconds and clearer units (#30).
+- **Robustness**: reminder buttons only act on real dates (#7); NaN / Infinity inputs give a field error instead of a crash (#8); "upcoming" cuts to the limit before building items (#12).
+- **Hebrew in English titles**: family names are isolated so they keep their order (#32). Note: sensor states such as `sensor.good_days_next_family_date` now contain invisible direction marks around names; an automation comparing that state to a plain string must strip them.
+- **New**: `sensor.good_days_next_candle_lighting` stays; new websocket `good_days/entries`; `good_days/upcoming` returns the effective `categories`.
+
 ## v0.5.0 (2026-09-30)
 
 Shabbat timers.
