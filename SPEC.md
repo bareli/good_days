@@ -191,7 +191,22 @@ entry_id: <optional, multi-instance>
 - Git: small fixes on `main` → patch tag; features on a feature branch → merge → minor tag; run tests first; push `main` + tag, force-push `main:master`; GitHub Release via `gh`. Always ask "anything else for this version?" before tag + release.
 - Replies to Victor: caveman mode, Hebrew or English matching his message, no em-dashes, metric, confidence % at the end.
 
-## 11. Open questions (resolve at project start)
+## 11. Open questions: resolved 2026-09-30
+
+1. **hdate license: GPL-3.0-or-later** (PyPI metadata, v1.2.2). Used as a runtime requirement installed by HA (same as core), never vendored; our code stays MIT. Requirement `hdate[astral]>=1.1.2` (core: 1.1.2 since HA 2025.7, 1.2.2 on `dev` since 2026-09-03); tests pass on both. Min HA 2025.7.0 (older core pins hdate 0.10/0.11 with a different API).
+2. **HACS check:** gap narrower than assumed, still real.
+   - `hitchin999/YidCal` (15★, MIT, active): big Yiddish-first zmanim/holiday integration with calendar entities and yahrzeit sensors fed from a public DB. Diaspora-first ("Israel experimental"), no agenda card, no personal Hebrew-date dates.
+   - `abfist/home-assistant-hebrew-calendar` (1★, Mar 2026): personal Hebrew-date events (birthdays, yahrzeits) + card. Single instance, placeholder repo links, not in HACS default. **Competes with v0.2 family dates**; so §2 "no product handles Hebrew-date recurrence" is wrong for HA.
+   - Shabbat-status cards (`adriangith/shabbat-card`, `DiraSmart/dira-shabat`) read Jewish Calendar sensors; no calendar merge.
+   - Differentiator: Israel-first, Hebrew/RTL-first merged family agenda with countdowns + holidays in one card, multi-instance.
+3. **Jewish Calendar settings:** copy once. Config flow pre-fills location / elevation / diaspora / candle / havdalah from the first `jewish_calendar` entry (description says so); we store our own copy in options, never read it live.
+4. **Family dates editor (v0.2):** sidebar panel (list + add/edit dialog), card links to it. A family list outgrows a card config dialog.
+5. **Adar / 30 Cheshvan-Kislev defaults (v0.2), provisional, all user-configurable.** *I'm speculating on custom here; confirm with a rav before hard-coding copy text.* Birthdays: born in plain Adar → Adar II in leap years. Yahrzeit: died in plain Adar → Adar I (Rema) default, option Adar II (Mechaber) or both. Born/died in Adar I or II of a leap year → same month in leap years, Adar in plain years. 30 Cheshvan/Kislev missing → 1 of next month (option: 29).
+6. **Name/branding:** "Good Days" / "ימים טובים", domain `good_days`, repo `bareli/good_days` (private until release). Placeholder icon in `brand/` (calendar + candle), real logo still needed.
+
+Other v0.1 decisions: category `erev` (Erev Yom Tov days, off by default) added; Yom HaZikaron / Yom HaShoah mapped to `modern`, other memorial days to `memorial` (off by default); Shushan Purim shown everywhere (as hdate does); `binary_sensor.good_days_holiday_today` (not `today_is_holiday`); Shabbat-conflict flag and compact card shipped early (cheap).
+
+### Original questions
 
 1. `hdate` license: confirm (I don't know it). Runtime dependency like HA core does is the common pattern either way.
 2. HACS check: search for an existing Jewish holiday calendar / countdown card and Hebrew-date recurrence integration before building (web search on 2026-09-30 found none, but re-check).

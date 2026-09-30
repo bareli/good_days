@@ -1,0 +1,242 @@
+"""Config and options flow for Good Days."""
+from __future__ import annotations
+
+from typing import Any
+
+import voluptuous as vol
+
+from homeassistant import config_entries
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import selector
+
+from .const import (
+    CATEGORIES,
+    CONF_CANDLE_LIGHTING,
+    CONF_CATEGORIES,
+    CONF_DIASPORA,
+    CONF_ELEVATION,
+    CONF_HAVDALAH,
+    CONF_LANGUAGE,
+    CONF_LATITUDE,
+    CONF_LOCATION,
+    CONF_LONGITUDE,
+    CONF_LOOKAHEAD_DAYS,
+    DEFAULT_CANDLE_LIGHTING,
+    DEFAULT_CATEGORIES,
+    DEFAULT_HAVDALAH,
+    DEFAULT_LOOKAHEAD_DAYS,
+    DOMAIN,
+    LANG_AUTO,
+    LANGUAGES,
+    MAX_LOOKAHEAD_DAYS,
+    MAX_OFFSET_MINUTES,
+    MIN_LOOKAHEAD_DAYS,
+)
+
+JEWISH_CALENDAR = "jewish_calendar"
+# Keys of the core Jewish Calendar entry (data / options). Read once as defaults, never live.
+JC_CANDLE = "candle_lighting_minutes_before_sunset"
+JC_HAVDALAH = "havdalah_minutes_after_sunset"
+MIN_ELEVATION, MAX_ELEVATION = -500, 9000
+
+
+def jewish_calendar_defaults(hass: HomeAssistant) -> dict[str, Any]:
+    """Settings of an existing Jewish Calendar entry, in our option keys ({} if none)."""
+    entries = hass.config_entries.async_entries(JEWISH_CALENDAR)
+    if not entries:
+        return {}
+    data, options = entries[0].data, entries[0].options
+    out: dict[str, Any] = {}
+    try:
+        if CONF_LATITUDE in data and CONF_LONGITUDE in data:
+            out[CONF_LATITUDE] = float(data[CONF_LATITUDE])
+            out[CONF_LONGITUDE] = float(data[CONF_LONGITUDE])
+        if CONF_ELEVATION in data:
+            out[CONF_ELEVATION] = float(data[CONF_ELEVATION])
+        if CONF_DIASPORA in data:
+            out[CONF_DIASPORA] = bool(data[CONF_DIASPORA])
+        if JC_CANDLE in options:
+            out[CONF_CANDLE_LIGHTING] = int(options[JC_CANDLE])
+        if JC_HAVDALAH in options:
+            out[CONF_HAVDALAH] = int(options[JC_HAVDALAH])
+    except (TypeError, ValueError):
+        return {}
+    return out
+
+
+def _base_defaults(hass: HomeAssistant) -> dict[str, Any]:
+    return {
+        CONF_LATITUDE: hass.config.latitude,
+        CONF_LONGITUDE: hass.config.longitude,
+        CONF_ELEVATION: hass.config.elevation or 0,
+        CONF_DIASPORA: bool(hass.config.country) and hass.config.country != "IL",
+        CONF_CANDLE_LIGHTING: DEFAULT_CANDLE_LIGHTING,
+        CONF_HAVDALAH: DEFAULT_HAVDALAH,
+        CONF_LANGUAGE: LANG_AUTO,
+        CONF_CATEGORIES: DEFAULT_CATEGORIES,
+        CONF_LOOKAHEAD_DAYS: DEFAULT_LOOKAHEAD_DAYS,
+    }
+
+
+def _minutes() -> selector.NumberSelector:
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0, max=MAX_OFFSET_MINUTES, step=1, unit_of_measurement="min",
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
+
+
+def _location_fields(d: dict[str, Any]) -> dict:
+    return {
+        vol.Required(
+            CONF_LOCATION,
+            default={CONF_LATITUDE: d[CONF_LATITUDE], CONF_LONGITUDE: d[CONF_LONGITUDE]},
+        ): selector.LocationSelector(selector.LocationSelectorConfig(radius=False)),
+        vol.Required(CONF_ELEVATION, default=d[CONF_ELEVATION]): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=MIN_ELEVATION, max=MAX_ELEVATION, step=1, unit_of_measurement="m",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        ),
+        vol.Required(CONF_DIASPORA, default=d[CONF_DIASPORA]): selector.BooleanSelector(),
+        vol.Required(CONF_CANDLE_LIGHTING, default=d[CONF_CANDLE_LIGHTING]): _minutes(),
+        vol.Required(CONF_HAVDALAH, default=d[CONF_HAVDALAH]): _minutes(),
+        vol.Required(CONF_LANGUAGE, default=d[CONF_LANGUAGE]): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=LANGUAGES, translation_key="language")
+        ),
+    }
+
+
+def _option_fields(d: dict[str, Any]) -> dict:
+    return {
+        vol.Required(CONF_CATEGORIES, default=list(d[CONF_CATEGORIES])): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=CATEGORIES, multiple=True, translation_key="category",
+                mode=selector.SelectSelectorMode.LIST,
+            )
+        ),
+        vol.Required(CONF_LOOKAHEAD_DAYS, default=d[CONF_LOOKAHEAD_DAYS]): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=MIN_LOOKAHEAD_DAYS, max=MAX_LOOKAHEAD_DAYS, step=1, unit_of_measurement="d",
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        ),
+    }
+
+
+def _int_in(value: Any, low: int, high: int) -> int | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if number != int(number) or not low <= number <= high:
+        return None
+    return int(number)
+
+
+def validate(user_input: dict[str, Any], with_options: bool) -> tuple[dict[str, Any], dict[str, str]]:
+    """Server-side validation; returns (clean options, errors keyed by field)."""
+    errors: dict[str, str] = {}
+    clean: dict[str, Any] = {}
+
+    location = user_input.get(CONF_LOCATION) or {}
+    try:
+        lat, lon = float(location[CONF_LATITUDE]), float(location[CONF_LONGITUDE])
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            raise ValueError
+        clean[CONF_LATITUDE], clean[CONF_LONGITUDE] = lat, lon
+    except (KeyError, TypeError, ValueError):
+        errors[CONF_LOCATION] = "invalid_location"
+
+    elevation = _int_in(user_input.get(CONF_ELEVATION, 0), MIN_ELEVATION, MAX_ELEVATION)
+    if elevation is None:
+        errors[CONF_ELEVATION] = "invalid_elevation"
+    else:
+        clean[CONF_ELEVATION] = elevation
+
+    for key in (CONF_CANDLE_LIGHTING, CONF_HAVDALAH):
+        minutes = _int_in(user_input.get(key), 0, MAX_OFFSET_MINUTES)
+        if minutes is None:
+            errors[key] = "invalid_minutes"
+        else:
+            clean[key] = minutes
+
+    clean[CONF_DIASPORA] = bool(user_input.get(CONF_DIASPORA, False))
+    language = user_input.get(CONF_LANGUAGE, LANG_AUTO)
+    if language not in LANGUAGES:
+        errors[CONF_LANGUAGE] = "invalid_language"
+    else:
+        clean[CONF_LANGUAGE] = language
+
+    if with_options:
+        categories = user_input.get(CONF_CATEGORIES) or []
+        if not categories or any(c not in CATEGORIES for c in categories):
+            errors[CONF_CATEGORIES] = "no_categories"
+        else:
+            clean[CONF_CATEGORIES] = [c for c in CATEGORIES if c in categories]
+        days = _int_in(user_input.get(CONF_LOOKAHEAD_DAYS), MIN_LOOKAHEAD_DAYS, MAX_LOOKAHEAD_DAYS)
+        if days is None:
+            errors[CONF_LOOKAHEAD_DAYS] = "invalid_lookahead"
+        else:
+            clean[CONF_LOOKAHEAD_DAYS] = days
+    return clean, errors
+
+
+def _form_values(user_input: dict[str, Any], fallback: dict[str, Any]) -> dict[str, Any]:
+    """Re-show what the user typed after an error (location flattened back)."""
+    values = {**fallback, **{k: v for k, v in user_input.items() if k != CONF_LOCATION}}
+    location = user_input.get(CONF_LOCATION)
+    if isinstance(location, dict) and CONF_LATITUDE in location and CONF_LONGITUDE in location:
+        values[CONF_LATITUDE], values[CONF_LONGITUDE] = location[CONF_LATITUDE], location[CONF_LONGITUDE]
+    return values
+
+
+class GoodDaysConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    VERSION = 1
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None):
+        imported = jewish_calendar_defaults(self.hass)
+        defaults = {**_base_defaults(self.hass), **imported}
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            clean, errors = validate(user_input, with_options=False)
+            if not errors:
+                options = {
+                    CONF_CATEGORIES: DEFAULT_CATEGORIES,
+                    CONF_LOOKAHEAD_DAYS: DEFAULT_LOOKAHEAD_DAYS,
+                    **clean,
+                }
+                return self.async_create_entry(title="Good Days", data={}, options=options)
+            defaults = _form_values(user_input, defaults)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(_location_fields(defaults)),
+            errors=errors,
+            description_placeholders={"source": "Jewish Calendar" if imported else "Home Assistant"},
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry):
+        return GoodDaysOptionsFlow(config_entry)
+
+
+class GoodDaysOptionsFlow(config_entries.OptionsFlow):
+    def __init__(self, entry: config_entries.ConfigEntry) -> None:
+        self._entry = entry
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+        current = {**_base_defaults(self.hass), **self._entry.options}
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            clean, errors = validate(user_input, with_options=True)
+            if not errors:
+                # Merge: keys this form does not show must survive.
+                return self.async_create_entry(data={**self._entry.options, **clean})
+            current = _form_values(user_input, current)
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({**_location_fields(current), **_option_fields(current)}),
+            errors=errors,
+        )

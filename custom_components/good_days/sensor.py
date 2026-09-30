@@ -1,0 +1,89 @@
+"""Next Shabbat (candle lighting timestamp) and next holiday (name) sensors."""
+from __future__ import annotations
+
+import datetime as dt
+from typing import Any
+
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
+
+from .engine import hebrew_date
+from .entity import GoodDaysEntity
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
+    async_add_entities([NextShabbatSensor(entry), NextHolidaySensor(entry)])
+
+
+def _iso(value: dt.datetime | None) -> str | None:
+    return value.isoformat() if value else None
+
+
+class NextShabbatSensor(GoodDaysEntity, SensorEntity):
+    """Candle lighting of the current or next Shabbat (merged with Yom Tov when adjacent)."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        super().__init__(entry, "next_shabbat")
+
+    @property
+    def native_value(self) -> dt.datetime | None:
+        event = self.runtime.next_shabbat(dt_util.now())
+        if event is None:
+            return None
+        return event.candle_lighting or event.start
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        now = dt_util.now()
+        event = self.runtime.next_shabbat(now)
+        if event is None:
+            return None
+        lang = self.runtime.language
+        return {
+            "title": event.title(lang),
+            "havdalah": _iso(event.havdalah),
+            "parasha": event.parasha_name(lang),
+            "hebrew_date": hebrew_date(event.last_day, lang),
+            "days_until": self.runtime.days_until(event, now),
+            "in_effect": event.start <= now < event.end,
+            "uid": event.uid,
+        }
+
+
+class NextHolidaySensor(GoodDaysEntity, SensorEntity):
+    """Name of the current or next holiday (categories from the entry options, no plain Shabbat)."""
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        super().__init__(entry, "next_holiday")
+
+    @property
+    def native_value(self) -> str | None:
+        event = self.runtime.next_holiday(dt_util.now())
+        return event.title(self.runtime.language)[:255] if event else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        now = dt_util.now()
+        event = self.runtime.next_holiday(now)
+        if event is None:
+            return None
+        item = self.runtime.render(event, self.runtime.language, now)
+        return {
+            "start": item["start"],
+            "end": item["end"],
+            "all_day": event.all_day,
+            "category": event.category,
+            "days_until": self.runtime.days_until(event, now),
+            "hebrew_date": item["hebrew_date"],
+            "candle_lighting": item["candle_lighting"],
+            "havdalah": item["havdalah"],
+            "in_effect": item["in_effect"],
+            "uid": event.uid,
+        }
