@@ -60,14 +60,16 @@ variables:
 triggers:
   # The calendar's attributes describe the current or next event; Shabbat / Yom Tov are
   # the only timed ones. True from "minutes before" until havdalah, so it fires once.
+  # start_time / end_time are naive local strings: as_local() reads them in Home Assistant's
+  # time zone (as_timestamp() alone would use the system clock's zone, often UTC in Docker).
   - trigger: template
     id: start
     value_template: >-
       {% set s = state_attr(cal, 'start_time') %}
       {% set e = state_attr(cal, 'end_time') %}
       {{ s is not none and e is not none and not state_attr(cal, 'all_day')
-         and now().timestamp() >= as_timestamp(s) - (before | int) * 60
-         and now().timestamp() < as_timestamp(e) }}
+         and now() >= as_local(as_datetime(s)) - timedelta(minutes=before | int)
+         and now() < as_local(as_datetime(e)) }}
   - trigger: calendar
     id: end
     event: end
