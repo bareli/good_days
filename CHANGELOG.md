@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.1 (2026-09-30)
+
+- CI: HACS validation skipped while the repository is private (it downloads files unauthenticated). No functional changes.
+
 ## v0.1.0 (2026-09-30)
 
 First release.
