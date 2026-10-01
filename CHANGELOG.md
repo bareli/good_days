@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.6.0 (unreleased)
+## v0.6.0 (2026-10-01)
 
 Fixes from a full QA cycle on a real Home Assistant (29 issues, #6 to #34).
 
