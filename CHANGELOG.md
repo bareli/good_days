@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.6.1 (unreleased)
+## v0.6.1 (2026-10-01)
 
 - Calendar link: family notes are no longer included by default; an admin can opt in with "Include family notes" in the panel (they become visible to the calendar provider). Existing links keep working; notes disappear from them until opted in.
 
