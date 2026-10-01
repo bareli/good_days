@@ -1,0 +1,104 @@
+blueprint:
+  name: Good Days - yahrzeit candle
+  description: >-
+    Turn an electric yahrzeit (memorial) candle on for a yahrzeit saved in Good Days' family
+    dates: on at sunset the evening before (or a few minutes earlier), off at sunset at the end
+    of the day (or later). Make one automation per candle.
+  domain: automation
+  source_url: https://github.com/bareli/good_days/blob/main/blueprints/automation/good_days/yahrzeit_candle.yaml
+  input:
+    calendar:
+      name: Good Days family calendar
+      default: calendar.good_days_family
+      selector:
+        entity:
+          filter:
+            - integration: good_days
+              domain: calendar
+    person:
+      name: Name
+      description: >-
+        The name exactly as entered in Good Days (part of it is enough). Leave empty to light
+        the candle for every yahrzeit.
+      default: ""
+      selector:
+        text:
+    candle:
+      name: Candle
+      selector:
+        target:
+          entity:
+            - domain:
+                - light
+                - switch
+                - input_boolean
+    lead:
+      name: Turn on
+      default: "0:00:00"
+      selector:
+        select:
+          options:
+            - label: At sunset
+              value: "0:00:00"
+            - label: 10 minutes before sunset
+              value: "-0:10:00"
+            - label: 15 minutes before sunset
+              value: "-0:15:00"
+            - label: 20 minutes before sunset
+              value: "-0:20:00"
+            - label: 30 minutes before sunset
+              value: "-0:30:00"
+            - label: 1 hour before sunset
+              value: "-1:00:00"
+    turn_off:
+      name: Turn off at the end of the yahrzeit
+      default: true
+      selector:
+        boolean:
+    keep_on:
+      name: Turn off
+      default: "0:00:00"
+      selector:
+        select:
+          options:
+            - label: At sunset
+              value: "0:00:00"
+            - label: 30 minutes after sunset
+              value: "0:30:00"
+            - label: 1 hour after sunset
+              value: "1:00:00"
+            - label: 2 hours after sunset
+              value: "2:00:00"
+
+mode: queued
+
+triggers:
+  # A yahrzeit is a timed event on the family calendar, sunset the evening before to sunset.
+  - trigger: calendar
+    id: "on"
+    event: start
+    entity_id: !input calendar
+    offset: !input lead
+  - trigger: calendar
+    id: "off"
+    event: end
+    entity_id: !input calendar
+    offset: !input keep_on
+
+variables:
+  person: !input person
+  off_enabled: !input turn_off
+
+conditions:
+  # Birthdays and anniversaries are all-day events; only yahrzeits are timed.
+  - condition: template
+    value_template: >-
+      {% set e = trigger.calendar_event %}
+      {% set name = person | trim | lower %}
+      {{ not e.all_day and (name == '' or name in (e.summary | lower)) }}
+  - condition: template
+    value_template: "{{ trigger.id == 'on' or off_enabled }}"
+
+actions:
+  - action: "homeassistant.turn_{{ trigger.id }}"
+    target: !input candle

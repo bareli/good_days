@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.8.0 (2026-10-01)
+
+- **Yahrzeit candle blueprint**: turn an electric memorial candle on at sunset the evening before a yahrzeit (or up to an hour earlier) and off at sunset at its end (or later), for one person by name or for every yahrzeit. Birthdays and anniversaries never light it. Import it from the README.
+
 ## v0.7.1 (2026-10-01)
 
 - The sidebar title follows the "Event names language" option: "Good Days" or "ימים טובים" ("Same as Home Assistant" uses the system language, as before). Home Assistant shows one sidebar title to all users, so it cannot follow each user's own language.
