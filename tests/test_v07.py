@@ -60,8 +60,22 @@ def test_shabbat_next_to_yom_tov_keeps_its_parasha():
     assert event.parasha == "haazinu"
     assert "shuva" in event.specials
     assert event.haftarah_text("en") == "Hosea 14:2–10; Joel 2:15–27"
-    # The period title is still the holiday + Shabbat one.
+    # The period title is still the holiday + Shabbat one; the description names the parasha.
     assert "Rosh Hashana" in event.title("en")
+    assert "Parashat Ha'Azinu · Haftarah: Hosea 14:2–10; Joel 2:15–27" in event.description("en")
+    plain = [e for e in compute(ISRAEL, dt.date(2026, 10, 15), dt.date(2026, 10, 17)) if e.is_shabbat][0]
+    assert "Parashat" not in plain.description("en")  # already in the title
+
+
+def test_assist_names_yom_tov_periods():
+    from types import SimpleNamespace
+
+    from custom_components.good_days.intents import speech_shabbat
+
+    event = [e for e in compute(ISRAEL, dt.date(2024, 10, 3), dt.date(2024, 10, 5)) if e.is_shabbat][0]
+    runtime = SimpleNamespace(next_shabbat=lambda now: event)
+    now = event.start - dt.timedelta(days=2)
+    assert event.title("en") in speech_shabbat(runtime, "en", now)
 
 
 def test_format_parts_hebrew_and_english():

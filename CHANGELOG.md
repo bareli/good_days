@@ -3,7 +3,7 @@
 ## v0.7.0 (unreleased)
 
 - **Haftarah** for every Shabbat with a weekly parasha, in the calendar event, card details, calendar subscription and the next-Shabbat sensor (`haftarah` attribute, WebSocket `haftarah` field). New option: Ashkenazi or Sephardi / Edot HaMizrach. Special Shabbatot, Shabbat Chanukah, Rosh Chodesh, Machar Chodesh and the special cases follow Hebcal's rules; checked against Hebcal for every Shabbat 2024-2040, Israel and abroad.
-- A Shabbat right before or after Yom Tov (for example Shabbat Shuva right after Rosh Hashana, or Shabbat HaGadol before Pesach) now keeps its parasha and special Shabbat.
+- A Shabbat right before or after Yom Tov (for example Shabbat Shuva right after Rosh Hashana, or Shabbat HaGadol before Pesach) now keeps its parasha and special Shabbat. Its description names the parasha, and Assist names the holiday when it tells the Shabbat / Chag times.
 - **Shabbat timers**: three more presets: electric water heater (on at noon on Erev Shabbat / Chag, off before candle lighting), porch light (on before candle lighting, off at 01:00), bedroom air conditioner at night (22:00 to 06:30).
 
 ## v0.6.1 (2026-10-01)

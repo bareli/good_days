@@ -210,6 +210,9 @@ class HolyEvent:
     def description(self, lang: str) -> str:
         parts = [hebrew_date(self.first_day, lang)]
         parts += [self.special_name(k, lang) for k in self.specials if k in SPECIAL_NOTE]
+        if self.parasha and self.category == CAT_YOM_TOV:
+            # A Shabbat glued to Yom Tov: the title names the holiday, so name the parasha here.
+            parts.append(f"{_t(TEXT, 'parashat', lang)} {self.parasha_name(lang)}")
         if self.haftarah:
             parts.append(f"{_t(TEXT, 'haftarah', lang)}: {self.haftarah_text(lang)}")
         if self.candle_lighting:
