@@ -256,7 +256,8 @@ class GoodDaysRuntime:
             "in_effect": event.start <= now < event.end,
             "conflicts_shabbat": is_family and self.periods_overlapping(event.start, event.end),
             "description": event.description(lang),
-            "haftarah": None if is_family else event.haftarah_text(lang),
+            "haftarah": None if is_family else event.haftarah_reading(lang),
+            "haftarah_label": None if is_family else event.haftarah_label(lang),
         }
         if is_family:
             item.update(

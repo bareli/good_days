@@ -98,6 +98,18 @@ def haftarah(day: dt.date, parasha: str | None, specials: tuple[str, ...], nusac
     return sephardi if nusach == SEPHARDI else ashkenazi
 
 
+def replacing_special(
+    day: dt.date, parasha: str | None, specials: tuple[str, ...], nusach: str = ASHKENAZI
+) -> str | None:
+    """The SPECIAL key read this Shabbat when it differs from the weekly parasha's own haftarah."""
+    key = reading_key(day, parasha, specials)
+    if key is None or key.startswith("parasha:"):
+        return None
+    weekly = PARASHA.get(COMBINED_HAFTARAH.get(parasha, parasha), ((), ()))
+    own = weekly[1] if nusach == SEPHARDI else weekly[0]
+    return None if haftarah(day, parasha, specials, nusach) == own else key
+
+
 def _verse(ref: str, lang: str, gematria) -> str:
     chapter, verse = ref.split(":")
     if lang == "he":

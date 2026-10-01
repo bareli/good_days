@@ -58,7 +58,7 @@ class NextShabbatSensor(GoodDaysEntity, SensorEntity):
             "title": event.title(lang),
             "havdalah": _iso(event.havdalah),
             "parasha": event.parasha_name(lang),
-            "haftarah": event.haftarah_text(lang),
+            "haftarah": event.haftarah_reading(lang),
             "special_shabbat": [event.special_name(k, lang) for k in event.specials],
             "hebrew_date": hebrew_date(event.last_day, lang),
             "days_until": self.runtime.days_until(event, now),

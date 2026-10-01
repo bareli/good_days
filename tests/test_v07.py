@@ -17,6 +17,7 @@ from custom_components.good_days.timers import PRESETS, expand
 from .conftest import make_entry, setup_entry
 from .test_integration import NOW, USER_INPUT
 
+NBSP = chr(0xA0)
 FIXTURE = pathlib.Path(__file__).parent / "fixtures" / "hebcal_haftarah_2024_2040.json"
 ISRAEL = EngineSettings(31.778, 35.235, 0, "Asia/Jerusalem", False, 40, 0)
 DIASPORA = EngineSettings(40.7128, -74.0060, 0, "America/New_York", True, 18, 0)
@@ -62,7 +63,8 @@ def test_shabbat_next_to_yom_tov_keeps_its_parasha():
     assert event.haftarah_text("en") == "Hosea 14:2–10; Joel 2:15–27"
     # The period title is still the holiday + Shabbat one; the description names the parasha.
     assert "Rosh Hashana" in event.title("en")
-    assert "Parashat Ha'Azinu · Haftarah: Hosea 14:2–10; Joel 2:15–27" in event.description("en")
+    # #40 / #43: the reading is labelled as the Shabbat's and marked as the Shuva one.
+    assert f"Parashat Ha'Azinu · Shabbat{NBSP}haftarah:{NBSP}Hosea 14:2–10; Joel 2:15–27 (Shabbat Shuva)" in event.description("en")
     plain = [e for e in compute(ISRAEL, dt.date(2026, 10, 15), dt.date(2026, 10, 17)) if e.is_shabbat][0]
     assert "Parashat" not in plain.description("en")  # already in the title
 
@@ -86,8 +88,8 @@ def test_format_parts_hebrew_and_english():
 
 def test_description_and_nusach():
     ashkenazi = [e for e in compute(ISRAEL, dt.date(2026, 10, 15), dt.date(2026, 10, 17)) if e.is_shabbat][0]
-    assert "Haftarah: Isaiah 54:1–55:5" in ashkenazi.description("en")
-    assert "הפטרה: ישעיהו נד:א–נה:ה" in ashkenazi.description("he")
+    assert f"Haftarah:{NBSP}Isaiah 54:1–55:5" in ashkenazi.description("en")
+    assert f"הפטרה:{NBSP}ישעיהו נד:א–נה:ה" in ashkenazi.description("he")
     sephardi_settings = EngineSettings(31.778, 35.235, 0, "Asia/Jerusalem", False, 40, 0, nusach=SEPHARDI)
     sephardi = [e for e in compute(sephardi_settings, dt.date(2026, 10, 15), dt.date(2026, 10, 17)) if e.is_shabbat][0]
     assert sephardi.haftarah_text("en") == "Isaiah 54:1–10"
@@ -99,11 +101,12 @@ async def test_sensor_and_ws_show_haftarah(hass: HomeAssistant, israel, freezer,
     await setup_entry(hass, make_entry(hass, language="en"))
     shabbat = hass.states.get("sensor.good_days_next_shabbat")
     # Bereshit 5787 falls on Erev Rosh Chodesh: Machar Chodesh.
-    assert shabbat.attributes["haftarah"] == "I Samuel 20:18–42"
+    assert shabbat.attributes["haftarah"] == "I Samuel 20:18–42 (Machar Chodesh)"
     await ws.send_json_auto_id({"type": f"{DOMAIN}/upcoming", "days": 10, "limit": 20, "language": "en"})
     items = (await ws.receive_json())["result"]["items"]
     shabbat_item = next(i for i in items if i["category"] == "shabbat")
-    assert shabbat_item["haftarah"] == "I Samuel 20:18–42"
+    assert shabbat_item["haftarah"] == "I Samuel 20:18–42 (Machar Chodesh)"
+    assert shabbat_item["haftarah_label"] == "Haftarah"
     assert all(i["haftarah"] is None for i in items if i["category"] not in ("shabbat", "yom_tov"))
 
 
