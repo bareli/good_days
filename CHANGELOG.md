@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.7.0 (unreleased)
+## v0.7.0 (2026-10-01)
 
 - **Haftarah** for every Shabbat with a weekly parasha, in the calendar event, card details, calendar subscription and the next-Shabbat sensor (`haftarah` attribute, WebSocket `haftarah` field). New option: Ashkenazi or Sephardi / Edot HaMizrach. Special Shabbatot, Shabbat Chanukah, Rosh Chodesh, Machar Chodesh and the special cases follow Hebcal's rules; checked against Hebcal for every Shabbat 2024-2040, Israel and abroad.
 - A Shabbat right before or after Yom Tov (for example Shabbat Shuva right after Rosh Hashana, or Shabbat HaGadol before Pesach) now keeps its parasha and special Shabbat. Its description names the parasha, and Assist names the holiday when it tells the Shabbat / Chag times.
