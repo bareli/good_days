@@ -17,6 +17,7 @@ from .const import (
     CONF_HAVDALAH,
     CONF_NUSACH,
     DEFAULT_NUSACH,
+    LEGACY_NUSACH,
     NUSACH_OPTIONS,
     CONF_LANGUAGE,
     CONF_LATITUDE,
@@ -283,6 +284,9 @@ class GoodDaysOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         current = {**_base_defaults(self.hass), **self._entry.options}
+        # Saved before the option existed: show the custom the entry actually uses.
+        if CONF_NUSACH not in self._entry.options:
+            current[CONF_NUSACH] = LEGACY_NUSACH
         errors: dict[str, str] = {}
         if user_input is not None:
             clean, errors = validate(

@@ -27,8 +27,8 @@ DESCRIPTIONS = {
         "ברוב הארץ: 18-30. ירושלים: 40. חיפה: 30.",
     ),
     "nusach": (
-        "Which haftarah is shown for each Shabbat.",
-        "איזו הפטרה תוצג לכל שבת.",
+        "The customs differ on about one Shabbat in four; on the others the haftarah is the same.",
+        "הנוסחים שונים בערך בשבת אחת מכל ארבע; בשאר השבתות ההפטרה זהה.",
     ),
     "diaspora": (
         "Off in Israel. On outside Israel.",

@@ -27,7 +27,7 @@ from .const import (
     DEFAULT_CANDLE_LIGHTING,
     DEFAULT_CATEGORIES,
     DEFAULT_HAVDALAH,
-    DEFAULT_NUSACH,
+    LEGACY_NUSACH,
     DEFAULT_LOOKAHEAD_DAYS,
     LANG_AUTO,
     NON_HOLIDAY_CATEGORIES,
@@ -55,7 +55,7 @@ def settings_from_entry(hass: HomeAssistant, entry: ConfigEntry) -> EngineSettin
         diaspora=bool(o.get(CONF_DIASPORA, False)),
         candle_lighting=int(o.get(CONF_CANDLE_LIGHTING, DEFAULT_CANDLE_LIGHTING)),
         havdalah=int(o.get(CONF_HAVDALAH, DEFAULT_HAVDALAH)),
-        nusach=str(o.get(CONF_NUSACH, DEFAULT_NUSACH)),
+        nusach=str(o.get(CONF_NUSACH, LEGACY_NUSACH)),
     )
 
 
