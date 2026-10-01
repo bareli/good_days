@@ -15,6 +15,9 @@ from .const import (
     CONF_CATEGORIES,
     CONF_DIASPORA,
     CONF_HAVDALAH,
+    CONF_NUSACH,
+    DEFAULT_NUSACH,
+    NUSACH_OPTIONS,
     CONF_LANGUAGE,
     CONF_LATITUDE,
     CONF_LOCATION,
@@ -71,6 +74,7 @@ def _base_defaults(hass: HomeAssistant) -> dict[str, Any]:
         CONF_DIASPORA: bool(hass.config.country) and hass.config.country != "IL",
         CONF_CANDLE_LIGHTING: DEFAULT_CANDLE_LIGHTING,
         CONF_HAVDALAH: DEFAULT_HAVDALAH,
+        CONF_NUSACH: DEFAULT_NUSACH,
         CONF_LANGUAGE: LANG_AUTO,
         CONF_CATEGORIES: DEFAULT_CATEGORIES,
         CONF_LOOKAHEAD_DAYS: DEFAULT_LOOKAHEAD_DAYS,
@@ -103,6 +107,9 @@ def _location_fields(d: dict[str, Any]) -> dict:
         vol.Required(CONF_DIASPORA, default=d[CONF_DIASPORA]): selector.BooleanSelector(),
         vol.Required(CONF_CANDLE_LIGHTING, default=d[CONF_CANDLE_LIGHTING]): _minutes(),
         vol.Required(CONF_HAVDALAH, default=d[CONF_HAVDALAH]): _minutes(),
+        vol.Required(CONF_NUSACH, default=d.get(CONF_NUSACH, DEFAULT_NUSACH)): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=NUSACH_OPTIONS, translation_key="nusach")
+        ),
         vol.Required(CONF_LANGUAGE, default=d[CONF_LANGUAGE]): selector.SelectSelector(
             selector.SelectSelectorConfig(options=LANGUAGES, translation_key="language")
         ),
@@ -184,6 +191,11 @@ def validate(
             clean[key] = minutes
 
     clean[CONF_DIASPORA] = bool(user_input.get(CONF_DIASPORA, False))
+    nusach = user_input.get(CONF_NUSACH, DEFAULT_NUSACH)
+    if nusach not in NUSACH_OPTIONS:
+        errors[CONF_NUSACH] = "invalid_nusach"
+    else:
+        clean[CONF_NUSACH] = nusach
     language = user_input.get(CONF_LANGUAGE, LANG_AUTO)
     if language not in LANGUAGES:
         errors[CONF_LANGUAGE] = "invalid_language"

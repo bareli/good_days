@@ -60,6 +60,17 @@ actions:
       entity_id: light.porch
 ```
 
+## Haftarah
+
+Each Shabbat shows its haftarah (for example "Haftarah: Isaiah 54:1–55:5" / "הפטרה: ישעיהו נד:א–נה:ה") in the
+calendar event, the card details, the calendar subscription and the `haftarah` attribute of
+`sensor.good_days_next_shabbat`. Pick **Ashkenazi** or **Sephardi / Edot HaMizrach** in the options.
+
+Special Shabbatot (Shekalim, Zachor, Parah, HaChodesh, HaGadol, Shuva), Shabbat Chanukah, Shabbat Rosh
+Chodesh, Machar Chodesh and the special cases follow Hebcal's rules, and every Shabbat from 2024 to 2040
+(Israel and abroad, both customs) is checked against Hebcal in the tests. Shabbat that is itself Yom Tov or
+Chol HaMoed (no weekly parasha) shows no haftarah yet.
+
 ## Family dates
 
 Sidebar → **Good Days** (all users). Add a birthday, yahrzeit, anniversary or other date by its Hebrew date, or type the Gregorian date (tick *after sunset* if it was after sunset) and it is converted. With the Hebrew year the title shows the age or number of years ("Noa's birthday (7)", "יום הולדת 7 לנועה").
@@ -168,14 +179,17 @@ Without the integration the card still lists the selected calendars (no holidays
 
 ### WebSocket API
 
-`good_days/upcoming` with `{calendars, days, limit, categories?, language?, entry_id?}` returns `{items, current, errors, now, language}`. Items are sorted by start and carry `uid, source, title, start, end, all_day, category, hebrew_date, candle_lighting, havdalah, in_effect, conflicts_shabbat, description` (family items add `kind, name, years, day, date_id`).
+`good_days/upcoming` with `{calendars, days, limit, categories?, language?, entry_id?}` returns `{items, current, errors, now, language}`. Items are sorted by start and carry `uid, source, title, start, end, all_day, category, hebrew_date, candle_lighting, havdalah, in_effect, conflicts_shabbat, description, haftarah` (family items add `kind, name, years, day, date_id`).
 
 Family dates: `good_days/dates/list`, `dates/add`, `dates/update`, `dates/remove` (validation problems return `{errors: {field: code}}`), `dates/convert` (Gregorian → Hebrew).
 
 ## Roadmap
 
-- Ideas: haftarah and Torah reading details, more timer presets, your feedback.
+- Ideas: haftarah for Shabbat Chol HaMoed and Yom Tov, Torah reading (aliyot), your feedback.
 
 ## License
 
 MIT. Uses `hdate` (GPL-3.0-or-later), installed by Home Assistant as a runtime requirement, not bundled.
+
+Haftarah data comes from [Hebcal leyning](https://github.com/hebcal/hebcal-leyning) (BSD-2-Clause,
+Copyright (c) 2020 hebcal); see `scripts/data/HEBCAL-LICENSE.txt`.

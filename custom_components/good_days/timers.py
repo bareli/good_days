@@ -58,6 +58,21 @@ PRESETS: dict[str, list[dict[str, Any]]] = {
         {"action": "on", "anchor": ANCHOR_CANDLE, "offset_min": -15, "applies_to": KINDS},
         {"action": "off", "anchor": ANCHOR_HAVDALAH, "offset_min": 5, "applies_to": KINDS},
     ],
+    # Electric water heater: heats on erev Shabbat / Chag, off before candle lighting.
+    "water_heater": [
+        {"action": "on", "anchor": ANCHOR_CLOCK, "time": "12:00", "days": DAYS_EREV, "applies_to": KINDS},
+        {"action": "off", "anchor": ANCHOR_CANDLE, "offset_min": -15, "applies_to": KINDS},
+    ],
+    # Porch / entrance light for guests: on before candle lighting, off late at night.
+    "porch_light": [
+        {"action": "on", "anchor": ANCHOR_CANDLE, "offset_min": -10, "applies_to": KINDS},
+        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "01:00", "days": DAYS_EACH, "applies_to": KINDS},
+    ],
+    # Bedroom air conditioner for the night.
+    "bedroom_ac_night": [
+        {"action": "on", "anchor": ANCHOR_CLOCK, "time": "22:00", "days": DAYS_EACH, "applies_to": KINDS},
+        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "06:30", "days": DAYS_EACH, "applies_to": KINDS},
+    ],
 }
 
 
