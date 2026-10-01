@@ -5,6 +5,7 @@ const TICK_MS = 60 * 1000;
 const FSI = "\u2068"; // first-strong isolate
 const PDI = "\u2069";
 const iso = (text) => FSI + text + PDI;
+const NBSP = "\u00a0"; // keeps "Haftarah:" on the line of its citation
 
 const CATEGORIES = ["shabbat", "yom_tov", "chol_hamoed", "minor", "fast", "rosh_chodesh", "modern", "memorial", "erev", "family"];
 const KIND_ICONS = { birthday: "mdi:cake-variant", yahrzeit: "mdi:candle", anniversary: "mdi:ring", custom: "mdi:calendar-heart" };
@@ -85,6 +86,7 @@ const I18N = {
     details_calendar: "Calendar",
     details_location: "Location",
     details_hebrew: "Hebrew date",
+    haftarah: "Haftarah",
     e_title: "Title",
     e_calendars: "Calendars to merge",
     e_days: "Days ahead",
@@ -93,6 +95,7 @@ const I18N = {
     e_categories: "Holiday categories",
     e_show_hebrew_date: "Show Hebrew date",
     e_show_candle_lighting: "Show candle lighting",
+    e_show_haftarah: "Show haftarah",
     e_compact: "Compact (one line)",
     e_entry_id: "Good Days instance",
     c_shabbat: "Shabbat",
@@ -136,6 +139,7 @@ const I18N = {
     details_calendar: "לוח שנה",
     details_location: "מיקום",
     details_hebrew: "תאריך עברי",
+    haftarah: "הפטרה",
     e_title: "כותרת",
     e_calendars: "לוחות שנה לשילוב",
     e_days: "ימים קדימה",
@@ -144,6 +148,7 @@ const I18N = {
     e_categories: "קטגוריות חגים",
     e_show_hebrew_date: "הצגת תאריך עברי",
     e_show_candle_lighting: "הצגת זמן הדלקת נרות",
+    e_show_haftarah: "הצגת ההפטרה",
     e_compact: "תצוגה מקוצרת (שורה אחת)",
     e_entry_id: "מופע ימים טובים",
     c_shabbat: "שבת",
@@ -212,6 +217,8 @@ const STYLE = `
   .chip { flex: none; font-size: 0.9rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
     background: var(--secondary-background-color); color: var(--primary-text-color); }
   .chip.now { background: color-mix(in srgb, var(--primary-color) 65%, black); color: #fff; }
+  .summary .s-haftarah { font-size: 0.95rem; overflow-wrap: break-word; }
+  .haftarah { font-size: 0.93rem; color: var(--secondary-text-color); overflow-wrap: break-word; }
   .details { margin: 0 6px 8px; margin-inline-start: 26px; font-size: 0.93rem; color: var(--secondary-text-color); display: grid; gap: 2px; }
   .details .desc { white-space: pre-line; color: var(--primary-text-color); }
   button.compact { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: flex-start; gap: 8px; cursor: pointer;
@@ -701,7 +708,16 @@ class GoodDaysCard extends HTMLElement {
       times.appendChild(havdalah);
     }
     block.append(head, times);
+    const haftarah = this._haftarahLine(next);
+    if (haftarah) block.appendChild(mk("div", "s-haftarah", haftarah));
     card.appendChild(block);
+  }
+
+  // "Haftarah: ..." for a Shabbat (non-compact card); the server labels a Shabbat glued to Yom Tov.
+  _haftarahLine(item) {
+    if (this._config.show_haftarah === false || !item.haftarah) return null;
+    const label = (item.haftarah_label || this._t("haftarah")).replace(/ /g, NBSP);
+    return `${label}:${NBSP}${item.haftarah}`;
   }
 
   _icon(name) {
@@ -781,6 +797,8 @@ class GoodDaysCard extends HTMLElement {
       meta.appendChild(badge);
     }
     main.appendChild(meta);
+    const haftarah = this._haftarahLine(item);
+    if (haftarah) main.appendChild(mk("span", "haftarah", haftarah));
     button.appendChild(main);
     button.appendChild(this._chip(item, nowMs, todayKey));
     li.appendChild(button);
@@ -927,6 +945,7 @@ class GoodDaysCardEditor extends HTMLElement {
       },
       { name: "show_hebrew_date", selector: { boolean: {} } },
       { name: "show_candle_lighting", selector: { boolean: {} } },
+      { name: "show_haftarah", selector: { boolean: {} } },
       { name: "compact", selector: { boolean: {} } },
       { name: "entry_id", selector: { config_entry: { integration: "good_days" } } },
     ];
@@ -960,7 +979,7 @@ class GoodDaysCardEditor extends HTMLElement {
     const follows = this._followsIntegration();
     this._form.hass = this._hass;
     this._form.schema = this._schema();
-    this._form.data = Object.assign({ show_hebrew_date: true, show_candle_lighting: true, compact: false }, this._config, {
+    this._form.data = Object.assign({ show_hebrew_date: true, show_candle_lighting: true, show_haftarah: true, compact: false }, this._config, {
       use_integration_categories: follows,
       categories: follows ? [...this._effective()] : this._config.categories,
     });
