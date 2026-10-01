@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.1 (unreleased)
+
+- Calendar link: family notes are no longer included by default; an admin can opt in with "Include family notes" in the panel (they become visible to the calendar provider). Existing links keep working; notes disappear from them until opted in.
+
 ## v0.6.0 (2026-10-01)
 
 Fixes from a full QA cycle on a real Home Assistant (29 issues, #6 to #34).

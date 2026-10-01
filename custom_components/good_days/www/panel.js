@@ -169,6 +169,7 @@ const I18N = {
     ics_title: "Calendar subscription",
     ics_enable: "Share family dates as a calendar link",
     ics_holidays: "Include Shabbat and holidays",
+    ics_notes: "Include family notes (they will be visible to the calendar provider)",
     ics_url: "Calendar link",
     ics_copy: "Copy link",
     ics_copied: "Link copied",
@@ -365,6 +366,7 @@ const I18N = {
     ics_title: "מינוי ללוח שנה",
     ics_enable: "לשתף את התאריכים המשפחתיים כקישור ללוח שנה",
     ics_holidays: "לכלול שבתות וחגים",
+    ics_notes: "לכלול את ההערות של התאריכים (ספק היומן יוכל לראות אותן)",
     ics_url: "קישור ללוח השנה",
     ics_copy: "העתקת הקישור",
     ics_copied: "הקישור הועתק",
@@ -669,8 +671,10 @@ class GoodDaysPanel extends HTMLElement {
   }
 
   async _setIcs(patch) {
-    const current = this._ics || { enabled: false, holidays: false };
-    const msg = { type: "good_days/ics/set", enabled: current.enabled, holidays: current.holidays, ...patch };
+    const current = this._ics || { enabled: false, holidays: false, notes: false };
+    const msg = {
+      type: "good_days/ics/set", enabled: current.enabled, holidays: current.holidays, notes: !!current.notes, ...patch,
+    };
     if (this._entryId) msg.entry_id = this._entryId;
     try {
       this._ics = await this._hass.callWS(msg);
@@ -707,6 +711,7 @@ class GoodDaysPanel extends HTMLElement {
     card.appendChild(toggle("ics-enable", this._ics.enabled, this._t("ics_enable"), (on) => this._setIcs({ enabled: on })));
     if (this._ics.enabled) {
       card.appendChild(toggle("ics-holidays", this._ics.holidays, this._t("ics_holidays"), (on) => this._setIcs({ holidays: on })));
+      card.appendChild(toggle("ics-notes", !!this._ics.notes, this._t("ics_notes"), (on) => this._setIcs({ notes: on })));
       const url = this._icsUrl();
       const field = mk("div", "field");
       const label = mk("label", null, this._t("ics_url"));

@@ -441,6 +441,7 @@ def _ics_view(hass: HomeAssistant, runtime: GoodDaysRuntime) -> dict[str, Any]:
         "entry_id": runtime.entry.entry_id,
         "enabled": bool(token),
         "holidays": bool(runtime.store.ics.get("holidays")),
+        "notes": bool(runtime.store.ics.get("notes")),
         "path": ics_path(runtime.entry.entry_id, token) if token else None,
         "url": None,
     }
@@ -475,6 +476,7 @@ def ws_ics_get(hass: HomeAssistant, connection: websocket_api.ActiveConnection, 
         vol.Optional("language"): cv.string,
         vol.Required("enabled"): bool,
         vol.Optional("holidays", default=False): bool,
+        vol.Optional("notes", default=False): bool,
         vol.Optional("new_link", default=False): bool,
     }
 )
@@ -483,7 +485,7 @@ def ws_ics_get(hass: HomeAssistant, connection: websocket_api.ActiveConnection, 
 async def ws_ics_set(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
-    """Turn the feed on / off, include holidays, or replace the link (old one stops working)."""
+    """Turn the feed on / off, include holidays / family notes, or replace the link."""
     if (runtime := _runtime_or_error(hass, connection, msg)) is None:
         return
     token = runtime.store.ics.get("token")
@@ -491,6 +493,6 @@ async def ws_ics_set(
         token = None
     elif token is None or msg["new_link"]:
         token = new_token()
-    await runtime.store.async_set_ics(token, msg["holidays"])
+    await runtime.store.async_set_ics(token, msg["holidays"], msg["notes"])
     connection.send_result(msg["id"], _ics_view(hass, runtime))
 

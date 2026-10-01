@@ -104,7 +104,7 @@ Everyone sees the timers; only admins can change them.
 
 ## Calendar subscription (ICS)
 
-In the Good Days panel (admins): **Share family dates as a calendar link**, optionally **Include Shabbat and holidays**. Copy the link into Google Calendar (*Other calendars → From URL*), Outlook, or open it on a phone (*Open in calendar app*). The feed covers 30 days back to 2 years ahead and refreshes every 12 hours.
+In the Good Days panel (admins): **Share family dates as a calendar link**, optionally **Include Shabbat and holidays** and **Include family notes** (off by default; notes then become visible to the calendar provider). Copy the link into Google Calendar (*Other calendars → From URL*), Outlook, or open it on a phone (*Open in calendar app*). The feed covers 30 days back to 2 years ahead and refreshes every 12 hours.
 
 - The link works without logging in; the long random part is the key. Anyone with the link can read the dates. **New link** replaces it (the old one stops working); turning sharing off disables it.
 - Google Calendar fetches from the internet, so the link must use an external address (Home Assistant Cloud or your external URL, from Settings → System → Network).

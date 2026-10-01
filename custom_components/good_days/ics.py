@@ -67,7 +67,7 @@ def _utc(value: dt.datetime) -> str:
     return dt_util.as_utc(value).strftime("%Y%m%dT%H%M%SZ")
 
 
-def _event_lines(event, lang: str, stamp: str) -> list[str]:
+def _event_lines(event, lang: str, stamp: str, include_notes: bool = False) -> list[str]:
     lines = [
         "BEGIN:VEVENT",
         f"UID:{event.uid}@{DOMAIN}",
@@ -84,14 +84,21 @@ def _event_lines(event, lang: str, stamp: str) -> list[str]:
         lines += [f"DTSTART:{_utc(event.start)}", f"DTEND:{_utc(event.end)}"]
     lines += [
         f"SUMMARY:{_escape(event.title(lang))}",
-        f"DESCRIPTION:{_escape(event.description(lang))}",
+        f"DESCRIPTION:{_escape(_description(event, lang, include_notes))}",
         f"CATEGORIES:{_escape(event.category)}",
         "END:VEVENT",
     ]
     return lines
 
 
-def build_ics(events: Iterable, lang: str, now: dt.datetime) -> str:
+def _description(event, lang: str, include_notes: bool) -> str:
+    """Family notes can be private: they leave Home Assistant only when the admin opts in."""
+    if hasattr(event, "date_id"):  # FamilyEvent
+        return event.description(lang, include_notes=include_notes)
+    return event.description(lang)
+
+
+def build_ics(events: Iterable, lang: str, now: dt.datetime, include_notes: bool = False) -> str:
     stamp = _utc(now)
     name = NAMES.get(lang, NAMES["en"])
     lines = [
@@ -105,7 +112,7 @@ def build_ics(events: Iterable, lang: str, now: dt.datetime) -> str:
         f"X-PUBLISHED-TTL:{REFRESH}",
     ]
     for event in events:
-        lines += _event_lines(event, lang, stamp)
+        lines += _event_lines(event, lang, stamp, include_notes)
     lines.append("END:VCALENDAR")
     return "\r\n".join(_fold(line) for line in lines) + "\r\n"
 
@@ -113,7 +120,13 @@ def build_ics(events: Iterable, lang: str, now: dt.datetime) -> str:
 async def async_feed(runtime: GoodDaysRuntime) -> str:
     """The feed body, rebuilt only when the day, the dates or the settings change."""
     now = dt_util.now()
-    key = (now.date(), runtime.family_version, bool(runtime.store.ics.get("holidays")), runtime.language)
+    key = (
+        now.date(),
+        runtime.family_version,
+        bool(runtime.store.ics.get("holidays")),
+        bool(runtime.store.ics.get("notes")),
+        runtime.language,
+    )
     if runtime.ics_cache and runtime.ics_cache[0] == key:
         return runtime.ics_cache[1]
     body = await _async_build(runtime, now)
@@ -128,7 +141,7 @@ async def _async_build(runtime: GoodDaysRuntime, now: dt.datetime) -> str:
         holidays = await runtime.async_events_between(start, end)
         events += [e for e in holidays if e.category in runtime.categories]
     events.sort(key=lambda e: (e.start, e.uid))
-    return build_ics(events, runtime.language, now)
+    return build_ics(events, runtime.language, now, bool(runtime.store.ics.get("notes")))
 
 
 class GoodDaysIcsView(HomeAssistantView):

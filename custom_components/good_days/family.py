@@ -128,9 +128,9 @@ class FamilyEvent:
             return f"{label}: {name}{suffix}"
         return self.name
 
-    def description(self, lang: str) -> str:
+    def description(self, lang: str, include_notes: bool = True) -> str:
         parts = [hebrew_date(self.first_day, lang)]
-        if self.notes:
+        if self.notes and include_notes:
             parts.append(self.notes)
         return "\n".join(parts)
 

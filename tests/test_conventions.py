@@ -12,6 +12,7 @@ def _sources():
     yield from (ROOT / "translations").glob("*.json")
     yield ROOT / "strings.json"
     yield from ROOT.glob("*.py")
+    yield from (ROOT.parent.parent / "tests").glob("*.py")
 
 
 def test_no_literal_bidi_control_characters():
