@@ -19,7 +19,7 @@ from .ics import GoodDaysIcsView
 from .intents import async_register_intents
 from .reminders import async_register_actions
 from .services import async_register_services
-from .const import DOMAIN
+from .const import CONF_LANGUAGE, DOMAIN, LANG_AUTO
 from .runtime import GoodDaysRuntime
 
 LOG = logging.getLogger(__name__)
@@ -80,19 +80,27 @@ async def _async_register_static(hass: HomeAssistant) -> None:
     )
 
 
-async def _async_register_panel(hass: HomeAssistant) -> None:
+def panel_title(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    """Sidebar title. Home Assistant shows one title to every user (it cannot follow each user's
+    language), so it follows the entry's "Event names language" option; "auto" = system language."""
+    language = entry.options.get(CONF_LANGUAGE, LANG_AUTO)
+    if language == LANG_AUTO:
+        language = str(hass.config.language or "")
+    return "ימים טובים" if language.startswith("he") else "Good Days"
+
+
+async def _async_register_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Sidebar panel for family dates (all users; household data)."""
     if hass.data.get(PANEL_REGISTERED_KEY):
         return
     hass.data[PANEL_REGISTERED_KEY] = True
     await _async_register_static(hass)
-    hebrew = str(hass.config.language or "").startswith("he")
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name="good-days-panel",
         frontend_url_path=PANEL_URL_PATH,
         module_url=f"{STATIC_URL}/panel.js?v={await _integration_version(hass)}",
-        sidebar_title="ימים טובים" if hebrew else "Good Days",
+        sidebar_title=panel_title(hass, entry),
         sidebar_icon="mdi:calendar-star",
         require_admin=False,
         config={},
@@ -130,7 +138,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoodDaysConfigEntry) -> 
     entry.async_on_unload(runtime.async_stop)
 
     await _async_register_card(hass)
-    await _async_register_panel(hass)
+    await _async_register_panel(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True

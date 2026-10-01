@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.7.1 (2026-10-01)
+
+- The sidebar title follows the "Event names language" option: "Good Days" or "ימים טובים" ("Same as Home Assistant" uses the system language, as before). Home Assistant shows one sidebar title to all users, so it cannot follow each user's own language.
+
 ## v0.7.0 (2026-10-01)
 
 - **Haftarah** for every Shabbat with a weekly parasha, in the calendar event, card details, calendar subscription and the next-Shabbat sensor (`haftarah` attribute, WebSocket `haftarah` field). New option: Ashkenazi or Sephardi / Edot HaMizrach. Special Shabbatot, Shabbat Chanukah, Rosh Chodesh, Machar Chodesh and the special cases follow Hebcal's rules; checked against Hebcal for every Shabbat 2024-2040, Israel and abroad.
