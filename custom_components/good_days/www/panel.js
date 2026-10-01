@@ -50,6 +50,7 @@ const I18N = {
     timer_preset: "From a preset",
     preset: "Preset",
     preset_hint: "Creates the on and the off timer; you can edit both.",
+    preset_note_water_heater: "In a multi-day Shabbat / Chag it heats only on the Erev before the first day.",
     preset_hot_plate: "Hot plate",
     preset_urn: "Water urn",
     preset_evening_lights: "Evening lights",
@@ -250,6 +251,7 @@ const I18N = {
     timer_preset: "מתבנית",
     preset: "תבנית",
     preset_hint: "יוצרת טיימר הדלקה וטיימר כיבוי; אפשר לערוך את שניהם.",
+    preset_note_water_heater: "בשבת / חג של כמה ימים הדוד מחמם רק בערב שלפני היום הראשון.",
     preset_hot_plate: "פלטה",
     preset_urn: "מיחם",
     preset_evening_lights: "תאורת ערב",
@@ -583,6 +585,7 @@ const STYLE = `
   [aria-invalid=true] { border-color: var(--gd-error-text); }
   .err { color: var(--gd-error-text); font-size: 0.8rem; min-height: 0; }
   .hint { color: var(--secondary-text-color); font-size: 0.8rem; }
+  .preset-summary { color: var(--primary-text-color); font-size: 0.85rem; }
   .row3 { display: grid; grid-template-columns: 1fr 2fr 1.5fr; gap: 10px; }
   fieldset { border: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
   fieldset label, .check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.95rem; color: var(--primary-text-color); }
@@ -1443,16 +1446,27 @@ class GoodDaysPanel extends HTMLElement {
   }
 
   _ruleSummary(rule) {
-    const parts = [this._t(`act_${rule.action}`)];
-    if (rule.anchor === "clock") {
-      parts.push(`${iso(rule.time)} · ${this._t(`days_${rule.days}`)}`);
-    } else {
-      const minutes = Math.abs(rule.offset_min || 0);
-      const side = (rule.offset_min || 0) < 0 ? "before" : "after";
-      parts.push(minutes === 0 ? this._t(`at_${rule.anchor}`) : this._t(`${side}_${rule.anchor}`, minutes));
-    }
-    parts.push(rule.applies_to.map((k) => this._t(`kind_${k}`)).join(", "));
-    return parts.join(" · ");
+    return [this._t(`act_${rule.action}`), this._ruleWhen(rule, " · "), this._kinds(rule)].join(" · ");
+  }
+
+  _ruleWhen(rule, sep) {
+    if (rule.anchor === "clock") return `${iso(rule.time)}${sep}${this._t(`days_${rule.days}`)}`;
+    const minutes = Math.abs(rule.offset_min || 0);
+    const side = (rule.offset_min || 0) < 0 ? "before" : "after";
+    return minutes === 0 ? this._t(`at_${rule.anchor}`) : this._t(`${side}_${rule.anchor}`, minutes);
+  }
+
+  _kinds(rule) {
+    return rule.applies_to.map((k) => this._t(`kind_${k}`)).join(", ");
+  }
+
+  // "On: 12:00, Erev; Off: 15 min before candle lighting. Applies to: Shabbat, Yom Tov, Yom Kippur"
+  _presetSummary(name) {
+    const parts = (this._timers.preset_rules || {})[name];
+    if (!parts || !parts.length) return "";
+    const times = parts.map((p) => `${this._t(`act_${p.action}`)}: ${this._ruleWhen(p, ", ")}`).join("; ");
+    const note = this._t(`preset_note_${name}`);
+    return `${times}. ${this._t("applies_to")}: ${this._kinds(parts[0])}.${note ? ` ${note}` : ""}`;
   }
 
   _renderTimers(main) {
@@ -2000,12 +2014,20 @@ class GoodDaysPanel extends HTMLElement {
     const fields = {};
     const preset = mk("select");
     view.presets.forEach((p) => preset.appendChild(new Option(this._t(`preset_${p}`), p)));
-    this._field(form, fields, "preset", this._t("preset"), preset, this._t("preset_hint"));
+    const presetWrap = this._field(form, fields, "preset", this._t("preset"), preset, this._t("preset_hint"));
+    const summary = mk("span", "hint preset-summary", this._presetSummary(view.presets[0]));
+    summary.id = "t-preset-summary";
+    summary.setAttribute("aria-live", "polite");
+    presetWrap.insertBefore(summary, fields.preset.err);
+    preset.setAttribute("aria-describedby", `${summary.id} ${preset.getAttribute("aria-describedby")}`);
     const name = mk("input");
     name.type = "text";
     name.maxLength = MAX_NAME - 12;
     name.value = this._t(`preset_${view.presets[0]}`);
-    preset.addEventListener("change", () => { name.value = this._t(`preset_${preset.value}`); });
+    preset.addEventListener("change", () => {
+      name.value = this._t(`preset_${preset.value}`);
+      summary.textContent = this._presetSummary(preset.value);
+    });
     this._field(form, fields, "name", this._t("name"), name);
     const targets = this._targetsControl([]);
     this._field(form, fields, "targets", this._t("targets"), targets);
