@@ -157,6 +157,12 @@ Answers are spoken in the language you asked in.
 
 Turns lights or switches on N minutes before candle lighting of Shabbat and Yom Tov (from `sensor.good_days_next_candle_lighting`), and optionally off (with a delay) after havdalah. If you imported it before v0.4, re-import it: the old version read the holidays calendar and missed Shabbat when Chanukah or a fast was on that Friday. Source: [`blueprints/automation/good_days/candle_lighting_light.yaml`](blueprints/automation/good_days/candle_lighting_light.yaml).
 
+## Blueprint: yahrzeit candle
+
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fbareli%2Fgood_days%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgood_days%2Fyahrzeit_candle.yaml)
+
+Turns an electric yahrzeit (memorial) candle on for a yahrzeit from your family dates: at sunset the evening before (or up to an hour earlier) and off at sunset at the end of the day (or up to two hours later, or never). Pick the candle (light, switch or input_boolean) and type the name as entered in Good Days (part of it is enough; empty = every yahrzeit). Make one automation per candle. It reads `calendar.good_days_family`, where a yahrzeit is a timed event from sunset to sunset; birthdays and anniversaries are all-day events and never light the candle. Source: [`blueprints/automation/good_days/yahrzeit_candle.yaml`](blueprints/automation/good_days/yahrzeit_candle.yaml).
+
 ## The card
 
 The card resource is registered automatically (storage-mode dashboards). YAML-mode dashboards: add `/good_days_static/card.js` as a JavaScript module.
