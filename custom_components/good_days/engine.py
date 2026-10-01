@@ -15,6 +15,8 @@ from hdate.hebrew_date import Months, is_leap_year
 from hdate.gematria import hebrew_number
 from hdate.holidays import HolidayDatabase, HolidayTypes
 from hdate.parasha import ParashaDatabase
+
+from .haftarah import ASHKENAZI, format_parts, haftarah as _haftarah, replacing_special
 from hdate.translations import TRANSLATIONS
 from hdate.translator import set_language
 
@@ -84,11 +86,35 @@ PERIOD_TITLES = {
 }
 TEXT = {
     "parashat": ("Parashat", "פרשת"),
+    "haftarah": ("Haftarah", "הפטרה"),
+    # A Shabbat glued to Yom Tov: the title names the holiday, so say whose reading this is.
+    "shabbat_haftarah": ("Shabbat haftarah", "הפטרת שבת"),
     "rosh_chodesh": ("Rosh Chodesh", "ראש חודש"),
     "candle_lighting": ("Candle lighting", "הדלקת נרות"),
     "havdalah": ("Havdalah", "הבדלה"),
 }
 SEPARATOR = " · "
+NBSP = chr(0xA0)  # keeps "Haftarah:" on the line of its citation
+
+# A special reading that replaces the weekly haftarah (haftarah.replacing_special) -> its mark.
+HAFTARAH_MARKS = {
+    "Shabbat Shekalim": ("Shekalim", "שקלים"),
+    "Shabbat Zachor": ("Zachor", "זכור"),
+    "Shabbat Parah": ("Parah", "פרה"),
+    "Shabbat HaChodesh": ("HaChodesh", "החודש"),
+    "Shabbat HaGadol": ("Shabbat HaGadol", "שבת הגדול"),
+    "Shabbat Shuva (with Vayeilech)": ("Shabbat Shuva", "שבת שובה"),
+    "Shabbat Shuva (with Ha'azinu)": ("Shabbat Shuva", "שבת שובה"),
+    "Shabbat Rosh Chodesh": ("Rosh Chodesh", "ראש חודש"),
+    "Masei on Shabbat Rosh Chodesh": ("Rosh Chodesh", "ראש חודש"),
+    "Shabbat Machar Chodesh": ("Machar Chodesh", "מחר חודש"),
+    "Shabbat Rosh Chodesh Chanukah": ("Shabbat Chanukah", "שבת חנוכה"),
+    "Chanukah Day 1 (on Shabbat)": ("Shabbat Chanukah", "שבת חנוכה"),
+    "Chanukah Day 8 (on Shabbat)": ("Shabbat Chanukah", "שבת חנוכה"),
+    "Pinchas occurring after 17 Tammuz": ("Three Weeks", "בין המצרים"),
+    "Ki Teitzei with 3rd Haftarah of Consolation": ("with Re'eh's haftarah", "עם הפטרת ראה"),
+    "Kedoshim following Special Shabbat": ("Acharei Mot's haftarah", "הפטרת אחרי מות"),
+}
 
 # Special Shabbatot. Title ones are appended in parentheses; notes only go to the description.
 SPECIAL_TITLE = ["shuva", "shekalim", "zachor", "parah", "hachodesh", "hagadol", "chazon",
@@ -135,6 +161,7 @@ class EngineSettings:
     diaspora: bool
     candle_lighting: int = DEFAULT_CANDLE_LIGHTING
     havdalah: int = DEFAULT_HAVDALAH
+    nusach: str = ASHKENAZI  # haftarah custom: ashkenazi | sephardi
 
 
 @dataclass(frozen=True)
@@ -154,7 +181,9 @@ class HolyEvent:
     havdalah: dt.datetime | None = None
     parasha: str | None = None  # hdate Parasha key, plain Shabbat only
     month: str | None = None  # hdate Months key: Rosh Chodesh, or the month blessed (Mevarchim)
-    specials: tuple[str, ...] = ()  # SPECIALS keys, plain Shabbat only
+    specials: tuple[str, ...] = ()  # SPECIALS keys of the run's Shabbat (when it is not Yom Tov)
+    haftarah: tuple[tuple[str, str, str], ...] = ()  # (book, from, to) parts, Shabbat with a parasha
+    haftarah_special: str | None = None  # haftarah.SPECIAL key when it replaces the weekly reading
 
     @property
     def last_day(self) -> dt.date:
@@ -199,9 +228,36 @@ class HolyEvent:
         month = _hdate_tr("Months", self.month, lang) if self.month else ""
         return _t(SPECIALS, key, lang).format(month=month)
 
+    def haftarah_text(self, lang: str) -> str | None:
+        return format_parts(self.haftarah, lang, _gematria) if self.haftarah else None
+
+    def haftarah_label(self, lang: str) -> str | None:
+        """'Haftarah', or 'Shabbat haftarah' when the period title names a holiday."""
+        if not self.haftarah:
+            return None
+        return _t(TEXT, "shabbat_haftarah" if self.category == CAT_YOM_TOV else "haftarah", lang)
+
+    def haftarah_reading(self, lang: str) -> str | None:
+        """Citation, marked when a special reading replaces the weekly one: '... (Machar Chodesh)'."""
+        text = self.haftarah_text(lang)
+        if text and self.haftarah_special in HAFTARAH_MARKS:
+            text = f"{text} ({_t(HAFTARAH_MARKS, self.haftarah_special, lang)})"
+        return text
+
+    def haftarah_line(self, lang: str) -> str | None:
+        """'Haftarah: ...' with the label and the citation never split across lines."""
+        if not self.haftarah:
+            return None
+        return f"{self.haftarah_label(lang).replace(' ', NBSP)}:{NBSP}{self.haftarah_reading(lang)}"
+
     def description(self, lang: str) -> str:
         parts = [hebrew_date(self.first_day, lang)]
         parts += [self.special_name(k, lang) for k in self.specials if k in SPECIAL_NOTE]
+        if self.parasha and self.category == CAT_YOM_TOV:
+            # A Shabbat glued to Yom Tov: the title names the holiday, so name the parasha here.
+            parts.append(f"{_t(TEXT, 'parashat', lang)} {self.parasha_name(lang)}")
+        if self.haftarah:
+            parts.append(self.haftarah_line(lang))
         if self.candle_lighting:
             parts.append(f"{_t(TEXT, 'candle_lighting', lang)} {self.candle_lighting:%H:%M}")
         if self.havdalah:
@@ -323,11 +379,19 @@ def _period(run, settings, location, parasha_db, tz) -> HolyEvent:
         candle = havdalah = None
 
     parasha, specials, blessed = None, (), None
-    if not yom_tov:
-        found = parasha_db.lookup(run[-1][1])
+    # The Shabbat of the run, when it is not itself Yom Tov (e.g. Shabbat right before Pesach or
+    # right after Rosh Hashana): it keeps its weekly parasha and special Shabbatot.
+    shabbat = next(
+        (r for r in run if r[0].weekday() == SATURDAY and not any(h.type == HolidayTypes.YOM_TOV for h in r[2])),
+        None,
+    )
+    if shabbat is not None:
+        found = parasha_db.lookup(shabbat[1])
         if found.value:
             parasha = found.name.lower()
-        specials, blessed = _specials(run[-1][0], run[-1][1], run[-1][2], parasha)
+        specials, blessed = _specials(shabbat[0], shabbat[1], shabbat[2], parasha)
+    reading = _haftarah(shabbat[0], parasha, specials, settings.nusach) if shabbat is not None else ()
+    special = replacing_special(shabbat[0], parasha, specials, settings.nusach) if reading else None
 
     category = CAT_YOM_TOV if yom_tov else CAT_SHABBAT
     timed = candle is not None and havdalah is not None
@@ -346,6 +410,8 @@ def _period(run, settings, location, parasha_db, tz) -> HolyEvent:
         parasha=parasha,
         specials=specials,
         month=blessed,
+        haftarah=reading,
+        haftarah_special=special,
     )
 
 

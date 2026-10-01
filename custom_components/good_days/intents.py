@@ -117,7 +117,8 @@ def speech_shabbat(runtime, lang: str, now: dt.datetime) -> str:
         hv_when=_when(dt_util.as_local(event.havdalah).date(), today, lang),
         hv=_hhmm(event.havdalah),
     )
-    if event.parasha or event.specials:  # "Shabbat Parashat Tetzaveh (Zachor)"
+    # "Shabbat Parashat Tetzaveh (Zachor)", or the holiday name when Yom Tov is part of the period.
+    if event.parasha or event.specials or event.category == "yom_tov":
         text += _t("title", lang, t=title)
     return text
 

@@ -167,7 +167,8 @@ entry_id: <optional, multi-instance>
 | v0.3 | Reminders (notify + actionable buttons), Assist intent ("מה יש השבוע?" / "When is the next holiday?") with ready-made en/he sentences, blueprint "porch light before candle lighting". |
 | v0.4 | Special Shabbatot, ICS subscription, review fixes (released). |
 | v0.5 | Shabbat Home timers inside Good Days (§12). |
-| later | Haftarah / Torah reading details, more presets, feedback. |
+| v0.7 | Haftarah per Shabbat (Ashkenazi / Sephardi, Hebcal rules, BSD-2 data), Shabbat next to Yom Tov keeps its parasha, three more timer presets. |
+| later | Haftarah for Shabbat Chol HaMoed / Yom Tov, Torah reading details, feedback. |
 
 ## 9. Testing (required before every commit)
 

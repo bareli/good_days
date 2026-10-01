@@ -87,3 +87,16 @@ Stable IDs. Never renumber; add new ones at the end of a series.
 - I18N-002 Hebrew day headers in gematria (#31); mixed Hebrew names in English titles keep order (#32).
 - CARD-006 Card merges (or reports) a second Good Days entry's calendar (#33).
 
+
+## HAF: haftarah (v0.7)
+
+- HAF-01 Next Shabbat shows its haftarah in the card details, the calendar event description, the ICS feed and `sensor.good_days_next_shabbat` attribute `haftarah`; Hebrew citation in Hebrew UI, English in English.
+- HAF-02 Options: "Haftarah custom" Ashkenazi / Sephardi; switching changes every surface (sensor, WS, calendar, ICS) without restart.
+- HAF-03 Special cases visible in the next weeks / months of the calendar: Machar Chodesh, Rosh Chodesh, special Shabbatot (Shekalim, Zachor, Parah, HaChodesh, HaGadol), Shabbat Chanukah, Shuva; a Shabbat next to Yom Tov keeps its parasha (title of the combined period unchanged).
+- HAF-04 Shabbat Chol HaMoed / Shabbat that is Yom Tov: no haftarah and no broken text.
+- HAF-05 Hebrew rendering: book names, letters without geresh, en dash, bidi correct inside RTL descriptions with mixed English.
+- HAF-06 Regression: titles, specials, Mevarchim / Machar Chodesh notes, candle lighting / havdalah times unchanged for plain Shabbatot.
+
+## TIM-P: timer presets (v0.7)
+
+- TIM-P-01 Presets "Electric water heater", "Porch light", "Bedroom AC at night" listed in he / en; creating each makes an on and an off rule with the expected anchors / times; the preview shows them for the next Shabbat and a Chag.

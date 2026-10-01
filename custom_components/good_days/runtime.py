@@ -19,6 +19,7 @@ from .const import (
     CONF_CATEGORIES,
     CONF_DIASPORA,
     CONF_HAVDALAH,
+    CONF_NUSACH,
     CONF_LANGUAGE,
     CONF_LATITUDE,
     CONF_LONGITUDE,
@@ -26,6 +27,7 @@ from .const import (
     DEFAULT_CANDLE_LIGHTING,
     DEFAULT_CATEGORIES,
     DEFAULT_HAVDALAH,
+    LEGACY_NUSACH,
     DEFAULT_LOOKAHEAD_DAYS,
     LANG_AUTO,
     NON_HOLIDAY_CATEGORIES,
@@ -53,6 +55,7 @@ def settings_from_entry(hass: HomeAssistant, entry: ConfigEntry) -> EngineSettin
         diaspora=bool(o.get(CONF_DIASPORA, False)),
         candle_lighting=int(o.get(CONF_CANDLE_LIGHTING, DEFAULT_CANDLE_LIGHTING)),
         havdalah=int(o.get(CONF_HAVDALAH, DEFAULT_HAVDALAH)),
+        nusach=str(o.get(CONF_NUSACH, LEGACY_NUSACH)),
     )
 
 
@@ -253,6 +256,8 @@ class GoodDaysRuntime:
             "in_effect": event.start <= now < event.end,
             "conflicts_shabbat": is_family and self.periods_overlapping(event.start, event.end),
             "description": event.description(lang),
+            "haftarah": None if is_family else event.haftarah_reading(lang),
+            "haftarah_label": None if is_family else event.haftarah_label(lang),
         }
         if is_family:
             item.update(

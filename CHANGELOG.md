@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.7.0 (2026-10-01)
+
+- **Haftarah** for every Shabbat with a weekly parasha, in the calendar event, card details, calendar subscription and the next-Shabbat sensor (`haftarah` attribute, WebSocket `haftarah` field). New option: Ashkenazi or Sephardi / Edot HaMizrach. Special Shabbatot, Shabbat Chanukah, Rosh Chodesh, Machar Chodesh and the special cases follow Hebcal's rules; checked against Hebcal for every Shabbat 2024-2040, Israel and abroad.
+- A Shabbat right before or after Yom Tov (for example Shabbat Shuva right after Rosh Hashana, or Shabbat HaGadol before Pesach) now keeps its parasha and special Shabbat. Its description names the parasha, and Assist names the holiday when it tells the Shabbat / Chag times.
+- **Haftarah in the card**: a "Haftarah: ..." line under each Shabbat and in the next-Shabbat box (card option `show_haftarah`, on by default, in the visual editor) (#39). A Shabbat that runs together with Yom Tov labels it "Shabbat haftarah" (#40). A special reading that replaces the weekly one is marked, e.g. "(Machar Chodesh)", "(Shekalim)", "(Shabbat Chanukah)"; the label never wraps away from its citation (#43). WebSocket items add `haftarah_label`; the `haftarah` field and sensor attribute include the mark.
+- **Haftarah custom**: new installs default to Sephardi / Edot HaMizrach; installs from before v0.7 keep Ashkenazi and the options dialog shows it. The option explains that the customs differ on about one Shabbat in four (#41).
+- **Shabbat timers**: the preset dialog summarises the chosen preset before you create it (on / off times, which days it applies to, and that the water heater heats only on the Erev of a multi-day Chag) (#42). Three more presets: electric water heater (on at noon on Erev Shabbat / Chag, off before candle lighting), porch light (on before candle lighting, off at 01:00), bedroom air conditioner at night (22:00 to 06:30).
+
 ## v0.6.1 (2026-10-01)
 
 - Calendar link: family notes are no longer included by default; an admin can opt in with "Include family notes" in the panel (they become visible to the calendar provider). Existing links keep working; notes disappear from them until opted in.

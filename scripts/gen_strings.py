@@ -13,6 +13,7 @@ FIELDS = {
     "diaspora": ("Diaspora (two-day Yom Tov)", "חוץ לארץ (יום טוב שני)"),
     "candle_lighting_minutes": ("Candle lighting, minutes before sunset", "הדלקת נרות, דקות לפני השקיעה"),
     "havdalah_minutes": ("Havdalah, minutes after sunset (0 = three stars)", "הבדלה, דקות אחרי השקיעה (0 = צאת הכוכבים)"),
+    "nusach": ("Haftarah custom", "נוסח ההפטרה"),
     "language": ("Event names language", "שפת שמות האירועים"),
     "categories": ("Show on the calendar", "להציג בלוח השנה"),
     "lookahead_days": ("Days to compute ahead", "מספר ימים לחישוב מראש"),
@@ -24,6 +25,10 @@ DESCRIPTIONS = {
     "candle_lighting_minutes": (
         "Most of Israel: 18-30. Jerusalem: 40. Haifa: 30.",
         "ברוב הארץ: 18-30. ירושלים: 40. חיפה: 30.",
+    ),
+    "nusach": (
+        "The customs differ on about one Shabbat in four; on the others the haftarah is the same.",
+        "הנוסחים שונים בערך בשבת אחת מכל ארבע; בשאר השבתות ההפטרה זהה.",
     ),
     "diaspora": (
         "Off in Israel. On outside Israel.",
@@ -38,7 +43,7 @@ DESCRIPTIONS = {
         "תזכורת שחלה בשבת או בחג תישלח שעה לפני הדלקת הנרות.",
     ),
 }
-USER_FIELDS = ["location", "diaspora", "candle_lighting_minutes", "havdalah_minutes", "language"]
+USER_FIELDS = ["location", "diaspora", "candle_lighting_minutes", "havdalah_minutes", "nusach", "language"]
 OPTION_FIELDS = USER_FIELDS + ["categories", "lookahead_days", "notify_targets", "reminder_time", "quiet_on_shabbat"]
 
 TEXT = {
@@ -53,12 +58,17 @@ ERRORS = {
     "invalid_location": ("Pick a valid location.", "יש לבחור מיקום תקין."),
     "invalid_minutes": ("Minutes must be a whole number between 0 and 120.", "מספר הדקות חייב להיות מספר שלם בין 0 ל-120."),
     "invalid_language": ("Pick a language from the list.", "יש לבחור שפה מהרשימה."),
+    "invalid_nusach": ("Pick a custom from the list.", "יש לבחור נוסח מהרשימה."),
     "no_categories": ("Pick at least one category.", "יש לבחור לפחות קטגוריה אחת."),
     "invalid_lookahead": ("Days ahead must be a whole number between 30 and 730.", "מספר הימים חייב להיות מספר שלם בין 30 ל-730."),
     "invalid_notify": ("Pick existing notify services (Developer tools → Actions → notify.*).", "יש לבחור שירותי התראה קיימים (כלי מפתחים ← פעולות ← notify.*)."),
     "invalid_time": ("Enter a time as HH:MM.", "יש להזין שעה בפורמט HH:MM."),
 }
 SELECTORS = {
+    "nusach": {
+        "ashkenazi": ("Ashkenazi", "אשכנז"),
+        "sephardi": ("Sephardi / Edot HaMizrach", "ספרד / עדות המזרח"),
+    },
     "language": {
         "auto": ("Same as Home Assistant", "כמו Home Assistant"),
         "he": ("Hebrew", "עברית"),

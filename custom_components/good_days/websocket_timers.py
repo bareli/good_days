@@ -43,6 +43,7 @@ def _view(runtime: GoodDaysRuntime, lang: str) -> dict[str, Any]:
         "skip_next": bool(periods) and periods[0].uid in store.skip,
         "rules": store.rules,
         "presets": list(PRESETS),
+        "preset_rules": PRESETS,  # the panel summarises the chosen preset before it is created
         "preview": timers.preview(now, lang),
         "next_action": {
             "when": nxt.when.isoformat(), "action": nxt.action, "targets": list(nxt.targets),

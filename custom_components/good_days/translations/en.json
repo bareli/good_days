@@ -9,11 +9,13 @@
           "diaspora": "Diaspora (two-day Yom Tov)",
           "candle_lighting_minutes": "Candle lighting, minutes before sunset",
           "havdalah_minutes": "Havdalah, minutes after sunset (0 = three stars)",
+          "nusach": "Haftarah custom",
           "language": "Event names language"
         },
         "data_description": {
           "diaspora": "Off in Israel. On outside Israel.",
-          "candle_lighting_minutes": "Most of Israel: 18-30. Jerusalem: 40. Haifa: 30."
+          "candle_lighting_minutes": "Most of Israel: 18-30. Jerusalem: 40. Haifa: 30.",
+          "nusach": "The customs differ on about one Shabbat in four; on the others the haftarah is the same."
         }
       }
     },
@@ -21,6 +23,7 @@
       "invalid_location": "Pick a valid location.",
       "invalid_minutes": "Minutes must be a whole number between 0 and 120.",
       "invalid_language": "Pick a language from the list.",
+      "invalid_nusach": "Pick a custom from the list.",
       "no_categories": "Pick at least one category.",
       "invalid_lookahead": "Days ahead must be a whole number between 30 and 730.",
       "invalid_notify": "Pick existing notify services (Developer tools → Actions → notify.*).",
@@ -36,6 +39,7 @@
           "diaspora": "Diaspora (two-day Yom Tov)",
           "candle_lighting_minutes": "Candle lighting, minutes before sunset",
           "havdalah_minutes": "Havdalah, minutes after sunset (0 = three stars)",
+          "nusach": "Haftarah custom",
           "language": "Event names language",
           "categories": "Show on the calendar",
           "lookahead_days": "Days to compute ahead",
@@ -46,6 +50,7 @@
         "data_description": {
           "diaspora": "Off in Israel. On outside Israel.",
           "candle_lighting_minutes": "Most of Israel: 18-30. Jerusalem: 40. Haifa: 30.",
+          "nusach": "The customs differ on about one Shabbat in four; on the others the haftarah is the same.",
           "notify_targets": "Where to send reminders (for example your phone). Phones show Got it / Remind me tomorrow buttons. None: no notification, but automations can react to the good_days_reminder event.",
           "quiet_on_shabbat": "A reminder due on Shabbat or Yom Tov is sent an hour before candle lighting."
         }
@@ -55,6 +60,7 @@
       "invalid_location": "Pick a valid location.",
       "invalid_minutes": "Minutes must be a whole number between 0 and 120.",
       "invalid_language": "Pick a language from the list.",
+      "invalid_nusach": "Pick a custom from the list.",
       "no_categories": "Pick at least one category.",
       "invalid_lookahead": "Days ahead must be a whole number between 30 and 730.",
       "invalid_notify": "Pick existing notify services (Developer tools → Actions → notify.*).",
@@ -62,6 +68,12 @@
     }
   },
   "selector": {
+    "nusach": {
+      "options": {
+        "ashkenazi": "Ashkenazi",
+        "sephardi": "Sephardi / Edot HaMizrach"
+      }
+    },
     "language": {
       "options": {
         "auto": "Same as Home Assistant",
