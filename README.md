@@ -63,8 +63,13 @@ actions:
 ## Haftarah
 
 Each Shabbat shows its haftarah (for example "Haftarah: Isaiah 54:1–55:5" / "הפטרה: ישעיהו נד:א–נה:ה") in the
-calendar event, the card details, the calendar subscription and the `haftarah` attribute of
-`sensor.good_days_next_shabbat`. Pick **Ashkenazi** or **Sephardi / Edot HaMizrach** in the options.
+card (a line under each Shabbat and in the next-Shabbat box; `show_haftarah: false` hides it), the calendar
+event, the calendar subscription and the `haftarah` attribute of `sensor.good_days_next_shabbat`. When a special
+reading replaces the weekly one it is marked, for example "I Samuel 20:18–42 (Machar Chodesh)". A Shabbat that
+runs together with Yom Tov is labelled "Shabbat haftarah" / "הפטרת שבת", since the title names the holiday.
+
+Pick **Sephardi / Edot HaMizrach** (default for new installs) or **Ashkenazi** in the options; the customs differ
+on about one Shabbat in four. Installs set up before v0.7 keep Ashkenazi until you change it.
 
 Special Shabbatot (Shekalim, Zachor, Parah, HaChodesh, HaGadol, Shuva), Shabbat Chanukah, Shabbat Rosh
 Chodesh, Machar Chodesh and the special cases follow Hebcal's rules, and every Shabbat from 2024 to 2040
@@ -169,6 +174,7 @@ limit: 10                     # items, 1-100
 categories: [shabbat, yom_tov, minor, fast, family]   # optional, default = integration options + family
 show_hebrew_date: true
 show_candle_lighting: true
+show_haftarah: true           # "Haftarah: ..." line under Shabbat rows and in the next-Shabbat box
 compact: false                # one line: "Next: Shabbat · in 2 days · candles 17:52"
 entry_id: <optional, for a second Good Days instance>
 ```
@@ -179,7 +185,7 @@ Without the integration the card still lists the selected calendars (no holidays
 
 ### WebSocket API
 
-`good_days/upcoming` with `{calendars, days, limit, categories?, language?, entry_id?}` returns `{items, current, errors, now, language}`. Items are sorted by start and carry `uid, source, title, start, end, all_day, category, hebrew_date, candle_lighting, havdalah, in_effect, conflicts_shabbat, description, haftarah` (family items add `kind, name, years, day, date_id`).
+`good_days/upcoming` with `{calendars, days, limit, categories?, language?, entry_id?}` returns `{items, current, errors, now, language}`. Items are sorted by start and carry `uid, source, title, start, end, all_day, category, hebrew_date, candle_lighting, havdalah, in_effect, conflicts_shabbat, description, haftarah, haftarah_label` (`haftarah` = citation plus the special-reading mark, `haftarah_label` = "Haftarah" or "Shabbat haftarah"; family items add `kind, name, years, day, date_id`).
 
 Family dates: `good_days/dates/list`, `dates/add`, `dates/update`, `dates/remove` (validation problems return `{errors: {field: code}}`), `dates/convert` (Gregorian → Hebrew).
 
