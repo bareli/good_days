@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.9.0 (unreleased)
+## v0.9.0 (2026-10-02)
 
 - **Responsive card**: the card measures its own width and shows less when it is narrow. Medium (280-399 px) drops category icons, haftarah lines under rows and the repeat of the next Shabbat below its summary box. Narrow (under 280 px) also drops Hebrew dates and secondary notes, moves the countdown onto the time line and lists at most `narrow_limit` events (default 3). Tapping a row still shows everything. New card options `responsive` (default on) and `narrow_limit`, both in the visual editor. Sections view: the card can be resized down to 3 columns.
 
