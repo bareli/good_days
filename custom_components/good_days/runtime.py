@@ -43,6 +43,7 @@ from .storage import FamilyStore
 
 PAST_DAYS = 7
 MAX_ADHOC_DAYS = 3 * 366  # calendar panel requests outside the cached window
+CUSTOM_CACHE_SIZE = 8  # windows computed for cards with their own location / times
 
 
 def settings_from_entry(hass: HomeAssistant, entry: ConfigEntry) -> EngineSettings:
@@ -103,6 +104,7 @@ class GoodDaysRuntime:
         self.timers = TimerManager(self)
         self.ics_cache: tuple | None = None  # (key, body), see ics.async_feed
         self.window: tuple[dt.date, dt.date] | None = None
+        self._custom: dict[tuple, tuple[list[HolyEvent], list[FamilyEvent]]] = {}
         self._unsubs: list[Callable[[], None]] = []
 
     @property
@@ -200,6 +202,28 @@ class GoodDaysRuntime:
                 engine.compute, self.settings, first, last
             )
         return [e for e in events if e.overlaps(start, end)]
+
+    async def async_custom_between(
+        self, settings: EngineSettings, start: dt.datetime, end: dt.datetime
+    ) -> tuple[list[HolyEvent], list[FamilyEvent]]:
+        """Events and family occurrences overlapping [start, end) for a card's own settings
+        (location, candle lighting, havdalah, diaspora). Small cache: cards refresh every few minutes."""
+        if end <= start:
+            return [], []
+        first, last = dt_util.as_local(start).date(), dt_util.as_local(end).date()
+        last = min(last, first + dt.timedelta(days=MAX_ADHOC_DAYS))
+        key = (settings, first, last, self.family_version)
+        cached = self._custom.get(key)
+        if cached is None:
+            events = await self.hass.async_add_executor_job(engine.compute, settings, first, last)
+            family_events = await self.hass.async_add_executor_job(
+                family.compute_family, list(self.store.dates), settings, first, last
+            )
+            cached = self._custom[key] = (events, family_events)
+            while len(self._custom) > CUSTOM_CACHE_SIZE:
+                self._custom.pop(next(iter(self._custom)))
+        events, family_events = cached
+        return [e for e in events if e.overlaps(start, end)], [e for e in family_events if e.overlaps(start, end)]
 
     # Entity helpers (cached window only; entities look at most a year ahead).
 

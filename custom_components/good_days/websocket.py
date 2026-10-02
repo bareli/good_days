@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import datetime as dt
 import logging
 from typing import Any
@@ -15,8 +16,8 @@ from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.util import dt as dt_util
 
-from .const import CAT_FAMILY, CATEGORIES, DOMAIN, WS_MAX_DAYS, WS_MAX_LIMIT, WS_UPCOMING
-from .engine import HolyEvent, hebrew_date, norm_language
+from .const import CAT_FAMILY, CATEGORIES, DOMAIN, MAX_OFFSET_MINUTES, WS_MAX_DAYS, WS_MAX_LIMIT, WS_UPCOMING
+from .engine import EngineSettings, HolyEvent, hebrew_date, norm_language
 from .family import FamilyEvent, hebrew_from_gregorian, next_occurrence
 from .runtime import GoodDaysRuntime, PeriodIndex
 from .ics import ics_path, new_token
@@ -123,9 +124,28 @@ def _external_item(
     }
 
 
+_OFFSET = vol.All(vol.Coerce(int), vol.Range(min=0, max=MAX_OFFSET_MINUTES))
+# A card's own place and times; anything left out comes from the integration entry.
+_OVERRIDES = {
+    vol.Inclusive("latitude", "location"): vol.All(vol.Coerce(float), vol.Range(min=-90, max=90)),
+    vol.Inclusive("longitude", "location"): vol.All(vol.Coerce(float), vol.Range(min=-180, max=180)),
+    vol.Optional("diaspora"): bool,
+    vol.Optional("candle_lighting"): _OFFSET,
+    vol.Optional("havdalah"): _OFFSET,
+}
+
+
+def _card_settings(settings: EngineSettings, msg: dict[str, Any]) -> EngineSettings | None:
+    """The entry's settings with the card's overrides, or None when they change nothing."""
+    changes = {str(key): msg[str(key)] for key in _OVERRIDES if str(key) in msg}
+    custom = dataclasses.replace(settings, **changes)
+    return None if custom == settings else custom
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): WS_UPCOMING,
+        **_OVERRIDES,
         vol.Optional("entry_id"): cv.string,
         vol.Optional("calendars", default=[]): vol.All(cv.ensure_list, [cv.entity_domain("calendar")]),
         vol.Optional("days", default=30): vol.All(vol.Coerce(int), vol.Range(min=1, max=WS_MAX_DAYS)),
@@ -154,7 +174,17 @@ async def ws_upcoming(
     else:
         categories = runtime.categories | {CATEGORY_FAMILY}
 
-    events = await runtime.async_events_between(now - dt.timedelta(days=1), end)
+    custom = _card_settings(runtime.settings, msg)
+    if custom is None:
+        events = await runtime.async_events_between(now - dt.timedelta(days=1), end)
+        family_events = (
+            await runtime.async_family_between(now - dt.timedelta(days=1), end)
+            if CATEGORY_FAMILY in categories else []
+        )
+        current = runtime.in_effect(now)
+    else:
+        events, family_events = await runtime.async_custom_between(custom, now - dt.timedelta(days=1), end)
+        current = next((e for e in events if e.period and e.start <= now < e.end), None)
     periods = PeriodIndex(events)
     # (start, rank) now; titles and full items only for what can make the cut (below).
     # rank orders equal starts: holidays, then family, then external calendars.
@@ -162,11 +192,7 @@ async def ws_upcoming(
         (e.start, (False, True), e) for e in events if e.category in categories and e.end > now
     ]
     if CATEGORY_FAMILY in categories:
-        ours += [
-            (e.start, (True, False), e)
-            for e in await runtime.async_family_between(now - dt.timedelta(days=1), end)
-            if e.end > now
-        ]
+        ours += [(e.start, (True, False), e) for e in family_events if e.end > now]
 
     # This entry's own calendars are already merged above; never list them twice. Another
     # Good Days entry's calendar (e.g. the parents' city) is read like any other calendar.
@@ -225,7 +251,6 @@ async def ws_upcoming(
             item["conflicts_shabbat"] = periods.overlaps(value.start, value.end)
         items.append(item)
 
-    current = runtime.in_effect(now)
     connection.send_result(
         msg["id"],
         {

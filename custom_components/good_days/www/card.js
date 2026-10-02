@@ -102,6 +102,14 @@ const I18N = {
     e_show_haftarah: "Show haftarah",
     e_compact: "Compact (one line)",
     e_responsive: "Show less when the card is narrow",
+    e_custom_location: "Own location and times for this card",
+    e_location: "Location",
+    e_candle_lighting: "Candle lighting (minutes before sunset)",
+    e_havdalah: "Havdalah (minutes after sunset, 0 = three stars)",
+    e_diaspora_mode: "Yom Tov days",
+    d_inherit: "Like the integration",
+    d_israel: "Israel (one day)",
+    d_diaspora: "Diaspora (two days)",
     e_narrow_limit: "Events in a narrow card",
     e_entry_id: "Good Days instance",
     c_shabbat: "Shabbat",
@@ -157,6 +165,14 @@ const I18N = {
     e_show_haftarah: "הצגת ההפטרה",
     e_compact: "תצוגה מקוצרת (שורה אחת)",
     e_responsive: "הצגת פחות פרטים כשהכרטיס צר",
+    e_custom_location: "מיקום וזמנים משלו לכרטיס הזה",
+    e_location: "מיקום",
+    e_candle_lighting: "הדלקת נרות (דקות לפני השקיעה)",
+    e_havdalah: "הבדלה (דקות אחרי השקיעה, 0 = צאת הכוכבים)",
+    e_diaspora_mode: "ימי יום טוב",
+    d_inherit: "כמו בהגדרות האינטגרציה",
+    d_israel: "ארץ ישראל (יום אחד)",
+    d_diaspora: "חוץ לארץ (יומיים)",
     e_narrow_limit: "מספר אירועים בכרטיס צר",
     e_entry_id: "מופע ימים טובים",
     c_shabbat: "שבת",
@@ -394,6 +410,16 @@ class GoodDaysCard extends HTMLElement {
     };
     if (cfg.entry_id) msg.entry_id = cfg.entry_id;
     if (Array.isArray(cfg.categories) && cfg.categories.length) msg.categories = cfg.categories;
+    // The card's own place and times (unset: the integration's).
+    const loc = cfg.location;
+    if (loc && Number.isFinite(Number(loc.latitude)) && Number.isFinite(Number(loc.longitude))) {
+      msg.latitude = Number(loc.latitude);
+      msg.longitude = Number(loc.longitude);
+    }
+    if (typeof cfg.diaspora === "boolean") msg.diaspora = cfg.diaspora;
+    ["candle_lighting", "havdalah"].forEach((key) => {
+      if (cfg[key] !== "" && cfg[key] != null && Number.isFinite(Number(cfg[key]))) msg[key] = Number(cfg[key]);
+    });
     const before = JSON.stringify([this._data, this._fallback, !!this._error]);
     try {
       this._data = await this._hass.callWS(msg);
@@ -984,6 +1010,11 @@ class GoodDaysCardEditor extends HTMLElement {
     return dict[key] != null ? dict[key] : I18N.en[key];
   }
 
+  _customLocation() {
+    const c = this._config;
+    return !!(c.location || c.candle_lighting != null || c.havdalah != null || typeof c.diaspora === "boolean");
+  }
+
   _followsIntegration() {
     return !Array.isArray(this._config.categories) || !this._config.categories.length;
   }
@@ -1027,6 +1058,20 @@ class GoodDaysCardEditor extends HTMLElement {
       { name: "compact", selector: { boolean: {} } },
       { name: "responsive", selector: { boolean: {} } },
       { name: "narrow_limit", selector: { number: { min: 1, max: 20, mode: "box" } } },
+      { name: "custom_location", selector: { boolean: {} } },
+      ...(this._customLocation()
+        ? [
+          { name: "location", selector: { location: { radius: false } } },
+          { name: "candle_lighting", selector: { number: { min: 0, max: 120, step: 1, mode: "box" } } },
+          { name: "havdalah", selector: { number: { min: 0, max: 120, step: 1, mode: "box" } } },
+          {
+            name: "diaspora_mode",
+            selector: {
+              select: { mode: "dropdown", options: ["inherit", "israel", "diaspora"].map((v) => ({ value: v, label: this._t(`d_${v}`) })) },
+            },
+          },
+        ]
+        : []),
       { name: "entry_id", selector: { config_entry: { integration: "good_days" } } },
     ];
   }
@@ -1042,6 +1087,22 @@ class GoodDaysCardEditor extends HTMLElement {
         const shown = this._effective();
         const use = value.use_integration_categories;
         delete value.use_integration_categories;
+        // Own location / times: the toggle and the Yom Tov select are editor-only fields.
+        const custom = value.custom_location;
+        const mode = value.diaspora_mode;
+        delete value.custom_location;
+        delete value.diaspora_mode;
+        if (custom === false) {
+          ["location", "candle_lighting", "havdalah", "diaspora"].forEach((k) => delete value[k]);
+        } else if (custom === true && !this._customLocation()) {
+          const h = this._hass && this._hass.config;
+          if (h) value.location = { latitude: h.latitude, longitude: h.longitude }; // start from home
+        } else if (mode === "israel" || mode === "diaspora") {
+          value.diaspora = mode === "diaspora";
+        } else {
+          delete value.diaspora;
+        }
+        if (value.location) value.location = { latitude: value.location.latitude, longitude: value.location.longitude };
         const same = (a, b) => a.length === b.length && a.every((c) => b.includes(c));
         if (follows && use === false) value.categories = [...shown]; // start from what the card shows now
         else if (!follows && use === true) delete value.categories;
@@ -1061,6 +1122,8 @@ class GoodDaysCardEditor extends HTMLElement {
     this._form.schema = this._schema();
     this._form.data = Object.assign({ show_hebrew_date: true, show_candle_lighting: true, show_haftarah: true, compact: false, responsive: true }, this._config, {
       use_integration_categories: follows,
+      custom_location: this._customLocation(),
+      diaspora_mode: typeof this._config.diaspora === "boolean" ? (this._config.diaspora ? "diaspora" : "israel") : "inherit",
       categories: follows ? [...this._effective()] : this._config.categories,
     });
   }
