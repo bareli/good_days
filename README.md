@@ -182,8 +182,18 @@ show_hebrew_date: true
 show_candle_lighting: true
 show_haftarah: true           # "Haftarah: ..." line under Shabbat rows and in the next-Shabbat box
 compact: false                # one line: "Next: Shabbat · in 2 days · candles 17:52"
+responsive: true              # show less when the card is narrow (see below)
+narrow_limit: 3               # events listed in a narrow card
 entry_id: <optional, for a second Good Days instance>
 ```
+
+The card adapts to its own width (not the screen's), so a card in a narrow column or a small sections cell shows less:
+
+- **Wide** (400 px and up): everything.
+- **Medium** (280-399 px): no category icons and no haftarah line under list rows, and the next Shabbat / Yom Tov is not repeated below its summary box.
+- **Narrow** (under 280 px): also no Hebrew dates, no haftarah in the summary box, no secondary notes; the countdown moves onto the time line, and the list stops at `narrow_limit` events.
+
+Tap a row to see everything it hides. Set `responsive: false` to always show the full card.
 
 Everything is editable in the visual editor. The card follows the user's HA language (Hebrew → RTL). External and family events that fall on Shabbat or Yom Tov get a warning badge. Tap an item for details.
 

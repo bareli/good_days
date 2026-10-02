@@ -2,6 +2,10 @@
 
 const REFRESH_MS = 5 * 60 * 1000;
 const TICK_MS = 60 * 1000;
+// Card width tiers (px): below MEDIUM_PX secondary details hide, below NARROW_PX the list is capped too.
+const MEDIUM_PX = 400;
+const NARROW_PX = 280;
+const DEFAULT_NARROW_LIMIT = 3;
 const FSI = "\u2068"; // first-strong isolate
 const PDI = "\u2069";
 const iso = (text) => FSI + text + PDI;
@@ -97,6 +101,8 @@ const I18N = {
     e_show_candle_lighting: "Show candle lighting",
     e_show_haftarah: "Show haftarah",
     e_compact: "Compact (one line)",
+    e_responsive: "Show less when the card is narrow",
+    e_narrow_limit: "Events in a narrow card",
     e_entry_id: "Good Days instance",
     c_shabbat: "Shabbat",
     c_yom_tov: "Yom Tov",
@@ -150,6 +156,8 @@ const I18N = {
     e_show_candle_lighting: "הצגת זמן הדלקת נרות",
     e_show_haftarah: "הצגת ההפטרה",
     e_compact: "תצוגה מקוצרת (שורה אחת)",
+    e_responsive: "הצגת פחות פרטים כשהכרטיס צר",
+    e_narrow_limit: "מספר אירועים בכרטיס צר",
     e_entry_id: "מופע ימים טובים",
     c_shabbat: "שבת",
     c_yom_tov: "יום טוב",
@@ -226,6 +234,27 @@ const STYLE = `
   button.compact .dot { margin-top: calc(0.7em - 5px); }
   button.compact .name { flex: 1; min-width: 0; line-height: 1.4; white-space: normal; overflow-wrap: anywhere; }
   .ltr { direction: ltr; unicode-bidi: isolate; }
+  /* Width tiers (set from the card's own width): secondary details step out first; tapping a row still shows them. */
+  ha-card[data-size="medium"] { padding: 10px 12px 6px; }
+  ha-card[data-size="medium"] ha-icon.cat,
+  ha-card[data-size="medium"] .haftarah { display: none; }
+  ha-card:not([data-size="wide"]) .badge.conflict span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  ha-card[data-size="medium"] .summary .s-times { font-size: 1.15rem; }
+  ha-card[data-size="narrow"] { padding: 8px 10px 4px; }
+  ha-card[data-size="narrow"] .title { font-size: 1rem; }
+  ha-card[data-size="narrow"] .header { margin-bottom: 4px; }
+  ha-card[data-size="narrow"] ha-icon.cat,
+  ha-card[data-size="narrow"] .haftarah,
+  ha-card[data-size="narrow"] .hdate,
+  ha-card[data-size="narrow"] .summary .s-haftarah,
+  ha-card[data-size="narrow"] .meta .extra { display: none; }
+  ha-card[data-size="narrow"] .banner { font-size: 1rem; padding: 8px 10px; }
+  ha-card[data-size="narrow"] .summary { padding: 8px 10px; }
+  ha-card[data-size="narrow"] .summary .s-times { font-size: 1.05rem; }
+  ha-card[data-size="narrow"] .day { margin: 6px 0 2px; }
+  ha-card[data-size="narrow"] button.item { padding: 6px 4px; gap: 8px; }
+  ha-card[data-size="narrow"] .meta .chip { font-size: 0.8rem; padding: 0 6px; }
+  ha-card[data-size="narrow"] .details { margin-inline-start: 18px; }
   @media (prefers-reduced-motion: no-preference) { button.item { transition: background-color 0.15s; } }
 `;
 
@@ -268,17 +297,56 @@ class GoodDaysCard extends HTMLElement {
   connectedCallback() {
     this._refreshTimer = setInterval(() => this._fetch(), REFRESH_MS);
     this._tickTimer = setInterval(() => this._tick(), TICK_MS);
+    if (typeof ResizeObserver === "function") {
+      this._resizeObserver = this._resizeObserver || new ResizeObserver((entries) => this._onResize(entries[0].contentRect.width));
+      this._resizeObserver.observe(this);
+    }
     if (this._hass && this._config && !this._data) this._fetch();
   }
 
   disconnectedCallback() {
     clearInterval(this._refreshTimer);
     clearInterval(this._tickTimer);
+    if (this._resizeObserver) this._resizeObserver.disconnect();
   }
 
   getCardSize() {
     if (this._config && this._config.compact) return 1;
-    return 2 + Math.min((this._data && this._data.items.length) || 3, this._config ? this._config.limit : 10);
+    const shown = Math.min((this._data && this._data.items.length) || 3, this._itemLimit());
+    return 2 + shown;
+  }
+
+  // Sections view: full width by default, usable down to a quarter of a section.
+  getGridOptions() {
+    if (this._config && this._config.compact) return { columns: 12, rows: 1, min_columns: 3, min_rows: 1 };
+    return { columns: 12, min_columns: 3 };
+  }
+
+  // wide / medium / narrow from the card's own width (not the screen): a card in a narrow column shows less.
+  _sizeFor(width) {
+    if (!this._config || this._config.responsive === false) return "wide";
+    if (width < NARROW_PX) return "narrow";
+    if (width < MEDIUM_PX) return "medium";
+    return "wide";
+  }
+
+  _onResize(width) {
+    if (!width) return; // hidden (other view, closed edit dialog): keep the last layout
+    const size = this._sizeFor(width);
+    if (size === this._size) return;
+    this._size = size;
+    if (this._shadowRendered) this._render();
+  }
+
+  _currentSize() {
+    return this._config && this._config.responsive === false ? "wide" : this._size || "wide";
+  }
+
+  // The configured limit, capped in a narrow card (narrow_limit, default 3).
+  _itemLimit() {
+    const limit = this._config ? Number(this._config.limit) || 10 : 10;
+    if (this._currentSize() !== "narrow") return limit;
+    return Math.min(limit, Math.max(1, Number(this._config.narrow_limit) || DEFAULT_NARROW_LIMIT));
   }
 
   _t(key, ...args) {
@@ -542,7 +610,7 @@ class GoodDaysCard extends HTMLElement {
   _structureKey(nowMs) {
     const current = this._currentPeriod(nowMs);
     return [
-      this._dayKey(new Date(nowMs)), langOf(this._hass), current ? current.uid : "",
+      this._dayKey(new Date(nowMs)), langOf(this._hass), this._currentSize(), current ? current.uid : "",
       ...this._visibleItems(nowMs).map((i) => `${i.uid}@${this._startMs(i) <= nowMs ? 1 : 0}`),
     ].join("|");
   }
@@ -613,6 +681,8 @@ class GoodDaysCard extends HTMLElement {
     card.textContent = "";
     card.setAttribute("dir", lang === "he" ? "rtl" : "ltr");
     card.setAttribute("lang", lang);
+    const size = this._currentSize();
+    card.setAttribute("data-size", size);
     this._updaters = [];
     this._shadowRendered = true;
 
@@ -631,6 +701,7 @@ class GoodDaysCard extends HTMLElement {
     card.appendChild(header);
 
     const current = this._currentPeriod(nowMs);
+    let summarized = null;
     if (current) {
       const banner = mk("div", "banner");
       banner.setAttribute("role", "status");
@@ -641,7 +712,7 @@ class GoodDaysCard extends HTMLElement {
       banner.append(icon, mk("span", null, `${greeting} · ${this._t("ends_at", this._time(current.end), current.category)}`));
       card.appendChild(banner);
     } else {
-      this._renderSummary(card, items, nowMs, todayKey);
+      summarized = this._renderSummary(card, items, nowMs, todayKey);
     }
 
     if (this._fallback) card.appendChild(mk("p", "hint", this._t("no_integration")));
@@ -660,8 +731,10 @@ class GoodDaysCard extends HTMLElement {
       return;
     }
 
+    // Smaller cards: the Shabbat / Yom Tov in the summary block is not repeated in the list.
+    const listed = (size === "wide" || !summarized ? items : items.filter((i) => i !== summarized)).slice(0, this._itemLimit());
     const groups = new Map();
-    items.forEach((item) => {
+    listed.forEach((item) => {
       const key = this._startMs(item) <= nowMs ? todayKey : this._itemDayKey(item);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(item);
@@ -686,9 +759,9 @@ class GoodDaysCard extends HTMLElement {
 
   // Next Shabbat / Yom Tov with candle lighting and havdalah, readable from across the kitchen.
   _renderSummary(card, items, nowMs, todayKey) {
-    if (this._config.show_candle_lighting === false) return;
+    if (this._config.show_candle_lighting === false) return null;
     const next = items.find((i) => i.source === "holidays" && i.candle_lighting && this._startMs(i) > nowMs);
-    if (!next) return;
+    if (!next) return null;
     const block = mk("div", "summary");
     block.setAttribute("role", "group");
     block.setAttribute("aria-label", next.title);
@@ -711,6 +784,7 @@ class GoodDaysCard extends HTMLElement {
     const haftarah = this._haftarahLine(next);
     if (haftarah) block.appendChild(mk("div", "s-haftarah", haftarah));
     card.appendChild(block);
+    return next;
   }
 
   // "Haftarah: ..." for a Shabbat (non-compact card); the server labels a Shabbat glued to Yom Tov.
@@ -787,10 +861,11 @@ class GoodDaysCard extends HTMLElement {
         meta.appendChild(end);
       }
     } else {
-      this._timeParts(item).forEach((text) => meta.appendChild(mk("span", "time", text)));
+      // Secondary parts ("extra") step out in a narrow card; the details still have them.
+      this._timeParts(item).forEach((text, index) => meta.appendChild(mk("span", index ? "time extra" : "time", text)));
     }
     const moved = this._movedNote(item);
-    if (moved) meta.appendChild(mk("span", null, moved));
+    if (moved) meta.appendChild(mk("span", "extra", moved));
     if (item.conflicts_shabbat) {
       const badge = mk("span", "badge conflict");
       badge.append(this._icon("mdi:alert-outline"), mk("span", null, this._t("on_shabbat")));
@@ -800,7 +875,10 @@ class GoodDaysCard extends HTMLElement {
     const haftarah = this._haftarahLine(item);
     if (haftarah) main.appendChild(mk("span", "haftarah", haftarah));
     button.appendChild(main);
-    button.appendChild(this._chip(item, nowMs, todayKey));
+    // Narrow card: the countdown joins the time line, so the title gets the full width.
+    const chip = this._chip(item, nowMs, todayKey);
+    if (this._currentSize() === "narrow") meta.appendChild(chip);
+    else button.appendChild(chip);
     li.appendChild(button);
 
     const details = mk("div", "details");
@@ -947,6 +1025,8 @@ class GoodDaysCardEditor extends HTMLElement {
       { name: "show_candle_lighting", selector: { boolean: {} } },
       { name: "show_haftarah", selector: { boolean: {} } },
       { name: "compact", selector: { boolean: {} } },
+      { name: "responsive", selector: { boolean: {} } },
+      { name: "narrow_limit", selector: { number: { min: 1, max: 20, mode: "box" } } },
       { name: "entry_id", selector: { config_entry: { integration: "good_days" } } },
     ];
   }
@@ -979,7 +1059,7 @@ class GoodDaysCardEditor extends HTMLElement {
     const follows = this._followsIntegration();
     this._form.hass = this._hass;
     this._form.schema = this._schema();
-    this._form.data = Object.assign({ show_hebrew_date: true, show_candle_lighting: true, show_haftarah: true, compact: false }, this._config, {
+    this._form.data = Object.assign({ show_hebrew_date: true, show_candle_lighting: true, show_haftarah: true, compact: false, responsive: true }, this._config, {
       use_integration_categories: follows,
       categories: follows ? [...this._effective()] : this._config.categories,
     });
