@@ -184,6 +184,12 @@ show_haftarah: true           # "Haftarah: ..." line under Shabbat rows and in t
 compact: false                # one line: "Next: Shabbat · in 2 days · candles 17:52"
 responsive: true              # show less when the card is narrow (see below)
 narrow_limit: 3               # events listed in a narrow card
+location:                     # optional: this card's own place (default: the integration's)
+  latitude: 32.50
+  longitude: 34.89
+candle_lighting: 30           # optional: minutes before sunset (default: the integration's)
+havdalah: 0                   # optional: minutes after sunset, 0 = three stars
+diaspora: false               # optional: two-day Yom Tov (default: the integration's)
 entry_id: <optional, for a second Good Days instance>
 ```
 
@@ -195,13 +201,15 @@ The card adapts to its own width (not the screen's), so a card in a narrow colum
 
 Tap a row to see everything it hides. Set `responsive: false` to always show the full card.
 
+**Own location and times.** Turn on "Own location and times for this card" in the editor to show another place (the parents' city, a holiday home) or a local custom (Jerusalem 40 minutes, Haifa 30) on one card. Pick the spot on the map and optionally set candle lighting, havdalah and one / two-day Yom Tov; anything left empty follows the integration. Only that card changes: sensors, timers, reminders and Assist keep the integration's settings. Times are shown in Home Assistant's time zone, so pick places in the same zone (or use a second Good Days instance there).
+
 Everything is editable in the visual editor. The card follows the user's HA language (Hebrew → RTL). External and family events that fall on Shabbat or Yom Tov get a warning badge. Tap an item for details.
 
 Without the integration the card still lists the selected calendars (no holidays) and shows a hint.
 
 ### WebSocket API
 
-`good_days/upcoming` with `{calendars, days, limit, categories?, language?, entry_id?}` returns `{items, current, errors, now, language}`. Items are sorted by start and carry `uid, source, title, start, end, all_day, category, hebrew_date, candle_lighting, havdalah, in_effect, conflicts_shabbat, description, haftarah, haftarah_label` (`haftarah` = citation plus the special-reading mark, `haftarah_label` = "Haftarah" or "Shabbat haftarah"; family items add `kind, name, years, day, date_id`).
+`good_days/upcoming` with `{calendars, days, limit, categories?, language?, entry_id?, latitude?, longitude?, candle_lighting?, havdalah?, diaspora?}` (the last five override the entry's settings for this reply; latitude and longitude go together) returns `{items, current, errors, now, language}`. Items are sorted by start and carry `uid, source, title, start, end, all_day, category, hebrew_date, candle_lighting, havdalah, in_effect, conflicts_shabbat, description, haftarah, haftarah_label` (`haftarah` = citation plus the special-reading mark, `haftarah_label` = "Haftarah" or "Shabbat haftarah"; family items add `kind, name, years, day, date_id`).
 
 Family dates: `good_days/dates/list`, `dates/add`, `dates/update`, `dates/remove` (validation problems return `{errors: {field: code}}`), `dates/convert` (Gregorian → Hebrew).
 
