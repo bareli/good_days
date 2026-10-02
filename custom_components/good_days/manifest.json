@@ -10,5 +10,5 @@
   "issue_tracker": "https://github.com/bareli/good_days/issues",
   "loggers": ["hdate"],
   "requirements": ["hdate[astral]>=1.1.2"],
-  "version": "0.9.0"
+  "version": "0.10.0"
 }

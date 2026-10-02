@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.10.0 (unreleased)
+## v0.10.0 (2026-10-02)
 
 - **Own location and times per card**: the card editor has "Own location and times for this card": a map pick plus optional candle lighting, havdalah and one / two-day Yom Tov. Anything left empty follows the integration; only that card changes (sensors, timers, reminders and Assist keep the integration's settings). WS `good_days/upcoming` takes `latitude`, `longitude`, `candle_lighting`, `havdalah`, `diaspora`; the server computes those windows separately and keeps the last few in a small cache.
 
