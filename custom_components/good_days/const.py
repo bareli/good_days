@@ -13,6 +13,13 @@ CONF_NUSACH = "nusach"
 NUSACH_OPTIONS = ["ashkenazi", "sephardi"]
 DEFAULT_NUSACH = "sephardi"  # new installs
 LEGACY_NUSACH = "ashkenazi"  # entries saved before the option existed: no silent change
+# Fast times, v0.11: when a minor fast starts (dawn) and ends.
+CONF_FAST_START = "fast_start"
+FAST_START_OPTIONS = ["alot_16_1", "alot_72", "alot_90"]  # sun 16.1° below, or minutes before sunrise
+DEFAULT_FAST_START = "alot_16_1"
+CONF_FAST_END = "fast_end"
+FAST_END_OPTIONS = ["tzeit_tsom", "havdalah"]  # sun 6.45° below, or the Shabbat havdalah setting
+DEFAULT_FAST_END = "tzeit_tsom"
 CONF_LANGUAGE = "language"
 CONF_CATEGORIES = "categories"
 CONF_LOOKAHEAD_DAYS = "lookahead_days"
@@ -98,10 +105,20 @@ ACTION_PREFIX = "GOODDAYS"
 ACTION_ACK = "ack"
 ACTION_SNOOZE = "snooze"
 
+# Omer reminder, v0.11 (opt-in): every night of the Omer, minutes after tzeit.
+CONF_OMER_REMINDER = "omer_reminder"
+CONF_OMER_REMINDER_OFFSET = "omer_reminder_offset"
+DEFAULT_OMER_REMINDER_OFFSET = 0
+MAX_OMER_REMINDER_OFFSET = 240
+EVENT_OMER = f"{DOMAIN}_omer"
+ACTION_COUNTED = "counted"  # "GOODDAYS:counted:<entry_id>:omer:<YYYY-MM-DD>"
+
 # Assist intents, v0.3
 INTENT_UPCOMING = "GoodDaysUpcoming"
 INTENT_NEXT_HOLIDAY = "GoodDaysNextHoliday"
 INTENT_SHABBAT = "GoodDaysShabbatTimes"
+INTENT_OMER = "GoodDaysOmer"
+INTENT_FAST = "GoodDaysFastTimes"
 
 SIGNAL_UPDATED = f"{DOMAIN}_updated_{{}}"
 

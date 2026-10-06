@@ -19,3 +19,14 @@ intents:
           - "when is (candle lighting|shabbat|havdalah)"
           - "when does shabbat (start|begin|end)"
           - "what time is (candle lighting|havdalah)"
+  GoodDaysOmer:
+    data:
+      - sentences:
+          - "what('s| is) [the|today's|tonight's] (omer|sefirat haomer) [count]"
+          - "what day of the omer is (it|today|tonight)"
+  GoodDaysFastTimes:
+    data:
+      - sentences:
+          - "when (is|does) the [next] fast [start|begin|end]"
+          - "when does the fast (start|begin|end)"
+          - "what time does the fast (start|begin|end)"

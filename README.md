@@ -29,7 +29,7 @@ Requires Home Assistant 2025.7 or newer.
 
 | Entity | What |
 |---|---|
-| `calendar.good_days_holidays` | Shabbatot, Yom Tov, Chol HaMoed, fasts, minor and national days (categories from the options). Shabbat / Yom Tov events run from candle lighting to havdalah; adjacent Yom Tov and Shabbat are one event. Others are all-day. |
+| `calendar.good_days_holidays` | Shabbatot, Yom Tov, Chol HaMoed, fasts, minor and national days (categories from the options). Shabbat / Yom Tov events run from candle lighting to havdalah; adjacent Yom Tov and Shabbat are one event. Fasts run from dawn (Tisha B'Av: sunset) to nightfall. Others are all-day. |
 | `sensor.good_days_next_shabbat` | Candle lighting of the current or next Shabbat (timestamp). Attributes: `havdalah`, `parasha`, `special_shabbat` (e.g. `["Shekalim", "Mevarchim Chodesh Adar"]`), `title`, `hebrew_date`, `days_until`, `in_effect`. |
 | `sensor.good_days_next_candle_lighting` | Candle lighting of the current or next Shabbat **or Yom Tov** (timestamp), regardless of all-day events around it. Attributes: `havdalah`, `title`, `category`, `days_until`, `in_effect`. Best for automations. |
 | `sensor.good_days_next_holiday` | Name of the current or next holiday (not plain Shabbat or Rosh Chodesh). Attributes: `start`, `end`, `category`, `days_until`, `candle_lighting`, `havdalah`, `hebrew_date`. |
@@ -38,6 +38,9 @@ Requires Home Assistant 2025.7 or newer.
 | `select.good_days_timer_profile` | Active timer profile (e.g. Regular / Guests). |
 | `sensor.good_days_next_timer_action` | When the next timer fires; attributes `rule`, `action`, `targets`. |
 | `binary_sensor.good_days_holiday_today` | On during a holiday day. Attribute `holidays`. |
+| `sensor.good_days_next_fast` | Start of the current or next fast, Yom Kippur included (timestamp). Attributes: `end`, `title`, `hebrew_date`, `days_until`, `in_effect`. |
+| `binary_sensor.good_days_fasting` | On from the start to the end of a fast (Yom Kippur too). Attributes `title`, `end`. |
+| `sensor.good_days_omer` | Day of the Omer (1-49), moving on at nightfall; unknown outside the Omer. Attributes: `weeks`, `days`, `text` (the counting sentence), `next_count`, `counted`. |
 | `calendar.good_days_family` | Family dates. Birthdays and anniversaries are all-day; a yahrzeit runs from sunset the evening before to sunset. |
 | `sensor.good_days_next_family_date` | Title of the current or next family date. Attributes: `name`, `kind`, `years`, `start`, `days_until`, `hebrew_date`, `conflicts_shabbat`. |
 
@@ -76,6 +79,17 @@ Chodesh, Machar Chodesh and the special cases follow Hebcal's rules, and every S
 (Israel and abroad, both customs) is checked against Hebcal in the tests. Shabbat that is itself Yom Tov or
 Chol HaMoed (no weekly parasha) shows no haftarah yet.
 
+## Fasts and the Omer
+
+Minor fasts (Tzom Gedaliah, Asara B'Tevet, Ta'anit Esther, 17 Tammuz) run from dawn to nightfall; Tisha B'Av
+from sunset the evening before (after havdalah when it is postponed to Sunday) to havdalah; Yom Kippur from
+candle lighting to havdalah. In the options choose when minor fasts begin (dawn at 16.1°, default, or 72 / 90
+minutes before sunrise) and end (nightfall for fasts at 6.45°, default, or your havdalah setting). Tisha B'Av
+and Yom Kippur always end at havdalah. The card counts a fast in progress down to its end.
+
+The Omer count moves on at nightfall (`sensor.good_days_omer`), and the card shows it during the Omer
+(`show_omer: false` hides it). For an **Omer reminder** every night, turn it on in the options (see Reminders).
+
 ## Family dates
 
 Sidebar → **Good Days** (all users). Add a birthday, yahrzeit, anniversary or other date by its Hebrew date, or type the Gregorian date (tick *after sunset* if it was after sunset) and it is converted. With the Hebrew year the title shows the age or number of years ("Noa's birthday (7)", "יום הולדת 7 לנועה").
@@ -104,9 +118,9 @@ Panel → **Shabbat timers** tab. Each timer turns devices **on or off** (switch
 
 - **Around candle lighting** or **around havdalah**: N minutes before / after, e.g. hot plate on 20 min before candle lighting, off 30 min after havdalah.
 - **At a time on each holy day**: e.g. lights off 23:00, on 07:00. A time later than candle lighting is the evening before (23:00 → Friday night); earlier times are on the day itself. Choose every day, the first or last day, or Erev (the day before).
-- **Applies to** Shabbat, Yom Tov and/or Yom Kippur (a hot plate usually not on Yom Kippur). Two- and three-day Chag with Shabbat are handled as one stretch.
+- **Applies to** Shabbat, Yom Tov, Yom Kippur and/or fast days (a hot plate usually not on Yom Kippur). Two- and three-day Chag with Shabbat are handled as one stretch. On a fast day, "candle lighting" means when the fast begins and "havdalah" when it ends; a clock time on a minor fast is on that day.
 - **Only if** (optional): Home Assistant conditions checked when the timer fires (e.g. only when guests are staying).
-- **Presets** create the on and off timers for a hot plate, urn, evening lights, morning lights or AC.
+- **Presets** create the on and off timers for a hot plate, urn, evening lights, morning lights, AC, water heater, porch light, bedroom AC at night, or breaking the fast (urn / kettle before a fast ends).
 - **Profiles** (e.g. Regular, Guests, Summer): one is active (`select.good_days_timer_profile`); a new profile can start as a copy of another. **Duplicate** copies a timer.
 
 The tab shows a **preview** of the next Shabbat / Chag with every action and its exact time (a dry run), marks actions before candle lighting / after havdalah, and reports **conflicts** (the same device turned on and off at the same minute; nothing is resolved for you). **Run now** tests a timer immediately. The history keeps the last 100 runs.
@@ -137,6 +151,13 @@ Each family date chooses when (in the panel): on the day, 1, 3 or 7 days before 
 
 Reminders that would fall on Shabbat or Yom Tov are sent an hour before candle lighting instead (option **Hold reminders during Shabbat and Yom Tov**).
 
+**Omer reminder** (off by default): turn on **Remind me to count the Omer** and set the minutes after
+nightfall. Every night of the Omer it sends "Tonight: day N of the Omer" with the counting sentence and a
+**Counted** button, to the same targets. With reminders held during Shabbat and Yom Tov, a Shabbat / Yom Tov
+night is announced an hour before candle lighting (one message for all its nights), and the night after it
+comes after havdalah. It fires `good_days_omer` (`night, day, message, counted`, and again with `counted: true`
+when the button is pressed); `sensor.good_days_omer` has `counted`, so an automation can remind again later.
+
 Every reminder also fires the `good_days_reminder` event (`name, kind, day, years, title, message, date_id, entry_id`), even without notify targets, for your own automations.
 
 ## Assist
@@ -148,6 +169,8 @@ Copy [`docs/assist/en/good_days.yaml`](docs/assist/en/good_days.yaml) and/or [`d
 | `GoodDaysUpcoming` | What's coming up this week? | מה יש השבוע? |
 | `GoodDaysNextHoliday` | When is the next holiday? | מתי החג הבא? |
 | `GoodDaysShabbatTimes` | When is candle lighting? | מתי כניסת השבת? |
+| `GoodDaysOmer` | What's the Omer count? | כמה בעומר היום? |
+| `GoodDaysFastTimes` | When does the fast end? | מתי נגמר הצום? |
 
 Answers are spoken in the language you asked in.
 
@@ -181,6 +204,7 @@ categories: [shabbat, yom_tov, minor, fast, family]   # optional, default = inte
 show_hebrew_date: true
 show_candle_lighting: true
 show_haftarah: true           # "Haftarah: ..." line under Shabbat rows and in the next-Shabbat box
+show_omer: true               # during the Omer, a line with today's count
 compact: false                # one line: "Next: Shabbat · in 2 days · candles 17:52"
 responsive: true              # show less when the card is narrow (see below)
 narrow_limit: 3               # events listed in a narrow card
@@ -209,7 +233,7 @@ Without the integration the card still lists the selected calendars (no holidays
 
 ### WebSocket API
 
-`good_days/upcoming` with `{calendars, days, limit, categories?, language?, entry_id?, latitude?, longitude?, candle_lighting?, havdalah?, diaspora?}` (the last five override the entry's settings for this reply; latitude and longitude go together) returns `{items, current, errors, now, language}`. Items are sorted by start and carry `uid, source, title, start, end, all_day, category, hebrew_date, candle_lighting, havdalah, in_effect, conflicts_shabbat, description, haftarah, haftarah_label` (`haftarah` = citation plus the special-reading mark, `haftarah_label` = "Haftarah" or "Shabbat haftarah"; family items add `kind, name, years, day, date_id`).
+`good_days/upcoming` with `{calendars, days, limit, categories?, language?, entry_id?, latitude?, longitude?, candle_lighting?, havdalah?, diaspora?}` (the last five override the entry's settings for this reply; latitude and longitude go together) returns `{items, current, omer, errors, now, language}` (`omer` = `{day, text, counted, next_count}` during the Omer, else null). Items are sorted by start and carry `uid, source, title, start, end, all_day, category, hebrew_date, candle_lighting, havdalah, in_effect, conflicts_shabbat, description, haftarah, haftarah_label` (`haftarah` = citation plus the special-reading mark, `haftarah_label` = "Haftarah" or "Shabbat haftarah"; family items add `kind, name, years, day, date_id`).
 
 Family dates: `good_days/dates/list`, `dates/add`, `dates/update`, `dates/remove` (validation problems return `{errors: {field: code}}`), `dates/convert` (Gregorian → Hebrew).
 

@@ -20,6 +20,10 @@ FIELDS = {
     "notify_targets": ("Send family-date reminders to", "לשלוח תזכורות לתאריכים משפחתיים אל"),
     "reminder_time": ("Reminder time", "שעת התזכורת"),
     "quiet_on_shabbat": ("No reminders during Shabbat and Yom Tov", "לא לשלוח תזכורות בשבת ובחג"),
+    "fast_start": ("Minor fasts begin at", "תחילת הצומות הקלים"),
+    "fast_end": ("Minor fasts end at", "סוף הצומות הקלים"),
+    "omer_reminder": ("Remind me to count the Omer", "תזכורת לספירת העומר"),
+    "omer_reminder_offset": ("Omer reminder, minutes after nightfall", "תזכורת לספירת העומר, דקות אחרי צאת הכוכבים"),
 }
 DESCRIPTIONS = {
     "candle_lighting_minutes": (
@@ -42,9 +46,18 @@ DESCRIPTIONS = {
         "A reminder due on Shabbat or Yom Tov is sent an hour before candle lighting.",
         "תזכורת שחלה בשבת או בחג תישלח שעה לפני הדלקת הנרות.",
     ),
+    "fast_end": (
+        "Tisha B'Av and Yom Kippur always end at havdalah.",
+        "תשעה באב ויום כיפור מסתיימים תמיד בזמן ההבדלה.",
+    ),
+    "omer_reminder": (
+        "Every night of the Omer, to the reminder targets above. On Shabbat and Yom Tov (with no reminders during them) it comes an hour before candle lighting.",
+        "בכל לילה של ספירת העומר, ליעדי התזכורות שלמעלה. בשבת ובחג (כשאין תזכורות בהם) היא מגיעה שעה לפני הדלקת הנרות.",
+    ),
 }
 USER_FIELDS = ["location", "diaspora", "candle_lighting_minutes", "havdalah_minutes", "nusach", "language"]
-OPTION_FIELDS = USER_FIELDS + ["categories", "lookahead_days", "notify_targets", "reminder_time", "quiet_on_shabbat"]
+OPTION_FIELDS = USER_FIELDS + ["categories", "fast_start", "fast_end", "lookahead_days", "notify_targets",
+                               "reminder_time", "quiet_on_shabbat", "omer_reminder", "omer_reminder_offset"]
 
 TEXT = {
     "user_title": ("Good Days", "ימים טובים"),
@@ -63,11 +76,22 @@ ERRORS = {
     "invalid_lookahead": ("Days ahead must be a whole number between 30 and 730.", "מספר הימים חייב להיות מספר שלם בין 30 ל-730."),
     "invalid_notify": ("Pick existing notify services (Developer tools → Actions → notify.*).", "יש לבחור שירותי התראה קיימים (כלי מפתחים ← פעולות ← notify.*)."),
     "invalid_time": ("Enter a time as HH:MM.", "יש להזין שעה בפורמט HH:MM."),
+    "invalid_choice": ("Pick an option from the list.", "יש לבחור אפשרות מהרשימה."),
+    "invalid_omer_offset": ("Minutes must be a whole number between 0 and 240.", "מספר הדקות חייב להיות מספר שלם בין 0 ל-240."),
 }
 SELECTORS = {
     "nusach": {
         "ashkenazi": ("Ashkenazi", "אשכנז"),
         "sephardi": ("Sephardi / Edot HaMizrach", "ספרד / עדות המזרח"),
+    },
+    "fast_start": {
+        "alot_16_1": ("Dawn (sun 16.1° below the horizon)", "עלות השחר (השמש 16.1° מתחת לאופק)"),
+        "alot_72": ("72 minutes before sunrise", "72 דקות לפני הזריחה"),
+        "alot_90": ("90 minutes before sunrise", "90 דקות לפני הזריחה"),
+    },
+    "fast_end": {
+        "tzeit_tsom": ("Nightfall for fasts (sun 6.45° below)", "צאת הכוכבים לתענית (השמש 6.45° מתחת לאופק)"),
+        "havdalah": ("Havdalah time (as set above)", "זמן ההבדלה (כפי שהוגדר למעלה)"),
     },
     "language": {
         "auto": ("Same as Home Assistant", "כמו Home Assistant"),
@@ -128,8 +152,13 @@ ENTITY = {
         "next_family": ("Next family date", "התאריך המשפחתי הבא"),
         "next_candle_lighting": ("Next candle lighting", "הדלקת הנרות הבאה"),
         "next_timer_action": ("Next timer action", "הפעולה הבאה של הטיימרים"),
+        "next_fast": ("Next fast", "הצום הבא"),
+        "omer": ("Omer", "ספירת העומר"),
     },
-    "binary_sensor": {"holiday_today": ("Holiday today", "חג היום")},
+    "binary_sensor": {
+        "holiday_today": ("Holiday today", "חג היום"),
+        "fasting": ("Fasting", "צום"),
+    },
     "switch": {
         "shabbat_timers": ("Shabbat timers", "טיימרים לשבת"),
         "skip_next": ("Skip next Shabbat or Chag", "דילוג על השבת או החג הבא"),

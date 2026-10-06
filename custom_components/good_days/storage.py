@@ -151,6 +151,9 @@ class FamilyStore:
             "sent": dict(reminders.get("sent") or {}),
             "acked": dict(reminders.get("acked") or {}),
             "snoozes": list(reminders.get("snoozes") or []),
+            # Omer reminder (v0.11): evenings (ISO day the count is said on) sent / marked counted.
+            "omer_sent": dict(reminders.get("omer_sent") or {}),
+            "omer_counted": dict(reminders.get("omer_counted") or {}),
         }
         ics = data.get("ics") if isinstance(data.get("ics"), dict) else {}
         self.ics = {

@@ -18,6 +18,8 @@ from .const import (
     CONF_CANDLE_LIGHTING,
     CONF_CATEGORIES,
     CONF_DIASPORA,
+    CONF_FAST_END,
+    CONF_FAST_START,
     CONF_HAVDALAH,
     CONF_NUSACH,
     CONF_LANGUAGE,
@@ -26,6 +28,8 @@ from .const import (
     CONF_LOOKAHEAD_DAYS,
     DEFAULT_CANDLE_LIGHTING,
     DEFAULT_CATEGORIES,
+    DEFAULT_FAST_END,
+    DEFAULT_FAST_START,
     DEFAULT_HAVDALAH,
     LEGACY_NUSACH,
     DEFAULT_LOOKAHEAD_DAYS,
@@ -57,6 +61,8 @@ def settings_from_entry(hass: HomeAssistant, entry: ConfigEntry) -> EngineSettin
         candle_lighting=int(o.get(CONF_CANDLE_LIGHTING, DEFAULT_CANDLE_LIGHTING)),
         havdalah=int(o.get(CONF_HAVDALAH, DEFAULT_HAVDALAH)),
         nusach=str(o.get(CONF_NUSACH, LEGACY_NUSACH)),
+        fast_start=str(o.get(CONF_FAST_START, DEFAULT_FAST_START)),
+        fast_end=str(o.get(CONF_FAST_END, DEFAULT_FAST_END)),
     )
 
 
@@ -105,6 +111,7 @@ class GoodDaysRuntime:
         self.ics_cache: tuple | None = None  # (key, body), see ics.async_feed
         self.window: tuple[dt.date, dt.date] | None = None
         self._custom: dict[tuple, tuple[list[HolyEvent], list[FamilyEvent]]] = {}
+        self._omer_switch: dict[dt.date, dt.datetime | None] = {}
         self._unsubs: list[Callable[[], None]] = []
 
     @property
@@ -254,6 +261,31 @@ class GoodDaysRuntime:
     def in_effect(self, now: dt.datetime) -> HolyEvent | None:
         """The Shabbat / Yom Tov period in effect right now, if any."""
         return next((e for e in self.events if e.period and e.start <= now < e.end), None)
+
+    def next_fast(self, now: dt.datetime) -> HolyEvent | None:
+        """Current or next fast (minor fasts, Tisha B'Av, Yom Kippur), whatever the categories."""
+        return next((e for e in self.events if e.is_fast and e.end > now), None)
+
+    def fast_at(self, now: dt.datetime) -> HolyEvent | None:
+        return next((e for e in self.events if e.is_fast and e.start <= now < e.end), None)
+
+    def omer_switch(self, day: dt.date) -> dt.datetime | None:
+        """Tzeit of `day`, when the Omer count moves to the next day (cached per day)."""
+        if day not in self._omer_switch:
+            if len(self._omer_switch) > 8:
+                self._omer_switch.clear()
+            self._omer_switch[day] = engine.omer_switch(day, self.settings)
+        return self._omer_switch[day]
+
+    def omer(self, now: dt.datetime) -> tuple[int, dt.date, dt.datetime | None]:
+        """(Omer day of the Hebrew day in progress, 0 outside; the evening it was counted on;
+        when the next count begins)."""
+        today = dt_util.as_local(now).date()
+        switch = self.omer_switch(today)
+        if switch is not None and now >= switch:
+            tomorrow = today + dt.timedelta(days=1)
+            return engine.omer_day(tomorrow), today, self.omer_switch(tomorrow)
+        return engine.omer_day(today), today - dt.timedelta(days=1), switch
 
     @staticmethod
     def days_until(event: HolyEvent, now: dt.datetime) -> int:

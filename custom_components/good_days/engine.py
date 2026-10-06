@@ -14,6 +14,7 @@ from hdate import HebrewDate, Location, Zmanim
 from hdate.hebrew_date import Months, is_leap_year
 from hdate.gematria import hebrew_number
 from hdate.holidays import HolidayDatabase, HolidayTypes
+from hdate.omer import Nusach, Omer
 from hdate.parasha import ParashaDatabase
 
 from .haftarah import ASHKENAZI, format_parts, haftarah as _haftarah, replacing_special
@@ -32,6 +33,8 @@ from .const import (
     CAT_YOM_TOV,
     CATEGORIES,
     DEFAULT_CANDLE_LIGHTING,
+    DEFAULT_FAST_END,
+    DEFAULT_FAST_START,
     DEFAULT_HAVDALAH,
 )
 
@@ -92,7 +95,12 @@ TEXT = {
     "rosh_chodesh": ("Rosh Chodesh", "ראש חודש"),
     "candle_lighting": ("Candle lighting", "הדלקת נרות"),
     "havdalah": ("Havdalah", "הבדלה"),
+    "fast_begins": ("Fast begins", "תחילת הצום"),
+    "fast_ends": ("Fast ends", "סוף הצום"),
 }
+TISHA_BAV = "tisha_bav"
+YOM_KIPPUR = "yom_kippur"
+FAST_DAWN_MINUTES = {"alot_72": 72, "alot_90": 90}  # before sunrise; "alot_16_1" is hdate's dawn
 SEPARATOR = " · "
 NBSP = chr(0xA0)  # keeps "Haftarah:" on the line of its citation
 
@@ -162,6 +170,8 @@ class EngineSettings:
     candle_lighting: int = DEFAULT_CANDLE_LIGHTING
     havdalah: int = DEFAULT_HAVDALAH
     nusach: str = ASHKENAZI  # haftarah custom: ashkenazi | sephardi
+    fast_start: str = DEFAULT_FAST_START  # minor fasts: alot_16_1 | alot_72 | alot_90
+    fast_end: str = DEFAULT_FAST_END  # minor fasts: tzeit_tsom | havdalah
 
 
 @dataclass(frozen=True)
@@ -192,6 +202,11 @@ class HolyEvent:
     @property
     def is_shabbat(self) -> bool:
         return SHABBAT in self.keys
+
+    @property
+    def is_fast(self) -> bool:
+        """A fast day (timed from dawn or sunset), or Yom Kippur."""
+        return self.category == CAT_FAST or YOM_KIPPUR in self.keys
 
     def overlaps(self, start: dt.datetime, end: dt.datetime) -> bool:
         return self.start < end and self.end > start
@@ -262,6 +277,9 @@ class HolyEvent:
             parts.append(f"{_t(TEXT, 'candle_lighting', lang)} {self.candle_lighting:%H:%M}")
         if self.havdalah:
             parts.append(f"{_t(TEXT, 'havdalah', lang)} {self.havdalah:%H:%M}")
+        if self.category == CAT_FAST and not self.all_day:
+            parts.append(f"{_t(TEXT, 'fast_begins', lang)} {self.start:%H:%M}")
+            parts.append(f"{_t(TEXT, 'fast_ends', lang)} {self.end:%H:%M}")
         return SEPARATOR.join(parts)
 
 
@@ -325,7 +343,7 @@ def compute(settings: EngineSettings, start: dt.date, end: dt.date) -> list[Holy
 
     events = [
         *_periods(days, settings, location, parasha_db, tz),
-        *_spans(days, tz),
+        *_spans(days, tz, settings, location),
     ]
     lo, hi = _midnight(start, tz), _midnight(end + ONE_DAY, tz)
     events = [e for e in events if e.overlaps(lo, hi)]
@@ -473,8 +491,45 @@ def _specials(day: dt.date, hd: HebrewDate, holidays: list, parasha: str | None)
     return tuple(found), blessed
 
 
-def _spans(days, tz) -> Iterator[HolyEvent]:
-    """Consecutive days of the same (non Yom Tov) holiday become one all-day event."""
+def _zman(day: dt.date, name: str, settings: EngineSettings, location: Location) -> dt.datetime:
+    """A named hdate zman as an aware local datetime (same API in hdate 1.1.2 and 1.2.x)."""
+    return _zmanim(day, settings, location).zmanim[name].local
+
+
+def _nightfall(day: dt.date, settings: EngineSettings, location: Location) -> dt.datetime:
+    """Havdalah time on any day: three stars, or sunset + the havdalah minutes."""
+    if settings.havdalah == 0:
+        return _zman(day, "tset_hakohavim_shabbat", settings, location)
+    return _zman(day, "shkia", settings, location) + dt.timedelta(minutes=settings.havdalah)
+
+
+def _fast_times(name: str, day: dt.date, settings: EngineSettings, location: Location) -> tuple[dt.datetime, dt.datetime]:
+    """Start and end of a fast. Tisha B'Av runs from sunset (or, postponed, from havdalah) to
+    havdalah; minor fasts from dawn to tzeit (or havdalah), per the settings."""
+    if name == TISHA_BAV:
+        erev = day - ONE_DAY
+        start = (
+            _nightfall(erev, settings, location)
+            if erev.weekday() == SATURDAY
+            else _zman(erev, "shkia", settings, location)
+        )
+        return start, _nightfall(day, settings, location)
+    if settings.fast_start in FAST_DAWN_MINUTES:
+        start = _zman(day, "netz_hachama", settings, location) - dt.timedelta(
+            minutes=FAST_DAWN_MINUTES[settings.fast_start]
+        )
+    else:
+        start = _zman(day, "alot_hashachar", settings, location)
+    if settings.fast_end == "havdalah":
+        end = _nightfall(day, settings, location)
+    else:
+        end = _zman(day, "tset_hakohavim_tsom", settings, location)
+    return start, end
+
+
+def _spans(days, tz, settings: EngineSettings, location: Location) -> Iterator[HolyEvent]:
+    """Consecutive days of the same (non Yom Tov) holiday become one all-day event.
+    Fasts are timed (dawn or sunset to nightfall), all-day only where the sun gives no times."""
     open_spans: dict[str, list] = {}
     closed: list[list] = []
     for day, hd, holidays in days:
@@ -494,15 +549,54 @@ def _spans(days, tz) -> Iterator[HolyEvent]:
 
     for first, last, h, month in closed:
         category = _category(h.name, h.type.name)
+        start, end, all_day = _midnight(first, tz), _midnight(last + ONE_DAY, tz), True
+        if category == CAT_FAST:
+            try:
+                times = _fast_times(h.name, first, settings, location)
+            except (ValueError, ArithmeticError, AttributeError, TypeError):
+                times = None
+            # Near the poles hdate returns times without a real sunrise / sunset: keep all-day.
+            if times and times[0] < times[1] and first - ONE_DAY <= times[0].date() and times[1].date() == first:
+                (start, end), all_day = times, False
         yield HolyEvent(
             uid=f"{category}-{h.name}-{first.isoformat()}",
             category=category,
             keys=(h.name,),
             first_day=first,
             days=(last - first).days + 1,
-            start=_midnight(first, tz),
-            end=_midnight(last + ONE_DAY, tz),
-            all_day=True,
+            start=start,
+            end=end,
+            all_day=all_day,
             period=False,
             month=month,
         )
+
+
+# Omer (v0.11) -----------------------------------------------------------------------------
+
+def omer_day(day: dt.date) -> int:
+    """Omer day (1-49) counted on the night that begins the Hebrew date of `day`; 0 outside."""
+    return Omer(date=HebrewDate.from_gdate(day)).total_days
+
+
+def omer_switch(day: dt.date, settings: EngineSettings) -> dt.datetime | None:
+    """When the count moves to the next day on the evening of `day` (tzeit); None near the poles."""
+    try:
+        tzeit = _zman(day, "tset_hakohavim_tsom", settings, make_location(settings))
+    except (ValueError, ArithmeticError, AttributeError, TypeError):
+        return None
+    return tzeit if tzeit.date() == day and tzeit.hour >= 12 else None
+
+
+def omer_text(total: int, lang: str, nusach: str = ASHKENAZI) -> str:
+    """The counting sentence ('Today is the ... of the Omer' / 'היום ... לעומר')."""
+    if not 1 <= total <= 49:
+        return ""
+
+    def run() -> str:
+        set_language(lang)
+        return Omer(
+            total_days=total, nusach=Nusach.ASHKENAZ if nusach == ASHKENAZI else Nusach.SFARAD
+        ).count_str()
+
+    return contextvars.copy_context().run(run)

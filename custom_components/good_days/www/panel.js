@@ -59,6 +59,8 @@ const I18N = {
     preset_water_heater: "Electric water heater",
     preset_porch_light: "Porch light",
     preset_bedroom_ac_night: "Bedroom AC at night",
+    preset_break_fast: "Breaking the fast (urn / kettle)",
+    preset_note_break_fast: "On a fast day, \"havdalah\" means when the fast ends.",
     targets: "Devices",
     targets_hint: "Switches, lights, plugs, AC, scenes...",
     action: "Turn",
@@ -89,6 +91,8 @@ const I18N = {
     kind_shabbat: "Shabbat",
     kind_yom_tov: "Yom Tov",
     kind_yom_kippur: "Yom Kippur",
+    kind_fast: "Fast days",
+    fast_hint: "On fast days, candle lighting means when the fast begins and havdalah when it ends.",
     conditions: "Only if (optional)",
     conditions_hint: "Home Assistant conditions, checked when the timer fires.",
     has_conditions: (n) => `${iso(n)} condition(s)`,
@@ -128,7 +132,7 @@ const I18N = {
     e_invalid_offset: "Minutes must be a whole number from 0 to 720.",
     e_invalid_time: "Enter a time as HH:MM.",
     e_invalid_days: "Pick the days.",
-    e_invalid_applies_to: "Pick at least one: Shabbat, Yom Tov or Yom Kippur.",
+    e_invalid_applies_to: "Pick at least one: Shabbat, Yom Tov, Yom Kippur or fast days.",
     e_invalid_profile: "Pick a profile.",
     e_invalid_conditions: "One of the conditions is not valid.",
     e_too_many_rules: "Too many timers.",
@@ -260,6 +264,8 @@ const I18N = {
     preset_water_heater: "דוד חשמל",
     preset_porch_light: "תאורת כניסה",
     preset_bedroom_ac_night: "מזגן חדר שינה בלילה",
+    preset_break_fast: "שבירת הצום (מיחם / קומקום)",
+    preset_note_break_fast: "ביום צום, \"הבדלה\" פירושה סוף הצום.",
     targets: "מכשירים",
     targets_hint: "מתגים, אורות, שקעים, מזגן, סצנות...",
     action: "פעולה",
@@ -290,6 +296,8 @@ const I18N = {
     kind_shabbat: "שבת",
     kind_yom_tov: "יום טוב",
     kind_yom_kippur: "יום כיפור",
+    kind_fast: "ימי צום",
+    fast_hint: "בימי צום, הדלקת נרות פירושה תחילת הצום והבדלה פירושה סוף הצום.",
     conditions: "רק אם (רשות)",
     conditions_hint: "תנאים של Home Assistant, נבדקים ברגע ההפעלה.",
     has_conditions: (n) => `${iso(n)} תנאים`,
@@ -329,7 +337,7 @@ const I18N = {
     e_invalid_offset: "מספר הדקות חייב להיות מספר שלם בין 0 ל-720.",
     e_invalid_time: "יש להזין שעה בפורמט HH:MM.",
     e_invalid_days: "יש לבחור ימים.",
-    e_invalid_applies_to: "יש לבחור לפחות אחד: שבת, יום טוב או יום כיפור.",
+    e_invalid_applies_to: "יש לבחור לפחות אחד: שבת, יום טוב, יום כיפור או ימי צום.",
     e_invalid_profile: "יש לבחור פרופיל.",
     e_invalid_conditions: "אחד התנאים אינו תקין.",
     e_too_many_rules: "יותר מדי טיימרים.",
@@ -1894,7 +1902,7 @@ class GoodDaysPanel extends HTMLElement {
     const applies = mk("fieldset");
     applies.appendChild(mk("legend", null, this._t("applies_to")));
     const appliesBoxes = {};
-    ["shabbat", "yom_tov", "yom_kippur"].forEach((k) => {
+    ["shabbat", "yom_tov", "yom_kippur", "fast"].forEach((k) => {
       const label = mk("label");
       const box = mk("input");
       box.type = "checkbox";
@@ -1903,6 +1911,7 @@ class GoodDaysPanel extends HTMLElement {
       label.append(box, mk("span", null, this._t(`kind_${k}`)));
       applies.appendChild(label);
     });
+    applies.appendChild(mk("span", "hint", this._t("fast_hint")));
     const appliesErr = mk("span", "err");
     appliesErr.setAttribute("aria-live", "polite");
     applies.appendChild(appliesErr);

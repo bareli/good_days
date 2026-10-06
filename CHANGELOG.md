@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.11.0 (2026-10-06)
+
+- **Fast times**: the minor fasts (Tzom Gedaliah, Asara B'Tevet, Ta'anit Esther, 17 Tammuz) now run from dawn to nightfall, and Tisha B'Av from sunset the evening before (after havdalah when it is postponed to Sunday) to havdalah. New options: when minor fasts begin (dawn at 16.1°, the default, or 72 / 90 minutes before sunrise) and end (nightfall for fasts at 6.45°, the default, or the havdalah setting). Fast start times match hebcal.com. **Behaviour change:** fasts on the holidays calendar and in the calendar link are timed events now, no longer all-day; an automation that relied on them being all-day needs a look.
+- **New entities**: `sensor.good_days_next_fast` (start of the current or next fast, including Yom Kippur; attributes `end`, `title`, `in_effect`...), `binary_sensor.good_days_fasting` (on while fasting) and `sensor.good_days_omer` (day 1-49 of the Omer, moving on at nightfall; attributes `weeks`, `days`, the counting sentence in `text`, `next_count`, `counted`).
+- **Shabbat timers on fast days**: "Applies to" has **Fast days**; on a fast, "candle lighting" means when it begins and "havdalah" when it ends. New preset **Breaking the fast** (urn / kettle on 30 minutes before the fast ends, off an hour after; fast days and Yom Kippur). A clock time on a minor fast stays on that day.
+- **Omer reminder** (opt-in, off by default): every night of the Omer, at nightfall plus your offset, to the reminder targets, with the counting sentence and a **Counted** button (`good_days_omer` event; the Omer sensor's `counted` attribute lets an automation remind again). With "no reminders during Shabbat and Yom Tov", a Shabbat / Yom Tov night is announced an hour before candle lighting, and the night after it comes after havdalah.
+- **Card**: a fast in progress counts down to its end ("ends in 1:12"); fast rows show when they begin and end; during the Omer a line shows today's count (card option `show_omer`, on by default). WS `good_days/upcoming` returns `omer`.
+- **Assist**: "What's the Omer count?" / "כמה בעומר היום?" and "When does the fast end?" / "מתי נגמר הצום?" (new sentences in `docs/assist`).
+
 ## v0.10.0 (2026-10-02)
 
 - **Own location and times per card**: the card editor has "Own location and times for this card": a map pick plus optional candle lighting, havdalah and one / two-day Yom Tov. Anything left empty follows the integration; only that card changes (sensors, timers, reminders and Assist keep the integration's settings). WS `good_days/upcoming` takes `latitude`, `longitude`, `candle_lighting`, `havdalah`, `diaspora`; the server computes those windows separately and keeps the last few in a small cache.
