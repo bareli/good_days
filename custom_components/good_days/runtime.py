@@ -283,9 +283,11 @@ class GoodDaysRuntime:
         today = dt_util.as_local(now).date()
         switch = self.omer_switch(today)
         if switch is not None and now >= switch:
-            tomorrow = today + dt.timedelta(days=1)
-            return engine.omer_day(tomorrow), today, self.omer_switch(tomorrow)
-        return engine.omer_day(today), today - dt.timedelta(days=1), switch
+            today += dt.timedelta(days=1)
+            switch = self.omer_switch(today)
+        # The next count only while there is one (the evening before day 1 up to day 48).
+        counting = engine.omer_day(today + dt.timedelta(days=1)) > 0
+        return engine.omer_day(today), today - dt.timedelta(days=1), switch if counting else None
 
     @staticmethod
     def days_until(event: HolyEvent, now: dt.datetime) -> int:

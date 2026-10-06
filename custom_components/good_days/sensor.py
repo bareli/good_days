@@ -191,6 +191,7 @@ class NextFastSensor(GoodDaysEntity, SensorEntity):
     """Start of the current or next fast (minor fasts from dawn, Tisha B'Av and Yom Kippur from the evening)."""
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:food-off-outline"
 
     def __init__(self, entry: ConfigEntry) -> None:
         super().__init__(entry, "next_fast")
@@ -220,6 +221,8 @@ class NextFastSensor(GoodDaysEntity, SensorEntity):
 
 class OmerSensor(GoodDaysEntity, SensorEntity):
     """Day of the Omer (1-49) for the Hebrew day in progress: it moves on at tzeit. Unknown outside the Omer."""
+
+    _attr_icon = "mdi:sprout-outline"
 
     def __init__(self, entry: ConfigEntry) -> None:
         super().__init__(entry, "omer")

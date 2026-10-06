@@ -38,6 +38,8 @@ class HolidayTodaySensor(GoodDaysEntity, BinarySensorEntity):
 
 
 class FastingSensor(GoodDaysEntity, BinarySensorEntity):
+    _attr_icon = "mdi:food-off-outline"
+
     def __init__(self, entry: ConfigEntry) -> None:
         super().__init__(entry, "fasting")
 

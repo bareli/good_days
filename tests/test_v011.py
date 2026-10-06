@@ -189,7 +189,12 @@ async def test_omer_sensor_moves_at_tzeit(hass: HomeAssistant, israel, freezer) 
     await _at(hass, freezer, tzeit + dt.timedelta(minutes=1))
     assert hass.states.get("sensor.good_days_omer").state == "5"
     await _at(hass, freezer, dt.datetime(2027, 6, 11, 12, tzinfo=TZ))  # 6 Sivan: over
-    assert hass.states.get("sensor.good_days_omer").state == "unknown"
+    state = hass.states.get("sensor.good_days_omer")
+    assert state.state == "unknown" and state.attributes["next_count"] is None
+    # 15 Nisan 5788 by day: no count yet, the first one is tonight.
+    await _at(hass, freezer, dt.datetime(2028, 4, 11, 12, tzinfo=TZ))
+    state = hass.states.get("sensor.good_days_omer")
+    assert state.state == "unknown" and state.attributes["next_count"] is not None
 
 
 async def test_omer_reminder_quiet_on_shabbat_and_yom_tov(hass: HomeAssistant, israel, freezer) -> None:
