@@ -14,7 +14,17 @@ from .const import (
     CONF_CANDLE_LIGHTING,
     CONF_CATEGORIES,
     CONF_DIASPORA,
+    CONF_FAST_END,
+    CONF_FAST_START,
     CONF_HAVDALAH,
+    CONF_OMER_REMINDER,
+    CONF_OMER_REMINDER_OFFSET,
+    DEFAULT_FAST_END,
+    DEFAULT_FAST_START,
+    DEFAULT_OMER_REMINDER_OFFSET,
+    FAST_END_OPTIONS,
+    FAST_START_OPTIONS,
+    MAX_OMER_REMINDER_OFFSET,
     CONF_NUSACH,
     DEFAULT_NUSACH,
     LEGACY_NUSACH,
@@ -82,6 +92,10 @@ def _base_defaults(hass: HomeAssistant) -> dict[str, Any]:
         CONF_NOTIFY_TARGETS: [],
         CONF_REMINDER_TIME: DEFAULT_REMINDER_TIME,
         CONF_QUIET_ON_SHABBAT: True,
+        CONF_FAST_START: DEFAULT_FAST_START,
+        CONF_FAST_END: DEFAULT_FAST_END,
+        CONF_OMER_REMINDER: False,
+        CONF_OMER_REMINDER_OFFSET: DEFAULT_OMER_REMINDER_OFFSET,
     }
 
 
@@ -129,6 +143,12 @@ def _option_fields(hass: HomeAssistant, d: dict[str, Any]) -> dict:
                 mode=selector.SelectSelectorMode.LIST,
             )
         ),
+        vol.Required(CONF_FAST_START, default=d[CONF_FAST_START]): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=FAST_START_OPTIONS, translation_key="fast_start")
+        ),
+        vol.Required(CONF_FAST_END, default=d[CONF_FAST_END]): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=FAST_END_OPTIONS, translation_key="fast_end")
+        ),
         vol.Required(CONF_LOOKAHEAD_DAYS, default=d[CONF_LOOKAHEAD_DAYS]): selector.NumberSelector(
             selector.NumberSelectorConfig(
                 min=MIN_LOOKAHEAD_DAYS, max=MAX_LOOKAHEAD_DAYS, step=1, mode=selector.NumberSelectorMode.BOX,
@@ -144,6 +164,12 @@ def _option_fields(hass: HomeAssistant, d: dict[str, Any]) -> dict:
         ),
         vol.Required(CONF_REMINDER_TIME, default=d[CONF_REMINDER_TIME]): _TimeWithoutSeconds({"no_second": True}),
         vol.Required(CONF_QUIET_ON_SHABBAT, default=d[CONF_QUIET_ON_SHABBAT]): selector.BooleanSelector(),
+        vol.Required(CONF_OMER_REMINDER, default=d[CONF_OMER_REMINDER]): selector.BooleanSelector(),
+        vol.Required(CONF_OMER_REMINDER_OFFSET, default=d[CONF_OMER_REMINDER_OFFSET]): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0, max=MAX_OMER_REMINDER_OFFSET, step=1, mode=selector.NumberSelectorMode.BOX
+            )
+        ),
     }
 
 
@@ -227,6 +253,23 @@ def validate(
         else:
             clean[CONF_REMINDER_TIME] = reminder_time
         clean[CONF_QUIET_ON_SHABBAT] = bool(user_input.get(CONF_QUIET_ON_SHABBAT, True))
+        for key, allowed, default in (
+            (CONF_FAST_START, FAST_START_OPTIONS, DEFAULT_FAST_START),
+            (CONF_FAST_END, FAST_END_OPTIONS, DEFAULT_FAST_END),
+        ):
+            value = user_input.get(key, default)
+            if value not in allowed:
+                errors[key] = "invalid_choice"
+            else:
+                clean[key] = value
+        clean[CONF_OMER_REMINDER] = bool(user_input.get(CONF_OMER_REMINDER, False))
+        offset = _int_in(
+            user_input.get(CONF_OMER_REMINDER_OFFSET, DEFAULT_OMER_REMINDER_OFFSET), 0, MAX_OMER_REMINDER_OFFSET
+        )
+        if offset is None:
+            errors[CONF_OMER_REMINDER_OFFSET] = "invalid_omer_offset"
+        else:
+            clean[CONF_OMER_REMINDER_OFFSET] = offset
     return clean, errors
 
 

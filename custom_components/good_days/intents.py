@@ -1,4 +1,5 @@
-"""Assist intents: what's coming this week, the next holiday, Shabbat times (en / he speech)."""
+"""Assist intents: what's coming this week, the next holiday, Shabbat times, the Omer count,
+fast times (en / he speech)."""
 from __future__ import annotations
 
 import datetime as dt
@@ -8,8 +9,17 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import intent
 from homeassistant.util import dt as dt_util
 
-from .const import CAT_EREV, CAT_ROSH_CHODESH, DOMAIN, INTENT_NEXT_HOLIDAY, INTENT_SHABBAT, INTENT_UPCOMING
-from .engine import norm_language
+from .const import (
+    CAT_EREV,
+    CAT_ROSH_CHODESH,
+    DOMAIN,
+    INTENT_FAST,
+    INTENT_NEXT_HOLIDAY,
+    INTENT_OMER,
+    INTENT_SHABBAT,
+    INTENT_UPCOMING,
+)
+from .engine import norm_language, omer_text
 from .websocket import resolve_runtime
 
 REGISTERED_KEY = f"{DOMAIN}_intents_registered"
@@ -39,6 +49,11 @@ TEXT = {
     "shabbat_now": ("{title} ends at {hv}.", "{title} יוצאת ב-{hv}."),
     "yom_tov_now": ("{title} ends at {hv}.", "{title} יוצא ב-{hv}."),
     "title": (" {t}.", " {t}."),
+    "omer": ("{text}.", "{text}."),
+    "no_omer": ("The Omer is not being counted now.", "עכשיו לא סופרים את העומר."),
+    "fast": ("{title} begins {when} at {start} and ends at {end}.", "{title}: תחילת הצום {when} ב-{start}, סוף הצום ב-{end}."),
+    "fast_now": ("{title} ends at {end}.", "{title}: הצום מסתיים ב-{end}."),
+    "no_fast": ("No fast found in the coming year.", "לא נמצא צום בשנה הקרובה."),
     "and": (" and ", " ו"),
 }
 
@@ -123,6 +138,33 @@ def speech_shabbat(runtime, lang: str, now: dt.datetime) -> str:
     return text
 
 
+def speech_omer(runtime, lang: str, now: dt.datetime) -> str:
+    day, _, _ = runtime.omer(now)
+    if not day:
+        return _t("no_omer", lang)
+    return _t("omer", lang, text=omer_text(day, lang, runtime.settings.nusach))
+
+
+def speech_fast(runtime, lang: str, now: dt.datetime) -> str:
+    event = runtime.next_fast(now)
+    if event is None or event.all_day:
+        return _t("no_fast", lang)
+    title = event.title(lang)
+    if event.start <= now:
+        return _t("fast_now", lang, title=title, end=_hhmm(event.end))
+    today = dt_util.as_local(now).date()
+    day = dt_util.as_local(event.start).date()
+    days = (day - today).days
+    when = (
+        _when(day, today, lang)
+        if days < WEEK_DAYS
+        else _t("in_days", lang, n=days, on=_t("on_day", lang, day=WEEKDAYS[lang][day.weekday()]))
+    )
+    if dt_util.as_local(event.start).hour >= 15:
+        when = _t("evening", lang, when=when)  # Tisha B'Av / Yom Kippur begin the evening before
+    return _t("fast", lang, title=title, when=when, start=_hhmm(event.start), end=_hhmm(event.end))
+
+
 class _GoodDaysIntent(intent.IntentHandler):
     def __init__(self, intent_type: str, description: str, speech) -> None:
         self.intent_type = intent_type
@@ -150,5 +192,7 @@ def async_register_intents(hass: HomeAssistant) -> None:
         (INTENT_UPCOMING, "What is coming up in the next week (holidays and family dates)", speech_upcoming),
         (INTENT_NEXT_HOLIDAY, "When is the next Jewish holiday", speech_next_holiday),
         (INTENT_SHABBAT, "Candle lighting and havdalah times of the next Shabbat", speech_shabbat),
+        (INTENT_OMER, "Today's count of the Omer", speech_omer),
+        (INTENT_FAST, "When the next fast begins and ends", speech_fast),
     ):
         intent.async_register(hass, _GoodDaysIntent(intent_type, description, speech))

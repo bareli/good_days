@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from .const import MAX_NAME_LENGTH
+from .const import CAT_FAST, MAX_NAME_LENGTH
 from .engine import HolyEvent
 
 ANCHOR_CANDLE = "candle_lighting"
@@ -17,8 +17,10 @@ ANCHOR_HAVDALAH = "havdalah"
 ANCHOR_CLOCK = "clock"
 ANCHORS = [ANCHOR_CANDLE, ANCHOR_HAVDALAH, ANCHOR_CLOCK]
 ACTIONS = ["on", "off"]
-KIND_SHABBAT, KIND_YOM_TOV, KIND_YOM_KIPPUR = "shabbat", "yom_tov", "yom_kippur"
-KINDS = [KIND_SHABBAT, KIND_YOM_TOV, KIND_YOM_KIPPUR]
+KIND_SHABBAT, KIND_YOM_TOV, KIND_YOM_KIPPUR, KIND_FAST = "shabbat", "yom_tov", "yom_kippur", "fast"
+KINDS = [KIND_SHABBAT, KIND_YOM_TOV, KIND_YOM_KIPPUR, KIND_FAST]
+# Kinds of the presets built for Shabbat / Chag (v0.11 added fasts, which no older preset is for).
+HOLY_KINDS = [KIND_SHABBAT, KIND_YOM_TOV, KIND_YOM_KIPPUR]
 # Which days of a period a clock rule runs on.
 DAYS_EACH, DAYS_FIRST, DAYS_LAST, DAYS_EREV = "each", "first", "last", "erev"
 DAY_CHOICES = [DAYS_EACH, DAYS_FIRST, DAYS_LAST, DAYS_EREV]
@@ -47,31 +49,36 @@ PRESETS: dict[str, list[dict[str, Any]]] = {
         {"action": "off", "anchor": ANCHOR_HAVDALAH, "offset_min": 15, "applies_to": [KIND_SHABBAT, KIND_YOM_TOV]},
     ],
     "evening_lights": [
-        {"action": "on", "anchor": ANCHOR_CANDLE, "offset_min": -10, "applies_to": KINDS},
-        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "23:00", "days": DAYS_EACH, "applies_to": KINDS},
+        {"action": "on", "anchor": ANCHOR_CANDLE, "offset_min": -10, "applies_to": HOLY_KINDS},
+        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "23:00", "days": DAYS_EACH, "applies_to": HOLY_KINDS},
     ],
     "morning_lights": [
-        {"action": "on", "anchor": ANCHOR_CLOCK, "time": "07:00", "days": DAYS_EACH, "applies_to": KINDS},
-        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "09:30", "days": DAYS_EACH, "applies_to": KINDS},
+        {"action": "on", "anchor": ANCHOR_CLOCK, "time": "07:00", "days": DAYS_EACH, "applies_to": HOLY_KINDS},
+        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "09:30", "days": DAYS_EACH, "applies_to": HOLY_KINDS},
     ],
     "air_conditioner": [
-        {"action": "on", "anchor": ANCHOR_CANDLE, "offset_min": -15, "applies_to": KINDS},
-        {"action": "off", "anchor": ANCHOR_HAVDALAH, "offset_min": 5, "applies_to": KINDS},
+        {"action": "on", "anchor": ANCHOR_CANDLE, "offset_min": -15, "applies_to": HOLY_KINDS},
+        {"action": "off", "anchor": ANCHOR_HAVDALAH, "offset_min": 5, "applies_to": HOLY_KINDS},
     ],
     # Electric water heater: heats on erev Shabbat / Chag, off before candle lighting.
     "water_heater": [
-        {"action": "on", "anchor": ANCHOR_CLOCK, "time": "12:00", "days": DAYS_EREV, "applies_to": KINDS},
-        {"action": "off", "anchor": ANCHOR_CANDLE, "offset_min": -15, "applies_to": KINDS},
+        {"action": "on", "anchor": ANCHOR_CLOCK, "time": "12:00", "days": DAYS_EREV, "applies_to": HOLY_KINDS},
+        {"action": "off", "anchor": ANCHOR_CANDLE, "offset_min": -15, "applies_to": HOLY_KINDS},
     ],
     # Porch / entrance light for guests: on before candle lighting, off late at night.
     "porch_light": [
-        {"action": "on", "anchor": ANCHOR_CANDLE, "offset_min": -10, "applies_to": KINDS},
-        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "01:00", "days": DAYS_EACH, "applies_to": KINDS},
+        {"action": "on", "anchor": ANCHOR_CANDLE, "offset_min": -10, "applies_to": HOLY_KINDS},
+        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "01:00", "days": DAYS_EACH, "applies_to": HOLY_KINDS},
     ],
     # Bedroom air conditioner for the night.
     "bedroom_ac_night": [
-        {"action": "on", "anchor": ANCHOR_CLOCK, "time": "22:00", "days": DAYS_EACH, "applies_to": KINDS},
-        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "06:30", "days": DAYS_EACH, "applies_to": KINDS},
+        {"action": "on", "anchor": ANCHOR_CLOCK, "time": "22:00", "days": DAYS_EACH, "applies_to": HOLY_KINDS},
+        {"action": "off", "anchor": ANCHOR_CLOCK, "time": "06:30", "days": DAYS_EACH, "applies_to": HOLY_KINDS},
+    ],
+    # Urn / kettle for breaking a fast: on before the fast ends, off an hour after.
+    "break_fast": [
+        {"action": "on", "anchor": ANCHOR_HAVDALAH, "offset_min": -30, "applies_to": [KIND_FAST, KIND_YOM_KIPPUR]},
+        {"action": "off", "anchor": ANCHOR_HAVDALAH, "offset_min": 60, "applies_to": [KIND_FAST, KIND_YOM_KIPPUR]},
     ],
 }
 
@@ -170,6 +177,9 @@ def validate_rule(
 
 
 def period_kinds(period: HolyEvent) -> set[str]:
+    """Kinds of a Shabbat / Yom Tov period, or {"fast"} for a timed fast (start / end as anchors)."""
+    if period.category == CAT_FAST:
+        return {KIND_FAST}
     kinds = set()
     if "shabbat" in period.keys:
         kinds.add(KIND_SHABBAT)
@@ -206,11 +216,12 @@ def _clock_days(period: HolyEvent, days: str) -> list[dt.date]:
 def expand(
     rules: Iterable[dict[str, Any]], periods: Iterable[HolyEvent], time_zone: str, profile: str
 ) -> list[PlannedAction]:
-    """Exact actions of the enabled rules of `profile` for the given Shabbat / Yom Tov periods."""
+    """Exact actions of the enabled rules of `profile` for the given Shabbat / Yom Tov periods
+    and fasts. For a fast, "candle lighting" is when it begins and "havdalah" when it ends."""
     tz = ZoneInfo(time_zone)
     planned: list[PlannedAction] = []
     for period in periods:
-        if not period.period or period.all_day:  # no times (polar fallback)
+        if period.all_day or not (period.period or period.category == CAT_FAST):  # no times (polar fallback)
             continue
         kinds = period_kinds(period)
         for rule in rules:
@@ -227,9 +238,12 @@ def expand(
                 at = dt.time(*(int(x) for x in rule["time"].split(":")))
                 # Holy day D begins the evening before: a time later than candle lighting
                 # (23:00) is that evening, D - 1; earlier times (07:00, 13:00, 00:30) are on D.
-                evening_from = period.start.astimezone(tz).time()
+                # A minor fast begins at dawn of its own day: no evening to move to.
+                start = period.start.astimezone(tz)
+                evening = start.date() < period.first_day
+                evening_from = start.time()
                 for day in _clock_days(period, rule.get("days") or DAYS_EACH):
-                    if rule.get("days") != DAYS_EREV and at >= evening_from:
+                    if evening and rule.get("days") != DAYS_EREV and at >= evening_from:
                         day -= dt.timedelta(days=1)
                     times.append(dt.datetime.combine(day, at, tz))
             for when in times:

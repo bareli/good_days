@@ -17,7 +17,7 @@ from homeassistant.helpers.network import NoURLAvailableError, get_url
 from homeassistant.util import dt as dt_util
 
 from .const import CAT_FAMILY, CATEGORIES, DOMAIN, MAX_OFFSET_MINUTES, WS_MAX_DAYS, WS_MAX_LIMIT, WS_UPCOMING
-from .engine import EngineSettings, HolyEvent, hebrew_date, norm_language
+from .engine import EngineSettings, HolyEvent, hebrew_date, norm_language, omer_text
 from .family import FamilyEvent, hebrew_from_gregorian, next_occurrence
 from .runtime import GoodDaysRuntime, PeriodIndex
 from .ics import ics_path, new_token
@@ -258,11 +258,25 @@ async def ws_upcoming(
             "now": now.isoformat(),
             "language": lang,
             "current": runtime.render(current, lang, now) if current else None,
+            "omer": _omer(runtime, lang, now),
             "errors": errors,
             # The effective set used for this reply (the card editor shows it when unset).
             "categories": [c for c in (*CATEGORIES, CATEGORY_FAMILY) if c in categories],
         },
     )
+
+
+def _omer(runtime: GoodDaysRuntime, lang: str, now: dt.datetime) -> dict[str, Any] | None:
+    """Today's Omer count (it moves on at tzeit), None outside the Omer."""
+    day, night, next_count = runtime.omer(now)
+    if not day:
+        return None
+    return {
+        "day": day,
+        "text": omer_text(day, lang, runtime.settings.nusach),
+        "counted": runtime.reminders.omer_counted(night),
+        "next_count": next_count.isoformat() if next_count else None,
+    }
 
 
 # Family dates (sidebar panel) ------------------------------------------------

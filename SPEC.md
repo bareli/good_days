@@ -168,6 +168,7 @@ entry_id: <optional, multi-instance>
 | v0.4 | Special Shabbatot, ICS subscription, review fixes (released). |
 | v0.5 | Shabbat Home timers inside Good Days (§12). |
 | v0.7 | Haftarah per Shabbat (Ashkenazi / Sephardi, Hebcal rules, BSD-2 data), Shabbat next to Yom Tov keeps its parasha, three more timer presets. |
+| v0.11 | Fast times (dawn / sunset to nightfall, options), next-fast / fasting / Omer entities, fast timer kind + break-fast preset, opt-in Omer reminder, card countdown + Omer line, Assist Omer / fast intents (§13). |
 | later | Haftarah for Shabbat Chol HaMoed / Yom Tov, Torah reading details, feedback. |
 
 ## 9. Testing (required before every commit)
@@ -256,3 +257,11 @@ Arbitrary services / service data, conditions, per-room profiles, cloning days, 
 2. Actions: on/off (+ scenes) only, or any service in v1?
 3. Missed actions after a restart: 10-minute grace, or never run late?
 4. Where: a tab in the Good Days panel (recommended) or its own panel?
+
+## 13. v0.11 Fast times and the Omer (decisions, Victor 2026-10-06)
+
+- Minor fasts: dawn to nightfall. Options `fast_start` = `alot_16_1` (default, hdate `alot_hashachar`, matches Hebcal) | `alot_72` | `alot_90` (minutes before sunrise); `fast_end` = `tzeit_tsom` (default, hdate 6.45°) | `havdalah` (Shabbat havdalah setting). Hebcal's "Fast ends" is earlier (about sunset + 15 min in Jerusalem); not followed.
+- Tisha B'Av: sunset of erev (havdalah when erev is Shabbat) to havdalah. Yom Kippur stays a period; `is_fast` covers it.
+- Near the poles (no sane times) a fast stays all-day; the Omer then moves at midnight.
+- Timers: kind `fast`; candle anchor = fast start, havdalah anchor = fast end; clock rules on a minor fast are not moved to the evening before. Planning = next 2 periods plus fasts until the last of them ends (at least the next fast). "Skip next" still means Shabbat / Chag only.
+- Omer reminder opt-in (default off), tzeit (6.45°) + offset; quiet: a count said during a period is sent at period start - 60 min (grouped), motzei after havdalah. "Counted" button: store + `good_days_omer` event + sensor attribute; no repeat reminder (automations can do it).

@@ -17,7 +17,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later, async_track_point_in_time
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import CAT_FAST, DOMAIN
 from .storage import TimerStore
 from .timers import PlannedAction, conflicts, expand
 
@@ -88,13 +88,22 @@ class TimerManager:
     # Planning -----------------------------------------------------------------
 
     def periods(self, now: dt.datetime, count: int = PLAN_PERIODS) -> list:
+        """The next Shabbat / Chag periods with times (what "skip next" refers to)."""
         found = [e for e in self.runtime.events if e.period and not e.all_day and e.end > now]
         return found[:count]
+
+    def occasions(self, now: dt.datetime, count: int = PLAN_PERIODS) -> list:
+        """The next `count` periods plus the timed fasts until the last of them ends (at least the next fast)."""
+        periods = self.periods(now, count)
+        horizon = periods[-1].end if periods else now
+        fasts = [e for e in self.runtime.events if e.category == CAT_FAST and not e.all_day and e.end > now]
+        fasts = [f for i, f in enumerate(fasts) if i == 0 or f.start < horizon]
+        return sorted([*periods, *fasts], key=lambda e: e.start)
 
     def plan(self, now: dt.datetime, profile: str | None = None, count: int = PLAN_PERIODS) -> list[PlannedAction]:
         return expand(
             self.store.rules,
-            self.periods(now, count),
+            self.occasions(now, count),
             self.runtime.settings.time_zone,
             profile or self.store.active_profile,
         )
@@ -233,10 +242,10 @@ class TimerManager:
         )
 
     def preview(self, now: dt.datetime, lang: str, profile: str | None = None) -> list[dict[str, Any]]:
-        """The next Shabbat / Chag periods with every planned action (a dry run)."""
+        """The next Shabbat / Chag periods and fasts with every planned action (a dry run)."""
         planned = self.plan(now, profile)
         result = []
-        for period in self.periods(now):
+        for period in self.occasions(now):
             actions = [p for p in planned if p.period_uid == period.uid]
             result.append(
                 {

@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .engine import hebrew_date
+from .engine import hebrew_date, omer_text
 from .entity import GoodDaysEntity
 
 
@@ -24,6 +24,8 @@ async def async_setup_entry(
             NextFamilySensor(entry),
             NextCandleLightingSensor(entry),
             NextTimerActionSensor(entry),
+            NextFastSensor(entry),
+            OmerSensor(entry),
         ]
     )
 
@@ -184,3 +186,61 @@ class NextTimerActionSensor(GoodDaysEntity, SensorEntity):
             return None
         return {"rule": action.rule_name, "action": action.action, "targets": list(action.targets)}
 
+
+class NextFastSensor(GoodDaysEntity, SensorEntity):
+    """Start of the current or next fast (minor fasts from dawn, Tisha B'Av and Yom Kippur from the evening)."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:food-off-outline"
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        super().__init__(entry, "next_fast")
+
+    @property
+    def native_value(self) -> dt.datetime | None:
+        event = self.runtime.next_fast(dt_util.now())
+        return event.start if event else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        now = dt_util.now()
+        event = self.runtime.next_fast(now)
+        if event is None:
+            return None
+        lang = self.runtime.language
+        return {
+            "title": event.title(lang),
+            "end": _iso(event.end),
+            "all_day": event.all_day,
+            "hebrew_date": hebrew_date(event.last_day, lang),
+            "days_until": self.runtime.days_until(event, now),
+            "in_effect": event.start <= now < event.end,
+            "uid": event.uid,
+        }
+
+
+class OmerSensor(GoodDaysEntity, SensorEntity):
+    """Day of the Omer (1-49) for the Hebrew day in progress: it moves on at tzeit. Unknown outside the Omer."""
+
+    _attr_icon = "mdi:sprout-outline"
+
+    def __init__(self, entry: ConfigEntry) -> None:
+        super().__init__(entry, "omer")
+
+    @property
+    def native_value(self) -> int | None:
+        day, _, _ = self.runtime.omer(dt_util.now())
+        return day or None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        day, night, next_count = self.runtime.omer(dt_util.now())
+        weeks, days = divmod(day, 7)
+        return {
+            "weeks": weeks,
+            "days": days,
+            "text": omer_text(day, self.runtime.language, self.runtime.settings.nusach) or None,
+            "next_count": _iso(next_count),
+            # "Counted" pressed on this night's reminder (an automation can remind again if not).
+            "counted": bool(day) and self.runtime.reminders.omer_counted(night),
+        }

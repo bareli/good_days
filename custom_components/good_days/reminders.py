@@ -7,10 +7,18 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.util import dt as dt_util
 
+from . import engine
 from .const import (
     ACTION_ACK,
+    ACTION_COUNTED,
+    CONF_OMER_REMINDER,
+    CONF_OMER_REMINDER_OFFSET,
+    DEFAULT_OMER_REMINDER_OFFSET,
+    EVENT_OMER,
+    SIGNAL_UPDATED,
     ACTION_PREFIX,
     ACTION_SNOOZE,
     CONF_NOTIFY_TARGETS,
@@ -32,6 +40,9 @@ if TYPE_CHECKING:
 LOG = logging.getLogger(__name__)
 ACTIONS_REGISTERED_KEY = f"{DOMAIN}_actions_registered"
 PRUNE_DAYS = 10
+OMER = "omer"  # date_id slot of the Omer button
+OMER_GRACE = dt.timedelta(hours=6)  # a late Omer reminder still makes sense that night
+OMER_AHEAD_DAYS = 3  # Yom Tov + Shabbat: up to three nights announced before candle lighting
 
 TEXT = {
     "title": ("Good Days", "ימים טובים"),
@@ -44,6 +55,10 @@ TEXT = {
     "candle_after": ("Light a candle after havdalah ({time}).", "הדליקו נר אחרי ההבדלה ({time})."),
     "ack": ("Got it", "הבנתי"),
     "snooze": ("Remind me tomorrow", "תזכירו לי מחר"),
+    "omer_0": ("Tonight: day {n} of the Omer", "הלילה: יום {n} לעומר"),
+    "omer_1": ("Tomorrow night: day {n} of the Omer", "מחר בלילה: יום {n} לעומר"),
+    "omer_2": ("The night after: day {n} of the Omer", "מחרתיים בלילה: יום {n} לעומר"),
+    "counted": ("Counted", "ספרתי"),
 }
 
 
@@ -108,6 +123,10 @@ class ReminderManager:
         self.targets: list[str] = [t for t in options.get(CONF_NOTIFY_TARGETS, []) if t]
         self.time = parse_time(options.get(CONF_REMINDER_TIME))
         self.quiet = bool(options.get(CONF_QUIET_ON_SHABBAT, True))
+        self.omer_enabled = bool(options.get(CONF_OMER_REMINDER, False))
+        self.omer_offset = dt.timedelta(
+            minutes=int(options.get(CONF_OMER_REMINDER_OFFSET, DEFAULT_OMER_REMINDER_OFFSET))
+        )
         self._lock = asyncio.Lock()
         self._cache_key: tuple | None = None
         self._events: list[FamilyEvent] = []
@@ -145,7 +164,102 @@ class ReminderManager:
 
     async def async_check(self, now: dt.datetime | None = None) -> None:
         async with self._lock:
-            await self._async_check(now or dt_util.now())
+            now = now or dt_util.now()
+            await self._async_check(now)
+            if self.omer_enabled:
+                await self._async_check_omer(now)
+
+    # Omer (v0.11) -----------------------------------------------------------------------
+
+    def omer_due(self, night: dt.date) -> dt.datetime | None:
+        """When to remind on the evening of `night`: tzeit + offset. With quiet on, a count said
+        during Shabbat / Yom Tov is announced an hour before candle lighting; motzei, after havdalah."""
+        tzeit = self.runtime.omer_switch(night)
+        if tzeit is None:
+            return None
+        due = tzeit + self.omer_offset
+        if self.quiet and (period := self.runtime.period_at(due)) is not None:
+            if period.covers_day(night + dt.timedelta(days=1)):
+                return period.start - dt.timedelta(minutes=YAHRZEIT_EVENING_LEAD_MIN)
+            due = max(due, period.end)
+        return due
+
+    def omer_counted(self, night: dt.date) -> bool:
+        return night.isoformat() in self.runtime.store.reminders["omer_counted"]
+
+    async def _async_check_omer(self, now: dt.datetime) -> None:
+        state = self.runtime.store.reminders
+        today = dt_util.as_local(now).date()
+        due: dict[dt.datetime, list[tuple[dt.date, int]]] = {}
+        for offset in range(-1, OMER_AHEAD_DAYS + 1):
+            night = today + dt.timedelta(days=offset)
+            count = engine.omer_day(night + dt.timedelta(days=1))
+            if not count or night.isoformat() in state["omer_sent"]:
+                continue
+            when = self.omer_due(night)
+            if when is not None and now - OMER_GRACE < when <= now:
+                due.setdefault(when, []).append((night, count))
+        if not due or (self.quiet and self.runtime.in_effect(now)):
+            return
+        for when, nights in sorted(due.items()):
+            await self._send_omer(sorted(nights), dt_util.as_local(when).date())
+            for night, _count in nights:
+                state["omer_sent"][night.isoformat()] = night.isoformat()
+        self._prune(now)
+        await self.runtime.store.async_save_reminders()
+
+    async def _send_omer(self, nights: list[tuple[dt.date, int]], day: dt.date) -> None:
+        lang = self.runtime.language
+        lines = []
+        for night, count in nights:
+            ahead = min(max((night - day).days, 0), 2)
+            lines.append(_t(f"omer_{ahead}", lang, n=count))
+            if ahead == 0:
+                lines.append(engine.omer_text(count, lang, self.runtime.settings.nusach))
+        message = chr(10).join(lines)
+        first, count = nights[0]
+        entry_id = self.runtime.entry.entry_id
+        self.hass.bus.async_fire(
+            EVENT_OMER,
+            {"entry_id": entry_id, "night": first.isoformat(), "day": count, "message": message, "counted": False},
+        )
+        for target in self.targets:
+            if not self.hass.services.has_service("notify", target):
+                LOG.warning("Good Days Omer reminder: notify.%s does not exist", target)
+                continue
+            payload: dict[str, Any] = {"title": _t("title", lang), "message": message}
+            if target.startswith("mobile_app_"):
+                payload["data"] = {
+                    "tag": f"good_days_omer_{first.isoformat()}",
+                    "actions": [
+                        {
+                            "action": f"{ACTION_PREFIX}:{ACTION_COUNTED}:{entry_id}:{OMER}:{first.isoformat()}",
+                            "title": _t("counted", lang),
+                        }
+                    ],
+                }
+            try:
+                await self.hass.services.async_call("notify", target, payload, blocking=False)
+            except Exception as err:  # noqa: BLE001 - one broken notifier must not block the others
+                LOG.warning("Good Days Omer reminder via notify.%s failed: %s", target, err)
+
+    async def async_omer_counted(self, night: str, now: dt.datetime | None = None) -> None:
+        """The "Counted" button: remembered for the sensor, announced on the bus."""
+        try:
+            day = dt.date.fromisoformat(night)
+        except ValueError:
+            return
+        today = dt_util.as_local(now or dt_util.now()).date()
+        count = engine.omer_day(day + dt.timedelta(days=1))
+        if not count or not today - dt.timedelta(days=2) <= day <= today + dt.timedelta(days=OMER_AHEAD_DAYS):
+            return
+        self.runtime.store.reminders["omer_counted"][night] = night
+        await self.runtime.store.async_save_reminders()
+        entry_id = self.runtime.entry.entry_id
+        self.hass.bus.async_fire(
+            EVENT_OMER, {"entry_id": entry_id, "night": night, "day": count, "message": "", "counted": True}
+        )
+        async_dispatcher_send(self.hass, SIGNAL_UPDATED.format(entry_id))
 
     async def _async_check(self, now: dt.datetime) -> None:
         store = self.runtime.store
@@ -200,7 +314,7 @@ class ReminderManager:
 
     def _prune(self, now: dt.datetime) -> None:
         cutoff = (dt_util.as_local(now).date() - dt.timedelta(days=PRUNE_DAYS)).isoformat()
-        for bucket in ("sent", "acked"):
+        for bucket in ("sent", "acked", "omer_sent", "omer_counted"):
             state = self.runtime.store.reminders[bucket]
             for key in [k for k, day in state.items() if day < cutoff]:
                 del state[key]
@@ -286,7 +400,12 @@ def async_register_actions(hass: HomeAssistant) -> None:
         entry = hass.config_entries.async_get_entry(entry_id)
         runtime = getattr(entry, "runtime_data", None) if entry else None
         manager = getattr(runtime, "reminders", None)
-        if manager is None or not manager.is_valid_action(date_id, day):
+        if manager is None:
+            return
+        if command == ACTION_COUNTED and date_id == OMER:
+            await manager.async_omer_counted(day)
+            return
+        if not manager.is_valid_action(date_id, day):
             return
         if command == ACTION_ACK:
             await manager.async_ack(date_id, day)

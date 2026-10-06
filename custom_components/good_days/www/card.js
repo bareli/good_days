@@ -69,6 +69,10 @@ const I18N = {
     in_min: (n) => `in ${iso(n)} min`,
     in_hours: (n) => `in ${iso(n)} h`,
     in_days: (n) => `in ${iso(n)} days`,
+    ends_in: (h, m) => (h ? `ends in ${iso(`${h}:${String(m).padStart(2, "0")}`)}` : `ends in ${iso(m)} min`),
+    fast_begins: (t) => `Fast begins ${iso(t)}`,
+    fast_ends: (t) => `ends ${iso(t)}`,
+    omer: (n) => `Omer: day ${iso(n)}`,
     shabbat_shalom: "Shabbat Shalom",
     chag_sameach: "Chag Sameach",
     ends_at: (t) => `ends ${iso(t)}`,
@@ -100,6 +104,7 @@ const I18N = {
     e_show_hebrew_date: "Show Hebrew date",
     e_show_candle_lighting: "Show candle lighting",
     e_show_haftarah: "Show haftarah",
+    e_show_omer: "Show the Omer count",
     e_compact: "Compact (one line)",
     e_responsive: "Show less when the card is narrow",
     e_custom_location: "Own location and times for this card",
@@ -131,6 +136,10 @@ const I18N = {
     now: "עכשיו",
     in_min: (n) => `בעוד ${iso(n)} דק׳`,
     in_hours: (n) => `בעוד ${iso(n)} שע׳`,
+    ends_in: (h, m) => (h ? `מסתיים בעוד ${iso(`${h}:${String(m).padStart(2, "0")}`)}` : `מסתיים בעוד ${iso(m)} דק׳`),
+    fast_begins: (t) => `תחילת הצום ${iso(t)}`,
+    fast_ends: (t) => `סוף הצום ${iso(t)}`,
+    omer: (n) => `ספירת העומר: יום ${iso(n)}`,
     in_days: (n) => (n === 2 ? "בעוד יומיים" : `בעוד ${iso(n)} ימים`),
     shabbat_shalom: "שבת שלום",
     chag_sameach: "חג שמח",
@@ -163,6 +172,7 @@ const I18N = {
     e_show_hebrew_date: "הצגת תאריך עברי",
     e_show_candle_lighting: "הצגת זמן הדלקת נרות",
     e_show_haftarah: "הצגת ההפטרה",
+    e_show_omer: "הצגת ספירת העומר",
     e_compact: "תצוגה מקוצרת (שורה אחת)",
     e_responsive: "הצגת פחות פרטים כשהכרטיס צר",
     e_custom_location: "מיקום וזמנים משלו לכרטיס הזה",
@@ -216,6 +226,8 @@ const STYLE = `
   .summary .s-times { display: flex; flex-wrap: wrap; align-items: center; column-gap: 12px; row-gap: 2px; font-size: 1.35rem; font-weight: 500; }
   .summary .s-times span { display: inline-flex; align-items: center; gap: 6px; }
   .hint, .warn { font-size: 0.85rem; color: var(--secondary-text-color); margin: 6px 0; }
+  .omer { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; margin: 0 0 8px; color: var(--primary-text-color); }
+  .omer .o-text { font-size: 0.85rem; color: var(--secondary-text-color); }
   /* Theme error / warning colours are fills; mixed toward the text colour they read >= 4.5:1 in light and dark. */
   .warn { color: color-mix(in srgb, var(--error-color, #db4437) 75%, var(--primary-text-color, #212121)); }
   .empty { color: var(--secondary-text-color); padding: 12px 0; }
@@ -263,7 +275,7 @@ const STYLE = `
   ha-card[data-size="narrow"] .haftarah,
   ha-card[data-size="narrow"] .hdate,
   ha-card[data-size="narrow"] .summary .s-haftarah,
-  ha-card[data-size="narrow"] .meta .extra { display: none; }
+  ha-card[data-size="narrow"] .meta .extra, ha-card[data-size="narrow"] .omer .extra { display: none; }
   ha-card[data-size="narrow"] .banner { font-size: 1rem; padding: 8px 10px; }
   ha-card[data-size="narrow"] .summary { padding: 8px 10px; }
   ha-card[data-size="narrow"] .summary .s-times { font-size: 1.05rem; }
@@ -599,7 +611,14 @@ class GoodDaysCard extends HTMLElement {
 
   _countdown(item, nowMs, todayKey) {
     const start = this._startMs(item);
-    if (start <= nowMs && nowMs < this._endMs(item)) return { text: this._t("now"), now: true };
+    const end = this._endMs(item);
+    if (start <= nowMs && nowMs < end) {
+      if (item.category === "fast" && !item.all_day) {
+        const left = Math.max(1, Math.ceil((end - nowMs) / 60000));
+        return { text: this._t("ends_in", Math.floor(left / 60), left % 60), now: true };
+      }
+      return { text: this._t("now"), now: true };
+    }
     if (item.all_day) {
       const days = this._daysBetween(todayKey, item.start);
       if (days <= 0) return { text: this._t("today"), now: false };
@@ -740,6 +759,7 @@ class GoodDaysCard extends HTMLElement {
     } else {
       summarized = this._renderSummary(card, items, nowMs, todayKey);
     }
+    this._renderOmer(card);
 
     if (this._fallback) card.appendChild(mk("p", "hint", this._t("no_integration")));
     ((this._data && this._data.errors) || []).forEach((e) => {
@@ -781,6 +801,16 @@ class GoodDaysCard extends HTMLElement {
       section.appendChild(list);
       card.appendChild(section);
     });
+  }
+
+  // During the Omer: today's count (the integration moves it on at nightfall).
+  _renderOmer(card) {
+    const omer = this._data && this._data.omer;
+    if (this._config.show_omer === false || !omer) return;
+    const line = mk("p", "omer");
+    line.append(this._icon("mdi:sprout-outline"), mk("span", null, this._t("omer", omer.day)));
+    if (omer.text) line.appendChild(mk("span", "o-text extra", omer.text));
+    card.appendChild(line);
   }
 
   // Next Shabbat / Yom Tov with candle lighting and havdalah, readable from across the kitchen.
@@ -846,6 +876,9 @@ class GoodDaysCard extends HTMLElement {
     if (item.source === "family" && item.kind === "yahrzeit" && !item.all_day) {
       const time = this._time(item.start);
       return [this._t("yahrzeit_begins", time), this._t("yahrzeit_light", time)];
+    }
+    if (item.source === "holidays" && item.category === "fast" && !item.all_day) {
+      return [this._t("fast_begins", this._time(item.start)), this._t("fast_ends", this._time(item.end))];
     }
     return [item.all_day ? this._t("all_day") : iso(this._time(item.start))];
   }
@@ -1055,6 +1088,7 @@ class GoodDaysCardEditor extends HTMLElement {
       { name: "show_hebrew_date", selector: { boolean: {} } },
       { name: "show_candle_lighting", selector: { boolean: {} } },
       { name: "show_haftarah", selector: { boolean: {} } },
+      { name: "show_omer", selector: { boolean: {} } },
       { name: "compact", selector: { boolean: {} } },
       { name: "responsive", selector: { boolean: {} } },
       { name: "narrow_limit", selector: { number: { min: 1, max: 20, mode: "box" } } },
@@ -1120,7 +1154,7 @@ class GoodDaysCardEditor extends HTMLElement {
     const follows = this._followsIntegration();
     this._form.hass = this._hass;
     this._form.schema = this._schema();
-    this._form.data = Object.assign({ show_hebrew_date: true, show_candle_lighting: true, show_haftarah: true, compact: false, responsive: true }, this._config, {
+    this._form.data = Object.assign({ show_hebrew_date: true, show_candle_lighting: true, show_haftarah: true, show_omer: true, compact: false, responsive: true }, this._config, {
       use_integration_categories: follows,
       custom_location: this._customLocation(),
       diaspora_mode: typeof this._config.diaspora === "boolean" ? (this._config.diaspora ? "diaspora" : "israel") : "inherit",

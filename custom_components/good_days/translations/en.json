@@ -27,7 +27,9 @@
       "no_categories": "Pick at least one category.",
       "invalid_lookahead": "Days ahead must be a whole number between 30 and 730.",
       "invalid_notify": "Pick existing notify services (Developer tools → Actions → notify.*).",
-      "invalid_time": "Enter a time as HH:MM."
+      "invalid_time": "Enter a time as HH:MM.",
+      "invalid_choice": "Pick an option from the list.",
+      "invalid_omer_offset": "Minutes must be a whole number between 0 and 240."
     }
   },
   "options": {
@@ -42,17 +44,23 @@
           "nusach": "Haftarah custom",
           "language": "Event names language",
           "categories": "Show on the calendar",
+          "fast_start": "Minor fasts begin at",
+          "fast_end": "Minor fasts end at",
           "lookahead_days": "Days to compute ahead",
           "notify_targets": "Send family-date reminders to",
           "reminder_time": "Reminder time",
-          "quiet_on_shabbat": "No reminders during Shabbat and Yom Tov"
+          "quiet_on_shabbat": "No reminders during Shabbat and Yom Tov",
+          "omer_reminder": "Remind me to count the Omer",
+          "omer_reminder_offset": "Omer reminder, minutes after nightfall"
         },
         "data_description": {
           "diaspora": "Off in Israel. On outside Israel.",
           "candle_lighting_minutes": "Most of Israel: 18-30. Jerusalem: 40. Haifa: 30.",
           "nusach": "The customs differ on about one Shabbat in four; on the others the haftarah is the same.",
+          "fast_end": "Tisha B'Av and Yom Kippur always end at havdalah.",
           "notify_targets": "Where to send reminders (for example your phone). Phones show Got it / Remind me tomorrow buttons. None: no notification, but automations can react to the good_days_reminder event.",
-          "quiet_on_shabbat": "A reminder due on Shabbat or Yom Tov is sent an hour before candle lighting."
+          "quiet_on_shabbat": "A reminder due on Shabbat or Yom Tov is sent an hour before candle lighting.",
+          "omer_reminder": "Every night of the Omer, to the reminder targets above. On Shabbat and Yom Tov (with no reminders during them) it comes an hour before candle lighting."
         }
       }
     },
@@ -64,7 +72,9 @@
       "no_categories": "Pick at least one category.",
       "invalid_lookahead": "Days ahead must be a whole number between 30 and 730.",
       "invalid_notify": "Pick existing notify services (Developer tools → Actions → notify.*).",
-      "invalid_time": "Enter a time as HH:MM."
+      "invalid_time": "Enter a time as HH:MM.",
+      "invalid_choice": "Pick an option from the list.",
+      "invalid_omer_offset": "Minutes must be a whole number between 0 and 240."
     }
   },
   "selector": {
@@ -72,6 +82,19 @@
       "options": {
         "ashkenazi": "Ashkenazi",
         "sephardi": "Sephardi / Edot HaMizrach"
+      }
+    },
+    "fast_start": {
+      "options": {
+        "alot_16_1": "Dawn (sun 16.1° below the horizon)",
+        "alot_72": "72 minutes before sunrise",
+        "alot_90": "90 minutes before sunrise"
+      }
+    },
+    "fast_end": {
+      "options": {
+        "tzeit_tsom": "Nightfall for fasts (sun 6.45° below)",
+        "havdalah": "Havdalah time (as set above)"
       }
     },
     "language": {
@@ -158,11 +181,20 @@
       },
       "next_timer_action": {
         "name": "Next timer action"
+      },
+      "next_fast": {
+        "name": "Next fast"
+      },
+      "omer": {
+        "name": "Omer"
       }
     },
     "binary_sensor": {
       "holiday_today": {
         "name": "Holiday today"
+      },
+      "fasting": {
+        "name": "Fasting"
       }
     },
     "switch": {
