@@ -18,6 +18,13 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 
 @pytest.fixture(autouse=True)
+def unfrozen_router():
+    """CI Python 3.14.8: HA's per-instance router.freeze no-op stopped holding; views register after the test client starts."""
+    with patch("aiohttp.web_urldispatcher.UrlDispatcher.freeze", lambda self: None):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def no_card():
     """Lovelace resource and sidebar panel need the real frontend; not under test."""
     with patch("custom_components.good_days._async_register_card", return_value=None), patch(
