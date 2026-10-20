@@ -15,3 +15,5 @@ venv/
 Thumbs.db
 .playwright-mcp/
 !qa/CLAUDE.md
+
+site/

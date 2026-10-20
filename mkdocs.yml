@@ -1,0 +1,81 @@
+site_name: Good Days
+site_description: Home Assistant integration and Lovelace card for Shabbat, Jewish holidays, fasts, the Omer and Hebrew-date family dates.
+site_url: https://bareli.github.io/good_days/
+repo_url: https://github.com/bareli/good_days
+repo_name: bareli/good_days
+edit_uri: edit/main/docs/
+copyright: MIT license. Good Days by Bar Eli.
+
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/favicon.png
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: he
+          name: עברית
+          build: true
+          nav_translations:
+            Home: בית
+            Install: התקנה
+            Usage: שימוש
+            Shabbat timers: טיימרים לשבת
+            Card: הכרטיס
+            Entities and automations: ישויות ואוטומציות
+            Troubleshooting: פתרון בעיות
+            Changelog: יומן שינויים
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: ["."]
+  - tables
+  - attr_list
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Install: install.md
+  - Usage: usage.md
+  - Shabbat timers: timers.md
+  - Card: card.md
+  - Entities and automations: entities.md
+  - Troubleshooting: troubleshooting.md
+  - Changelog: changelog.md
+
+extra_css:
+  - stylesheets/extra.css

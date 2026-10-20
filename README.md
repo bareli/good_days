@@ -1,5 +1,7 @@
 # Good Days (ימים טובים)
 
+Documentation (English / עברית): https://bareli.github.io/good_days/
+
 Home Assistant integration + Lovelace card that shows **what's coming up**: Shabbat, Jewish holidays and fasts, **Hebrew-date birthdays and yahrzeits**, merged with any HA calendar, each with a live countdown, in Hebrew or English.
 
 - Works offline: holidays, candle lighting and havdalah are computed locally with [hdate](https://github.com/py-libhdate/py-libhdate) (the library HA's own Jewish Calendar uses).
