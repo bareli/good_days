@@ -4,6 +4,10 @@
 
 Everything is editable in the visual editor. The card follows the user's Home Assistant language (Hebrew gives RTL).
 
+![Good Days card on a dashboard: next Shabbat with candle lighting and havdalah, then upcoming holidays and family dates](assets/screens/card.png)
+
+![The same card on a phone screen](assets/screens/card-phone.png)
+
 ## YAML
 
 The card resource is registered automatically on storage-mode dashboards. On YAML-mode dashboards, add `/good_days_static/card.js` as a JavaScript module.

@@ -2,6 +2,8 @@
 
 Open **Good Days** in the sidebar and choose the **Shabbat timers** tab. Each timer turns devices **on or off**: switches, lights, plugs, fans, AC, water heaters, scenes and the like. Scripts, automations, locks, covers and valves are not offered.
 
+![Shabbat timers tab with the preview of the next Shabbat: each action and its exact time](assets/screens/timers.png)
+
 ## When a timer fires
 
 - **Around candle lighting** or **around havdalah**: N minutes before or after. For example, a hot plate on 20 minutes before candle lighting and off 30 minutes after havdalah.

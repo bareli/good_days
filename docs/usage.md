@@ -2,6 +2,9 @@
 
 ## Settings
 
+![Good Days options dialog in Home Assistant: location for candle lighting and havdalah times](assets/screens/options.png)
+
+
 Open **Settings → Devices & services → Good Days → Configure**. The options cover:
 
 - Location, candle lighting and havdalah minutes, and Israel or diaspora (one or two days of Yom Tov).
@@ -16,6 +19,9 @@ Open **Settings → Devices & services → Good Days → Configure**. The option
 `shabbat`, `yom_tov`, `chol_hamoed`, `minor` (Chanukah, Purim, Tu BiShvat, Lag BaOmer...), `fast`, `rosh_chodesh`, `modern` (Yom HaAtzmaut, Yom HaZikaron, Yom HaShoah, Yom Yerushalayim), `memorial` (other memorial and national days) and `erev` (Erev Yom Tov days). The default is the first five plus `modern`.
 
 ## Family dates
+
+![Family dates tab: birthdays, a yahrzeit and an anniversary with their next date and a warning when one falls on Shabbat](assets/screens/family-dates.png)
+
 
 Open **Good Days** in the sidebar (all users). Add a birthday, yahrzeit, anniversary or other date by its Hebrew date, or type the Gregorian date (tick *after sunset* if it was after sunset) and it is converted. When you give the Hebrew year, the title shows the age or the number of years, for example "Noa's birthday (7)".
 
