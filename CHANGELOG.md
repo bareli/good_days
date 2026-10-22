@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.11.1 (2026-10-22)
+
+- Test-only fix: the options-flow test now unloads its entry, so CI no longer fails with a lingering timer on the latest Home Assistant test package. No change to the integration's behaviour.
+
 ## v0.11.0 (2026-10-06)
 
 - **Fast times**: the minor fasts (Tzom Gedaliah, Asara B'Tevet, Ta'anit Esther, 17 Tammuz) now run from dawn to nightfall, and Tisha B'Av from sunset the evening before (after havdalah when it is postponed to Sunday) to havdalah. New options: when minor fasts begin (dawn at 16.1°, the default, or 72 / 90 minutes before sunrise) and end (nightfall for fasts at 6.45°, the default, or the havdalah setting). Fast start times match hebcal.com. **Behaviour change:** fasts on the holidays calendar and in the calendar link are timed events now, no longer all-day; an automation that relied on them being all-day needs a look.
