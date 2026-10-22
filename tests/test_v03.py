@@ -204,6 +204,10 @@ async def test_options_validate_reminders(hass: HomeAssistant, israel) -> None:
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options["notify_targets"] == [PHONE]
     assert entry.options["reminder_time"] == "08:30"
+    # The options update reloads the entry; unload so its tick timer does not linger.
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
 
 
 async def _speech(hass: HomeAssistant, intent_type: str, language: str) -> str:
