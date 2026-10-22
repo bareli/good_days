@@ -1,0 +1,2 @@
+[dir="rtl"] pre, [dir="rtl"] code, [dir="rtl"] .highlight { direction: ltr; unicode-bidi: isolate; }
+[dir="rtl"] pre { text-align: left; }

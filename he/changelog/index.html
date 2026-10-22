@@ -1,0 +1,901 @@
+
+<!doctype html>
+<html lang="he" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Home Assistant integration and Lovelace card for Shabbat, Jewish holidays, fasts, the Omer and Hebrew-date family dates.">
+      
+      
+      
+        <link rel="canonical" href="https://bareli.github.io/good_days/he/changelog/">
+      
+      
+        <link rel="prev" href="../troubleshooting/">
+      
+      
+      
+        
+          <link rel="alternate" href="../../changelog/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="he">
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>יומן שינויים - Good Days</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="rtl" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          לדלג לתוכן
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="כותרת עליונה">
+    <a href="../" title="Good Days" class="md-header__button md-logo" aria-label="Good Days" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Good Days
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              יומן שינויים
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="בחירת שפה">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../changelog/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="he" class="md-select__link">
+              עברית
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="חיפוש" placeholder="חיפוש" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="חיפוש">
+        
+        <button type="reset" class="md-search__icon md-icon" title="ניקוי" aria-label="ניקוי" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            אתחול חיפוש
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bareli/good_days" title="לעבור אל המאגר" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    bareli/good_days
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="לשוניות" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  בית
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../install/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  התקנה
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../usage/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  שימוש
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../timers/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  טיימרים לשבת
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../card/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  הכרטיס
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../entities/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  ישויות ואוטומציות
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../troubleshooting/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  פתרון בעיות
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  יומן שינויים
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="ניווט" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../" title="Good Days" class="md-nav__button md-logo" aria-label="Good Days" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    Good Days
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bareli/good_days" title="לעבור אל המאגר" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    bareli/good_days
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    בית
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    התקנה
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    שימוש
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../timers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    טיימרים לשבת
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../card/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    הכרטיס
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../entities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ישויות ואוטומציות
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    פתרון בעיות
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    יומן שינויים
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="תוכן העניינים">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bareli/good_days/edit/main/docs/changelog.he.md" title="עריכת הדף הזה" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="_1">יומן שינויים<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<div class="admonition note">
+<p class="admonition-title">היומן באנגלית</p>
+<p>יומן השינויים נכתב באנגלית בלבד.</p>
+</div>
+<h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0111-2026-10-22">v0.11.1 (2026-10-22)<a class="headerlink" href="#v0111-2026-10-22" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Test-only fix: the options-flow test now unloads its entry, so CI no longer fails with a lingering timer on the latest Home Assistant test package. No change to the integration's behaviour.</li>
+</ul>
+<h2 id="v0110-2026-10-06">v0.11.0 (2026-10-06)<a class="headerlink" href="#v0110-2026-10-06" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Fast times</strong>: the minor fasts (Tzom Gedaliah, Asara B'Tevet, Ta'anit Esther, 17 Tammuz) now run from dawn to nightfall, and Tisha B'Av from sunset the evening before (after havdalah when it is postponed to Sunday) to havdalah. New options: when minor fasts begin (dawn at 16.1°, the default, or 72 / 90 minutes before sunrise) and end (nightfall for fasts at 6.45°, the default, or the havdalah setting). Fast start times match hebcal.com. <strong>Behaviour change:</strong> fasts on the holidays calendar and in the calendar link are timed events now, no longer all-day; an automation that relied on them being all-day needs a look.</li>
+<li><strong>New entities</strong>: <code>sensor.good_days_next_fast</code> (start of the current or next fast, including Yom Kippur; attributes <code>end</code>, <code>title</code>, <code>in_effect</code>...), <code>binary_sensor.good_days_fasting</code> (on while fasting) and <code>sensor.good_days_omer</code> (day 1-49 of the Omer, moving on at nightfall; attributes <code>weeks</code>, <code>days</code>, the counting sentence in <code>text</code>, <code>next_count</code>, <code>counted</code>).</li>
+<li><strong>Shabbat timers on fast days</strong>: "Applies to" has <strong>Fast days</strong>; on a fast, "candle lighting" means when it begins and "havdalah" when it ends. New preset <strong>Breaking the fast</strong> (urn / kettle on 30 minutes before the fast ends, off an hour after; fast days and Yom Kippur). A clock time on a minor fast stays on that day.</li>
+<li><strong>Omer reminder</strong> (opt-in, off by default): every night of the Omer, at nightfall plus your offset, to the reminder targets, with the counting sentence and a <strong>Counted</strong> button (<code>good_days_omer</code> event; the Omer sensor's <code>counted</code> attribute lets an automation remind again). With "no reminders during Shabbat and Yom Tov", a Shabbat / Yom Tov night is announced an hour before candle lighting, and the night after it comes after havdalah.</li>
+<li><strong>Card</strong>: a fast in progress counts down to its end ("ends in 1:12"); fast rows show when they begin and end; during the Omer a line shows today's count (card option <code>show_omer</code>, on by default). WS <code>good_days/upcoming</code> returns <code>omer</code>.</li>
+<li><strong>Assist</strong>: "What's the Omer count?" / "כמה בעומר היום?" and "When does the fast end?" / "מתי נגמר הצום?" (new sentences in <code>docs/assist</code>).</li>
+</ul>
+<h2 id="v0100-2026-10-02">v0.10.0 (2026-10-02)<a class="headerlink" href="#v0100-2026-10-02" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Own location and times per card</strong>: the card editor has "Own location and times for this card": a map pick plus optional candle lighting, havdalah and one / two-day Yom Tov. Anything left empty follows the integration; only that card changes (sensors, timers, reminders and Assist keep the integration's settings). WS <code>good_days/upcoming</code> takes <code>latitude</code>, <code>longitude</code>, <code>candle_lighting</code>, <code>havdalah</code>, <code>diaspora</code>; the server computes those windows separately and keeps the last few in a small cache.</li>
+</ul>
+<h2 id="v090-2026-10-02">v0.9.0 (2026-10-02)<a class="headerlink" href="#v090-2026-10-02" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Responsive card</strong>: the card measures its own width and shows less when it is narrow. Medium (280-399 px) drops category icons, haftarah lines under rows and the repeat of the next Shabbat below its summary box. Narrow (under 280 px) also drops Hebrew dates and secondary notes, moves the countdown onto the time line and lists at most <code>narrow_limit</code> events (default 3). Tapping a row still shows everything. New card options <code>responsive</code> (default on) and <code>narrow_limit</code>, both in the visual editor. Sections view: the card can be resized down to 3 columns.</li>
+</ul>
+<h2 id="v080-2026-10-01">v0.8.0 (2026-10-01)<a class="headerlink" href="#v080-2026-10-01" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Yahrzeit candle blueprint</strong>: turn an electric memorial candle on at sunset the evening before a yahrzeit (or up to an hour earlier) and off at sunset at its end (or later), for one person by name or for every yahrzeit. Birthdays and anniversaries never light it. Import it from the README.</li>
+</ul>
+<h2 id="v071-2026-10-01">v0.7.1 (2026-10-01)<a class="headerlink" href="#v071-2026-10-01" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The sidebar title follows the "Event names language" option: "Good Days" or "ימים טובים" ("Same as Home Assistant" uses the system language, as before). Home Assistant shows one sidebar title to all users, so it cannot follow each user's own language.</li>
+</ul>
+<h2 id="v070-2026-10-01">v0.7.0 (2026-10-01)<a class="headerlink" href="#v070-2026-10-01" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Haftarah</strong> for every Shabbat with a weekly parasha, in the calendar event, card details, calendar subscription and the next-Shabbat sensor (<code>haftarah</code> attribute, WebSocket <code>haftarah</code> field). New option: Ashkenazi or Sephardi / Edot HaMizrach. Special Shabbatot, Shabbat Chanukah, Rosh Chodesh, Machar Chodesh and the special cases follow Hebcal's rules; checked against Hebcal for every Shabbat 2024-2040, Israel and abroad.</li>
+<li>A Shabbat right before or after Yom Tov (for example Shabbat Shuva right after Rosh Hashana, or Shabbat HaGadol before Pesach) now keeps its parasha and special Shabbat. Its description names the parasha, and Assist names the holiday when it tells the Shabbat / Chag times.</li>
+<li><strong>Haftarah in the card</strong>: a "Haftarah: ..." line under each Shabbat and in the next-Shabbat box (card option <code>show_haftarah</code>, on by default, in the visual editor) (#39). A Shabbat that runs together with Yom Tov labels it "Shabbat haftarah" (#40). A special reading that replaces the weekly one is marked, e.g. "(Machar Chodesh)", "(Shekalim)", "(Shabbat Chanukah)"; the label never wraps away from its citation (#43). WebSocket items add <code>haftarah_label</code>; the <code>haftarah</code> field and sensor attribute include the mark.</li>
+<li><strong>Haftarah custom</strong>: new installs default to Sephardi / Edot HaMizrach; installs from before v0.7 keep Ashkenazi and the options dialog shows it. The option explains that the customs differ on about one Shabbat in four (#41).</li>
+<li><strong>Shabbat timers</strong>: the preset dialog summarises the chosen preset before you create it (on / off times, which days it applies to, and that the water heater heats only on the Erev of a multi-day Chag) (#42). Three more presets: electric water heater (on at noon on Erev Shabbat / Chag, off before candle lighting), porch light (on before candle lighting, off at 01:00), bedroom air conditioner at night (22:00 to 06:30).</li>
+</ul>
+<h2 id="v061-2026-10-01">v0.6.1 (2026-10-01)<a class="headerlink" href="#v061-2026-10-01" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Calendar link: family notes are no longer included by default; an admin can opt in with "Include family notes" in the panel (they become visible to the calendar provider). Existing links keep working; notes disappear from them until opted in.</li>
+</ul>
+<h2 id="v060-2026-10-01">v0.6.0 (2026-10-01)<a class="headerlink" href="#v060-2026-10-01" title="Permanent link">&para;</a></h2>
+<p>Fixes from a full QA cycle on a real Home Assistant (29 issues, #6 to #34).</p>
+<ul>
+<li><strong>Shabbat timers</strong>: saving, deleting, duplicating and "run now" from the panel work again (the panel's language field was rejected) (#17). Non-admin users can no longer switch timers off, skip a Shabbat or change the profile through the entities; automations still can (#6). Targets are limited to devices that switch on and off (scripts, automations, locks, covers and valves removed); a device that cannot be switched is logged as failed, not done (#9). Several timers firing together write the store once (#14).</li>
+<li><strong>Panel</strong>: view and edit another profile's timers without making it active; profiles show a timer count and can be renamed (#23). A skipped Shabbat is shown as skipped and the reset is explained (#25). Non-admins see why the timers are read-only (#26). "Run now" names what it does (#24). Two Good Days instances are told apart by name (#34). The Hebrew year accepts letters (תש״ע) (#22). Device picker, colours and long names are accessible (#11, #15, #16, #19). Faster with many family dates (#13).</li>
+<li><strong>Card</strong>: keyboard focus stays in place across refreshes (#10). A clear summary of the next Shabbat / Chag with candle lighting and havdalah, readable on a wall tablet (#20). Compact mode shows the next candle lighting, not a holiday already in progress (#21). Day headers in gematria (#31). Yahrzeit rows say what the time means (#29). The editor shows the categories really in use (#28). Findable as "ימים טובים" in the card picker (#27). Merges a second Good Days instance's calendar (#33). Contrast and narrow screens (#15, #16, #19).</li>
+<li><strong>Settings</strong>: the Shabbat reminder option now says reminders are sent before candle lighting (#18); reminder time without seconds and clearer units (#30).</li>
+<li><strong>Robustness</strong>: reminder buttons only act on real dates (#7); NaN / Infinity inputs give a field error instead of a crash (#8); "upcoming" cuts to the limit before building items (#12).</li>
+<li><strong>Hebrew in English titles</strong>: family names are isolated so they keep their order (#32). Note: sensor states such as <code>sensor.good_days_next_family_date</code> now contain invisible direction marks around names; an automation comparing that state to a plain string must strip them.</li>
+<li><strong>New</strong>: <code>sensor.good_days_next_candle_lighting</code> stays; new websocket <code>good_days/entries</code>; <code>good_days/upcoming</code> returns the effective <code>categories</code>.</li>
+</ul>
+<h2 id="v050-2026-09-30">v0.5.0 (2026-09-30)<a class="headerlink" href="#v050-2026-09-30" title="Permanent link">&para;</a></h2>
+<p>Shabbat timers.</p>
+<ul>
+<li>New <strong>Shabbat timers</strong> tab in the panel: turn devices on / off around candle lighting and havdalah, or at a time on each holy day (every day / first / last / Erev); applies to Shabbat, Yom Tov and / or Yom Kippur; multi-day Chag + Shabbat handled as one stretch.</li>
+<li>Conditions per timer (Home Assistant conditions, checked when it fires), profiles with an active-profile select (new profile can copy another), duplicate, presets (hot plate, urn, evening / morning lights, AC), run now.</li>
+<li>Preview (dry run) of the next Shabbat / Chag with exact times, before-candle-lighting / after-havdalah marks and conflict reports; history of the last 100 runs.</li>
+<li>Fires once and never fights a manual change; after a restart, actions up to 10 minutes late still run, older ones are logged as missed.</li>
+<li>Entities: <code>switch.good_days_shabbat_timers</code>, <code>switch.good_days_skip_next_shabbat_or_chag</code>, <code>select.good_days_timer_profile</code>, <code>sensor.good_days_next_timer_action</code>.</li>
+<li>Changing timers needs an admin; everyone can see them.</li>
+<li>Source files now use escape sequences for bidi isolates (they held the invisible characters); a test enforces it.</li>
+</ul>
+<h2 id="v040-2026-09-30">v0.4.0 (2026-09-30)<a class="headerlink" href="#v040-2026-09-30" title="Permanent link">&para;</a></h2>
+<p>Torah details, calendar subscription, polish.</p>
+<ul>
+<li>Special Shabbatot computed from the Hebrew calendar (Adar II in leap years, Chazon on Tisha B'Av when it falls on Shabbat): Shuva, Shekalim, Zachor, Parah, HaChodesh, HaGadol, Chazon, Nachamu, Shira, Rosh Chodesh, Chanukah, Chol HaMoed in the Shabbat title ("Shabbat Parashat Mishpatim (Shekalim)"); Mevarchim Chodesh and Machar Chodesh in the details. New <code>special_shabbat</code> attribute on <code>sensor.good_days_next_shabbat</code>; Assist reads the full title.</li>
+<li>Calendar subscription: private ICS link of family dates (optionally Shabbat and holidays) for Google Calendar / phones, managed by admins in the panel (on / off, include holidays, new link). Off by default.</li>
+<li>Panel: date rows no longer squeeze names on phones.</li>
+<li>New <code>sensor.good_days_next_candle_lighting</code> (Shabbat or Yom Tov). The blueprint now uses it: before, Shabbat was missed when an all-day event (Chanukah, a Friday fast, Chol HaMoed) was on the calendar that Friday. Re-import the blueprint.</li>
+<li>Reminders due on Shabbat / Yom Tov are sent an hour before candle lighting (before: held until havdalah, and lost when the date itself had ended by then).</li>
+<li>Yahrzeit that begins on Shabbat / Yom Tov: "light before candle lighting" (was: before sunset, which is already Shabbat); begins as Shabbat ends: "light after havdalah". Evening reminders say "Tonight".</li>
+<li>30 Adar I in a plain year falls on 30 Shvat (first day of Rosh Chodesh Adar), not 1 Nisan.</li>
+<li>A calendar failing with any error (timeouts, CalDAV) no longer blanks the card; it is listed as unreadable.</li>
+<li>Card: refreshes arriving during a fetch are no longer dropped; all-day items use the display time zone (were off by hours when browser and server zones differ).</li>
+<li>Panel: date converter ignores stale answers. ICS: bare carriage returns escaped; feed cached per day.</li>
+</ul>
+<h2 id="v030-2026-09-30">v0.3.0 (2026-09-30)<a class="headerlink" href="#v030-2026-09-30" title="Permanent link">&para;</a></h2>
+<p>Reminders, Assist, blueprint.</p>
+<ul>
+<li>Family-date reminders: notify targets, reminder time, per-date days before (on the day, 1 / 3 / 7 days in the panel). A yahrzeit's "on the day" is the evening it begins, an hour before sunset, with the candle time in the message. Phones get <strong>Got it</strong> / <strong>Remind me tomorrow</strong> buttons. Reminders due on Shabbat or Yom Tov wait until after havdalah (option). Sent reminders are remembered across restarts; no burst of old reminders on first run.</li>
+<li><code>good_days_reminder</code> event for automations.</li>
+<li>Assist intents <code>GoodDaysUpcoming</code>, <code>GoodDaysNextHoliday</code>, <code>GoodDaysShabbatTimes</code> with ready-made English and Hebrew sentences (<code>docs/assist</code>).</li>
+<li>Blueprint: lights on before candle lighting, optionally off after havdalah.</li>
+<li>Times now always use sea-level sunset, like printed calendars. hdate 1.2 (Home Assistant 2026.9+) would otherwise add the elevation and move candle lighting about 3 minutes later in Jerusalem. The elevation field was removed from the settings.</li>
+</ul>
+<h2 id="v020-2026-09-30">v0.2.0 (2026-09-30)<a class="headerlink" href="#v020-2026-09-30" title="Permanent link">&para;</a></h2>
+<p>Family dates by Hebrew date.</p>
+<ul>
+<li>Birthdays, yahrzeits, anniversaries and other dates that repeat by Hebrew date, stored per instance.</li>
+<li>Rules per date: plain Adar in a leap year (defaults: birthdays Adar II, yahrzeits Adar I; or Adar I / Adar II / both), Adar I / II dates in plain years, missing 30 Cheshvan / Kislev / Adar I (1st of next month or 29th).</li>
+<li>Yahrzeits are timed events from sunset the evening before to sunset; others all-day. Age / number of years when the Hebrew year is known.</li>
+<li><code>calendar.good_days_family</code>, <code>sensor.good_days_next_family_date</code>.</li>
+<li>Sidebar panel <strong>Good Days</strong>: list with next occurrence and countdown, add / edit dialog (Hebrew or Gregorian date with after-sunset converter), delete confirmation, inline validation matching the server, en/he RTL, keyboard and screen-reader friendly.</li>
+<li>Services <code>add_date</code>, <code>update_date</code>, <code>remove_date</code>, <code>list_dates</code>; WebSocket <code>good_days/dates/*</code>.</li>
+<li>Card: family dates merged by default (category <code>family</code>), kind icons, "falls on Shabbat" badge for family dates too.</li>
+<li>Hebrew dates write Adar I / II with a geresh (אדר א׳ / אדר ב׳).</li>
+</ul>
+<h2 id="v011-2026-09-30">v0.1.1 (2026-09-30)<a class="headerlink" href="#v011-2026-09-30" title="Permanent link">&para;</a></h2>
+<ul>
+<li>CI: HACS validation skipped while the repository is private (it downloads files unauthenticated). No functional changes.</li>
+</ul>
+<h2 id="v010-2026-09-30">v0.1.0 (2026-09-30)<a class="headerlink" href="#v010-2026-09-30" title="Permanent link">&para;</a></h2>
+<p>First release.</p>
+<ul>
+<li>Holiday engine on <code>hdate</code> (offline): Shabbat and Yom Tov as timed periods (candle lighting to havdalah, adjacent days merged), other holidays as all-day spans (Chanukah, Chol HaMoed, Rosh Chodesh named by month). Israel or diaspora. Works with hdate 1.1.2 and 1.2.x.</li>
+<li><code>calendar.good_days_holidays</code> with category filter; ranges outside the cached window are computed on demand.</li>
+<li>Sensors <code>next_shabbat</code> (timestamp, havdalah, parasha, days until, in effect) and <code>next_holiday</code>; binary sensor <code>holiday_today</code>.</li>
+<li>WebSocket <code>good_days/upcoming</code>: holidays merged with external calendars (<code>calendar.get_events</code>), sorted, limited, with Hebrew date, in-effect and Shabbat-conflict flags; unreadable calendars reported, not fatal.</li>
+<li>Config flow with server-side validation; defaults copied once from the core Jewish Calendar entry if present. Options flow (location, offsets, language, categories, look-ahead) merges into existing options.</li>
+<li><code>custom:good-days-card</code>: day groups with Hebrew dates, countdown chips, candle lighting, Now banner during Shabbat / Yom Tov, expandable details, compact one-line variant, visual editor, en/he with RTL, keyboard focus kept across refreshes. Auto-registered as a Lovelace resource.</li>
+<li>English and Hebrew translations generated from one table (<code>scripts/gen_strings.py</code>).</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  חזרה למעלה
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      MIT license. Good Days by Bar Eli.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u05d4\u05d5\u05e2\u05ea\u05e7 \u05dc\u05dc\u05d5\u05d7", "clipboard.copy": "\u05d4\u05e2\u05ea\u05e7\u05d4 \u05dc\u05dc\u05d5\u05d7", "search.result.more.one": "\u05e2\u05d5\u05d3 \u05d0\u05d7\u05d3 \u05d1\u05d3\u05e3 \u05d4\u05d6\u05d4", "search.result.more.other": "\u05e2\u05d5\u05d3 # \u05d1\u05d3\u05e3 \u05d4\u05d6\u05d4", "search.result.none": "\u05d0\u05d9\u05df \u05de\u05e1\u05de\u05db\u05d9\u05dd \u05ea\u05d5\u05d0\u05de\u05d9\u05dd", "search.result.one": "\u05de\u05e1\u05de\u05da1 \u05ea\u05d5\u05d0\u05dd", "search.result.other": "# \u05de\u05e1\u05de\u05da \u05ea\u05d5\u05d0\u05dd", "search.result.placeholder": "\u05d9\u05e9 \u05dc\u05d4\u05e7\u05dc\u05d9\u05d3 \u05db\u05d3\u05d9 \u05dc\u05d4\u05ea\u05d7\u05d9\u05dc \u05dc\u05d7\u05e4\u05e9", "search.result.term.missing": "\u05d7\u05e1\u05e8", "select.version": "\u05d1\u05d7\u05d9\u05e8\u05ea \u05d2\u05e8\u05e1\u05d4"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
